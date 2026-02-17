@@ -1,0 +1,83 @@
+# ==============================
+# Root .gitignore - Smart Attendance Platform
+# ==============================
+
+# -------- IDE & Editors --------
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# -------- OS Files --------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# -------- Environment & Secrets --------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.jks
+*-credentials.json
+*-secret.json
+google-credentials.json
+service-account*.json
+
+# ==============================
+# Backend (Java / Maven / Spring Boot)
+# ==============================
+
+# Build output
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# Spring Boot
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-secret.yml
+
+# Logs
+backend/logs/
+backend/*.log
+
+# ==============================
+# Frontend (Angular / Node.js)
+# ==============================
+
+# Dependencies
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+frontend/tmp/
+frontend/out-tsc/
+frontend/bazel-out/
+
+# Angular cache
+frontend/.angular/
+
+# Testing
+frontend/coverage/
+
+# Debug logs
+frontend/npm-debug.log
+frontend/yarn-error.log
+
+# Misc
+frontend/.sass-cache/
+frontend/connect.lock
+frontend/libpeerconnection.log
+frontend/testem.log
+frontend/typings/
