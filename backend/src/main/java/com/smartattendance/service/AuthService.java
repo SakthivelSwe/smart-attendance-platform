@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,9 @@ public class AuthService {
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
+
+    @Value("${app.admin.emails:}")
+    private String adminEmails;
 
     public AuthResponse authenticateWithGoogle(AuthRequest request) {
         try {
@@ -49,12 +54,25 @@ public class AuthService {
             String pictureUrl = (String) payload.get("picture");
             String googleId = payload.getSubject();
 
+            // Determine role based on admin email list
+            List<String> adminEmailList = Arrays.stream(adminEmails.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            boolean isAdmin = adminEmailList.contains(email);
+            UserRole assignedRole = isAdmin ? UserRole.ADMIN : UserRole.USER;
+
             // Find or create user
             User user = userRepository.findByEmail(email)
                     .map(existingUser -> {
                         existingUser.setName(name);
                         existingUser.setAvatarUrl(pictureUrl);
                         existingUser.setGoogleId(googleId);
+                        // Promote to ADMIN if in admin list
+                        if (isAdmin && existingUser.getRole() != UserRole.ADMIN) {
+                            existingUser.setRole(UserRole.ADMIN);
+                            logger.info("Promoted user {} to ADMIN role", email);
+                        }
                         return userRepository.save(existingUser);
                     })
                     .orElseGet(() -> {
@@ -63,9 +81,10 @@ public class AuthService {
                                 .name(name)
                                 .googleId(googleId)
                                 .avatarUrl(pictureUrl)
-                                .role(UserRole.USER) // Default role
+                                .role(assignedRole)
                                 .isActive(true)
                                 .build();
+                        logger.info("Created new user {} with role {}", email, assignedRole);
                         return userRepository.save(newUser);
                     });
 
