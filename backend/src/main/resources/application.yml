@@ -67,6 +67,9 @@ app:
     credentials-path: ${GMAIL_CREDENTIALS_PATH:}
     application-name: Smart Attendance Platform
 
+  admin:
+    emails: ${ADMIN_EMAILS:sakthiveltony@gmail.com}
+
   cors:
     allowed-origins: ${CORS_ORIGINS:https://smart-attendance-automation.netlify.app,http://localhost:4200,http://localhost:3000}
 
