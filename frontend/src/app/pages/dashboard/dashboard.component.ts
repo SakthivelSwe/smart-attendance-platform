@@ -84,17 +84,21 @@ import { DashboardStats } from '../../core/models/interfaces';
       <!-- Quick actions -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Attendance overview -->
+        <!-- Attendance overview -->
         <div class="card p-6">
-          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Today's Breakdown</h3>
-          <div class="space-y-4">
-            <div *ngFor="let bar of attendanceBars" class="space-y-2">
-              <div class="flex justify-between text-sm">
-                <span class="text-[var(--text-secondary)]">{{ bar.label }}</span>
-                <span class="font-medium text-[var(--text-primary)]">{{ bar.value }}</span>
+          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-6">Today's Breakdown</h3>
+          <div class="space-y-6">
+            <div *ngFor="let bar of attendanceBars" class="space-y-2 group">
+              <div class="flex justify-between text-sm items-center">
+                <span class="text-[var(--text-secondary)] font-medium">{{ bar.label }}</span>
+                <div class="flex items-center gap-2">
+                   <span class="font-bold text-[var(--text-primary)]">{{ bar.value }}</span>
+                   <span class="text-xs text-[var(--text-secondary)]">({{ bar.percent | number:'1.0-1' }}%)</span>
+                </div>
               </div>
-              <div class="h-2.5 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-1000 ease-out"
-                     [class]="bar.color"
+              <div class="h-3 bg-surface-100 dark:bg-surface-700/50 rounded-full overflow-hidden shadow-inner">
+                <div class="h-full rounded-full transition-all duration-1000 ease-out group-hover:brightness-110"
+                     [className]="bar.color + ' h-full rounded-full'"
                      [style.width.%]="bar.percent">
                 </div>
               </div>
@@ -155,11 +159,17 @@ export class DashboardComponent implements OnInit {
   get attendanceBars() {
     if (!this.stats || !this.stats.totalEmployees) return [];
     const total = this.stats.totalEmployees;
+
+    const wfoPercent = (this.stats.wfoToday / total) * 100;
+    const wfhPercent = (this.stats.wfhToday / total) * 100;
+    const leavePercent = (this.stats.onLeaveToday / total) * 100;
+    const absentPercent = (this.stats.absentToday / total) * 100;
+
     return [
-      { label: 'Work From Office', value: this.stats.wfoToday, percent: (this.stats.wfoToday / total) * 100, color: 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/20' },
-      { label: 'Work From Home', value: this.stats.wfhToday, percent: (this.stats.wfhToday / total) * 100, color: 'bg-gradient-to-r from-blue-500 to-indigo-400 shadow-sm shadow-blue-500/20' },
-      { label: 'On Leave', value: this.stats.onLeaveToday, percent: (this.stats.onLeaveToday / total) * 100, color: 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-sm shadow-amber-500/20' },
-      { label: 'Absent', value: this.stats.absentToday, percent: (this.stats.absentToday / total) * 100, color: 'bg-gradient-to-r from-red-500 to-rose-400 shadow-sm shadow-red-500/20' },
+      { label: 'Work From Office', value: this.stats.wfoToday, percent: wfoPercent, color: 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-emerald-500/20 shadow-lg' },
+      { label: 'Work From Home', value: this.stats.wfhToday, percent: wfhPercent, color: 'bg-gradient-to-r from-blue-500 to-indigo-400 shadow-blue-500/20 shadow-lg' },
+      { label: 'On Leave', value: this.stats.onLeaveToday, percent: leavePercent, color: 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-amber-500/20 shadow-lg' },
+      { label: 'Absent', value: this.stats.absentToday, percent: absentPercent, color: 'bg-gradient-to-r from-red-500 to-rose-400 shadow-red-500/20 shadow-lg' },
     ];
   }
 
