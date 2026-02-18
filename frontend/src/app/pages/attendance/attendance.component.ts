@@ -72,38 +72,64 @@ import { Attendance } from '../../core/models/interfaces';
       </div>
 
       <!-- Table -->
-      <div class="table-container">
+      <div class="glass-card overflow-hidden border-0">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
-              <tr class="table-header">
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Employee</th>
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Code</th>
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">In Time</th>
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Out Time</th>
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Status</th>
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Source</th>
-                <th class="text-left px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Remarks</th>
+              <tr class="bg-white/50 dark:bg-surface-800/40 backdrop-blur-md border-b border-[var(--border-color)]">
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Employee</th>
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Code</th>
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">In Time</th>
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Out Time</th>
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Status</th>
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Source</th>
+                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Remarks</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border-color)]">
-              <tr *ngFor="let a of filteredAttendance" class="hover:bg-surface-50 dark:hover:bg-surface-800/50 transition">
-                <td class="px-6 py-4 text-sm font-medium text-[var(--text-primary)]">{{ a.employeeName }}</td>
-                <td class="px-6 py-4 text-sm text-[var(--text-secondary)]">{{ a.employeeCode }}</td>
-                <td class="px-6 py-4 text-sm text-[var(--text-secondary)]">{{ a.inTime || '—' }}</td>
-                <td class="px-6 py-4 text-sm text-[var(--text-secondary)]">{{ a.outTime || '—' }}</td>
+              <tr *ngFor="let a of filteredAttendance; let i = index" 
+                  class="group hover:bg-white/40 dark:hover:bg-surface-700/40 transition-all duration-200 animate-slide-up"
+                  [style.animation-delay]="i * 50 + 'ms'">
                 <td class="px-6 py-4">
-                  <span [class]="getStatusBadge(a.status)">{{ a.status }}</span>
+                   <div class="flex items-center gap-3">
+                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-primary-500/20">
+                       {{ a.employeeName.charAt(0) }}
+                     </div>
+                     <span class="font-semibold text-[var(--text-primary)] group-hover:text-primary-600 transition-colors">{{ a.employeeName }}</span>
+                   </div>
                 </td>
-                <td class="px-6 py-4 text-sm text-[var(--text-secondary)]">{{ a.source || '—' }}</td>
+                <td class="px-6 py-4 text-sm text-[var(--text-secondary)] font-mono">{{ a.employeeCode }}</td>
+                <td class="px-6 py-4 text-sm font-medium" [ngClass]="a.inTime ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-secondary)]'">
+                  {{ a.inTime || '—' }}
+                </td>
+                <td class="px-6 py-4 text-sm font-medium" [ngClass]="a.outTime ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-secondary)]'">
+                  {{ a.outTime || '—' }}
+                </td>
+                <td class="px-6 py-4">
+                  <span [class]="getStatusBadge(a.status)" 
+                        class="shadow-sm transition-transform group-hover:scale-105">
+                    {{ a.status }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm">
+                  <span class="px-2 py-0.5 rounded-md text-xs font-medium" 
+                        [ngClass]="a.source === 'WHATSAPP' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'">
+                    {{ a.source || '—' }}
+                  </span>
+                </td>
                 <td class="px-6 py-4 text-sm text-[var(--text-secondary)] max-w-[200px] truncate">{{ a.remarks || '—' }}</td>
               </tr>
               <tr *ngIf="filteredAttendance.length === 0">
                 <td colspan="7" class="px-6 py-12 text-center text-[var(--text-secondary)]">
-                  <svg class="w-12 h-12 mx-auto mb-3 text-surface-300 dark:text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                  </svg>
-                  No attendance records found for this date
+                  <div class="flex flex-col items-center animate-fade-in">
+                    <div class="w-16 h-16 bg-surface-100 dark:bg-surface-800 rounded-full flex items-center justify-center mb-4">
+                      <svg class="w-8 h-8 text-surface-400 dark:text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                    </div>
+                    <p class="text-lg font-medium">No records found</p>
+                    <p class="text-sm opacity-70">Try selecting a different date or filter</p>
+                  </div>
                 </td>
               </tr>
             </tbody>
