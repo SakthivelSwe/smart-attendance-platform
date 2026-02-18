@@ -75,5 +75,5 @@ app:
 
 logging:
   level:
-    com.smartattendance: DEBUG
-    org.springframework.security: INFO
+    com.smartattendance: INFO
+    org.springframework.security: WARN
