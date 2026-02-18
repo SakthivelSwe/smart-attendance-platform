@@ -19,6 +19,7 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final GroupRepository groupRepository;
+    private final AttendanceService attendanceService;
 
     public List<EmployeeDTO> getAllEmployees() {
         return employeeRepository.findAll().stream()
@@ -66,6 +67,10 @@ public class EmployeeService {
         }
 
         Employee saved = employeeRepository.save(employee);
+
+        // Match existing unmapped logs for this new employee
+        attendanceService.processUnmappedLogsForEmployee(saved);
+
         return toDTO(saved);
     }
 
@@ -90,6 +95,10 @@ public class EmployeeService {
         }
 
         Employee saved = employeeRepository.save(employee);
+
+        // Re-match unmapped logs if name/phone changed
+        attendanceService.processUnmappedLogsForEmployee(saved);
+
         return toDTO(saved);
     }
 

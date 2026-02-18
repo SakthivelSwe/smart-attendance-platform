@@ -1,8 +1,6 @@
 package com.smartattendance.service;
 
 import com.smartattendance.dto.AttendanceDTO;
-import com.smartattendance.entity.AttendanceGroup;
-import com.smartattendance.repository.GroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,56 +16,66 @@ public class AttendanceScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(AttendanceScheduler.class);
 
-    private final GmailService gmailService;
     private final AttendanceService attendanceService;
     private final EmailNotificationService emailNotificationService;
-    private final GroupRepository groupRepository;
+    private final SystemSettingService systemSettingService;
+    private final GmailService gmailService;
 
     /**
-     * Daily scheduled job to process attendance.
-     * Runs at 7:00 PM IST every day (Mon-Sat).
+     * Weekday morning processing - Monday to Friday at 6:00 AM IST.
      */
-    @Scheduled(cron = "0 0 19 * * MON-SAT", zone = "Asia/Kolkata")
-    public void processDaily() {
-        logger.info("=== Starting scheduled daily attendance processing ===");
+    @Scheduled(cron = "0 0 6 * * MON-FRI", zone = "Asia/Kolkata")
+    public void processWeekdays() {
+        logger.info("=== Starting scheduled Weekday Morning attendance processing (6 AM) ===");
+        runAutomaticProcess();
+    }
+
+    /**
+     * Saturday evening processing - Saturdays at 7:00 PM IST.
+     */
+    @Scheduled(cron = "0 0 19 * * SAT", zone = "Asia/Kolkata")
+    public void processSaturday() {
+        logger.info("=== Starting scheduled Saturday Evening attendance processing (7 PM) ===");
+        runAutomaticProcess();
+    }
+
+    private void runAutomaticProcess() {
         LocalDate today = LocalDate.now();
+        String email = systemSettingService.getGmailEmail();
+        String password = systemSettingService.getGmailPassword();
+
+        if (email == null || password == null) {
+            logger.warn("Automatic processing skipped: Gmail credentials not configured in System Settings.");
+            return;
+        }
 
         try {
-            if (gmailService.isConfigured()) {
-                // Auto-process from Gmail for each active group
-                List<AttendanceGroup> groups = groupRepository.findByIsActiveTrue();
-                for (AttendanceGroup group : groups) {
-                    try {
-                        String chatText = gmailService.fetchLatestAttendanceEmail(
-                                group.getEmailSubjectPattern());
-                        if (chatText != null) {
-                            attendanceService.processWhatsAppAttendance(chatText, today);
-                            logger.info("Processed attendance for group: {}", group.getName());
-                        }
-                    } catch (Exception e) {
-                        logger.error("Error processing group {}: {}", group.getName(), e.getMessage());
-                    }
-                }
+            logger.info("Automatically fetching WhatsApp attendance for {}", today);
+            // Default subject pattern for WhatsApp exports
+            String subjectPattern = "WhatsApp Chat with %";
+
+            String chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
+
+            if (chatText != null && !chatText.isBlank()) {
+                attendanceService.processWhatsAppAttendance(chatText, today);
+                logger.info("Automatically processed attendance from email for {}", today);
             } else {
-                logger.info("Gmail not configured. Waiting for manual processing.");
+                logger.info("No attendance email found for {}", today);
             }
 
             // Send daily summary email
             List<AttendanceDTO> todayAttendance = attendanceService.getAttendanceByDate(today);
             if (!todayAttendance.isEmpty()) {
                 try {
-                    emailNotificationService.sendDailySummaryEmail(todayAttendance, today, "admin@smartattendance.com");
+                    emailNotificationService.sendDailySummaryEmail(todayAttendance, today, email);
                 } catch (Exception ex) {
                     logger.warn("Failed to send daily summary email: {}", ex.getMessage());
                 }
-                logger.info("Daily attendance processed: {} records for {}", todayAttendance.size(), today);
             }
 
         } catch (Exception e) {
-            logger.error("Error in daily attendance processing: {}", e.getMessage(), e);
+            logger.error("Error in automatic attendance processing: {}", e.getMessage(), e);
         }
-
-        logger.info("=== Daily attendance processing completed ===");
     }
 
     /**
@@ -77,7 +85,6 @@ public class AttendanceScheduler {
     public void generateMonthlySummary() {
         logger.info("=== Generating monthly summary ===");
         LocalDate lastMonth = LocalDate.now().minusMonths(1);
-        // Monthly summary generation would be triggered here
         logger.info("Monthly summary generation triggered for {}/{}", lastMonth.getMonthValue(), lastMonth.getYear());
     }
 }

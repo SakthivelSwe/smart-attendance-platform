@@ -37,7 +37,7 @@ public class HolidayService {
     }
 
     public boolean isHoliday(LocalDate date) {
-        return holidayRepository.existsByDate(date);
+        return holidayRepository.existsByDate(date) || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
     }
 
     @Transactional

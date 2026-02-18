@@ -29,7 +29,7 @@ public class GroupController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GroupDTO> getGroup(@PathVariable Long id) {
+    public ResponseEntity<GroupDTO> getGroup(@PathVariable("id") Long id) {
         return ResponseEntity.ok(groupService.getGroupById(id));
     }
 
@@ -41,13 +41,13 @@ public class GroupController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GroupDTO> updateGroup(@PathVariable Long id, @Valid @RequestBody GroupDTO dto) {
+    public ResponseEntity<GroupDTO> updateGroup(@PathVariable("id") Long id, @Valid @RequestBody GroupDTO dto) {
         return ResponseEntity.ok(groupService.updateGroup(id, dto));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteGroup(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteGroup(@PathVariable("id") Long id) {
         groupService.deleteGroup(id);
         return ResponseEntity.noContent().build();
     }
