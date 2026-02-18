@@ -61,7 +61,6 @@ public class AttendanceService {
      * Process WhatsApp chat text and create attendance records.
      * Processes ALL dates found in the chat text.
      */
-    @Transactional
     public List<AttendanceDTO> processWhatsAppAttendance(String chatText, LocalDate targetDate) {
         logger.info("Processing WhatsApp attendance. Target date provided: {}", targetDate);
 
@@ -93,9 +92,14 @@ public class AttendanceService {
             java.util.Set<String> matchedKeys = new java.util.HashSet<>();
 
             // PRE-FETCH: Get all existing attendance and leaves for this date in bulk
-            List<Attendance> existingDaily = attendanceRepository.findByDate(date);
-            Map<Long, Attendance> employeeAttendanceMap = existingDaily.stream()
-                    .collect(Collectors.toMap(a -> a.getEmployee().getId(), a -> a, (a1, a2) -> a1));
+            // Use findWithEmployeeByDate to eagerly fetch employee associations
+            List<Attendance> existingDaily = attendanceRepository.findWithEmployeeByDate(date);
+            Map<Long, Attendance> employeeAttendanceMap = new java.util.HashMap<>();
+            for (Attendance a : existingDaily) {
+                if (a.getEmployee() != null) {
+                    employeeAttendanceMap.put(a.getEmployee().getId(), a);
+                }
+            }
 
             java.util.Set<Long> leafEmployeeIds = leaveService.getEmployeeIdsOnApprovedLeaveForDate(date);
             boolean isHoliday = holidayService.isHoliday(date);
