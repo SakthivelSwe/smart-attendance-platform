@@ -34,25 +34,25 @@ public class AttendanceService {
     private final WhatsAppLogRepository whatsAppLogRepository;
 
     public List<AttendanceDTO> getAttendanceByDate(LocalDate date) {
-        return attendanceRepository.findByDate(date).stream()
+        return attendanceRepository.findWithEmployeeByDate(date).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<AttendanceDTO> getAttendanceByEmployee(Long employeeId) {
-        return attendanceRepository.findByEmployeeId(employeeId).stream()
+        return attendanceRepository.findWithEmployeeByEmployeeId(employeeId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<AttendanceDTO> getAttendanceByEmployeeAndDateRange(Long employeeId, LocalDate start, LocalDate end) {
-        return attendanceRepository.findByEmployeeIdAndDateBetween(employeeId, start, end).stream()
+        return attendanceRepository.findWithEmployeeByEmployeeIdAndDateRange(employeeId, start, end).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<AttendanceDTO> getAttendanceByDateRange(LocalDate start, LocalDate end) {
-        return attendanceRepository.findByDateBetween(start, end).stream()
+        return attendanceRepository.findWithEmployeeByDateRange(start, end).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }

@@ -13,6 +13,15 @@ import java.util.List;
 @Repository
 public interface LeaveRepository extends JpaRepository<Leave, Long> {
 
+        @Query("SELECT l FROM Leave l JOIN FETCH l.employee e LEFT JOIN FETCH e.group")
+        List<Leave> findAllWithEmployee();
+
+        @Query("SELECT l FROM Leave l JOIN FETCH l.employee e LEFT JOIN FETCH e.group WHERE l.employee.id = :employeeId")
+        List<Leave> findWithEmployeeByEmployeeId(@Param("employeeId") Long employeeId);
+
+        @Query("SELECT l FROM Leave l JOIN FETCH l.employee e LEFT JOIN FETCH e.group WHERE l.status = :status")
+        List<Leave> findWithEmployeeByStatus(@Param("status") LeaveStatus status);
+
         List<Leave> findByEmployeeId(Long employeeId);
 
         List<Leave> findByStatus(LeaveStatus status);

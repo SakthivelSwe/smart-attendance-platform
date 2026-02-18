@@ -19,6 +19,19 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
         @Query("SELECT a FROM Attendance a LEFT JOIN FETCH a.employee WHERE a.date = :date")
         List<Attendance> findWithEmployeeByDate(@Param("date") LocalDate date);
 
+        @Query("SELECT a FROM Attendance a JOIN FETCH a.employee e LEFT JOIN FETCH e.group WHERE a.employee.id = :employeeId")
+        List<Attendance> findWithEmployeeByEmployeeId(@Param("employeeId") Long employeeId);
+
+        @Query("SELECT a FROM Attendance a JOIN FETCH a.employee e LEFT JOIN FETCH e.group WHERE a.employee.id = :employeeId "
+                        +
+                        "AND a.date >= :startDate AND a.date <= :endDate")
+        List<Attendance> findWithEmployeeByEmployeeIdAndDateRange(@Param("employeeId") Long employeeId,
+                        @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+        @Query("SELECT a FROM Attendance a JOIN FETCH a.employee e LEFT JOIN FETCH e.group WHERE a.date >= :startDate AND a.date <= :endDate")
+        List<Attendance> findWithEmployeeByDateRange(@Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
+
         List<Attendance> findByDate(LocalDate date);
 
         List<Attendance> findByEmployeeId(Long employeeId);

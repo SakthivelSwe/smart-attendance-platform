@@ -16,11 +16,22 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByWhatsappName(String whatsappName);
 
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group")
+    List<Employee> findAllWithGroup();
+
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group WHERE e.isActive = true")
+    List<Employee> findByIsActiveTrueWithGroup();
+
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group WHERE e.group.id = :groupId")
+    List<Employee> findByGroupIdWithGroup(@Param("groupId") Long groupId);
+
     List<Employee> findByGroupId(Long groupId);
 
     List<Employee> findByIsActiveTrue();
 
-    @Query("SELECT e FROM Employee e WHERE e.group.id = :groupId AND e.isActive = true")
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group WHERE e.group.id = :groupId AND e.isActive = true")
+    List<Employee> findActiveByGroupIdWithGroup(@Param("groupId") Long groupId);
+
     List<Employee> findActiveByGroupId(@Param("groupId") Long groupId);
 
     Optional<Employee> findByUserId(Long userId);
