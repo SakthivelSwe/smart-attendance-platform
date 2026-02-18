@@ -6,10 +6,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { Employee, Group } from '../../core/models/interfaces';
 
 @Component({
-    selector: 'app-employees',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-employees',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -36,8 +36,9 @@ import { Employee, Group } from '../../core/models/interfaces';
         <div *ngFor="let emp of filteredEmployees" class="card p-5 hover:shadow-card-hover">
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm">
-                {{ emp.name.charAt(0) }}{{ emp.name.split(' ')[1]?.charAt(0) || '' }}
+                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold shrink-0">
+                  {{ emp.name.charAt(0) }}
+                </div>
               </div>
               <div>
                 <p class="font-semibold text-[var(--text-primary)]">{{ emp.name }}</p>
@@ -46,7 +47,6 @@ import { Employee, Group } from '../../core/models/interfaces';
             </div>
             <span *ngIf="emp.isActive" class="badge-approved">Active</span>
             <span *ngIf="!emp.isActive" class="badge-absent">Inactive</span>
-          </div>
 
           <div class="space-y-2 text-sm text-[var(--text-secondary)]">
             <div class="flex items-center gap-2">
@@ -130,56 +130,56 @@ import { Employee, Group } from '../../core/models/interfaces';
   `
 })
 export class EmployeesComponent implements OnInit {
-    employees: Employee[] = [];
-    groups: Group[] = [];
-    searchTerm = '';
-    showModal = false;
-    editingId: number | null = null;
-    form: Partial<Employee> = {};
+  employees: Employee[] = [];
+  groups: Group[] = [];
+  searchTerm = '';
+  showModal = false;
+  editingId: number | null = null;
+  form: Partial<Employee> = {};
 
-    constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService) { }
 
-    ngOnInit() {
-        this.loadEmployees();
-        this.api.getGroups().subscribe(g => this.groups = g);
+  ngOnInit() {
+    this.loadEmployees();
+    this.api.getGroups().subscribe(g => this.groups = g);
+  }
+
+  loadEmployees() {
+    this.api.getEmployees().subscribe(data => this.employees = data);
+  }
+
+  get filteredEmployees() {
+    if (!this.searchTerm) return this.employees;
+    const s = this.searchTerm.toLowerCase();
+    return this.employees.filter(e =>
+      e.name.toLowerCase().includes(s) ||
+      e.email.toLowerCase().includes(s) ||
+      e.employeeCode?.toLowerCase().includes(s)
+    );
+  }
+
+  openModal() {
+    this.editingId = null;
+    this.form = {};
+    this.showModal = true;
+  }
+
+  editEmployee(emp: Employee) {
+    this.editingId = emp.id;
+    this.form = { ...emp };
+    this.showModal = true;
+  }
+
+  saveEmployee() {
+    const obs = this.editingId
+      ? this.api.updateEmployee(this.editingId, this.form)
+      : this.api.createEmployee(this.form);
+    obs.subscribe({ next: () => { this.showModal = false; this.loadEmployees(); } });
+  }
+
+  deleteEmployee(id: number) {
+    if (confirm('Are you sure you want to deactivate this employee?')) {
+      this.api.deleteEmployee(id).subscribe(() => this.loadEmployees());
     }
-
-    loadEmployees() {
-        this.api.getEmployees().subscribe(data => this.employees = data);
-    }
-
-    get filteredEmployees() {
-        if (!this.searchTerm) return this.employees;
-        const s = this.searchTerm.toLowerCase();
-        return this.employees.filter(e =>
-            e.name.toLowerCase().includes(s) ||
-            e.email.toLowerCase().includes(s) ||
-            e.employeeCode?.toLowerCase().includes(s)
-        );
-    }
-
-    openModal() {
-        this.editingId = null;
-        this.form = {};
-        this.showModal = true;
-    }
-
-    editEmployee(emp: Employee) {
-        this.editingId = emp.id;
-        this.form = { ...emp };
-        this.showModal = true;
-    }
-
-    saveEmployee() {
-        const obs = this.editingId
-            ? this.api.updateEmployee(this.editingId, this.form)
-            : this.api.createEmployee(this.form);
-        obs.subscribe({ next: () => { this.showModal = false; this.loadEmployees(); } });
-    }
-
-    deleteEmployee(id: number) {
-        if (confirm('Are you sure you want to deactivate this employee?')) {
-            this.api.deleteEmployee(id).subscribe(() => this.loadEmployees());
-        }
-    }
+  }
 }
