@@ -22,13 +22,13 @@ public class EmployeeService {
     private final AttendanceService attendanceService;
 
     public List<EmployeeDTO> getAllEmployees() {
-        return employeeRepository.findAll().stream()
+        return employeeRepository.findAllWithGroup().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<EmployeeDTO> getActiveEmployees() {
-        return employeeRepository.findByIsActiveTrue().stream()
+        return employeeRepository.findByIsActiveTrueWithGroup().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -40,7 +40,7 @@ public class EmployeeService {
     }
 
     public List<EmployeeDTO> getEmployeesByGroup(Long groupId) {
-        return employeeRepository.findByGroupId(groupId).stream()
+        return employeeRepository.findByGroupIdWithGroup(groupId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }

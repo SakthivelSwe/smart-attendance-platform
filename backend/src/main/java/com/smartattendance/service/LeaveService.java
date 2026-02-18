@@ -26,19 +26,19 @@ public class LeaveService {
     private final UserRepository userRepository;
 
     public List<LeaveDTO> getAllLeaves() {
-        return leaveRepository.findAll().stream()
+        return leaveRepository.findAllWithEmployee().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<LeaveDTO> getLeavesByEmployee(Long employeeId) {
-        return leaveRepository.findByEmployeeId(employeeId).stream()
+        return leaveRepository.findWithEmployeeByEmployeeId(employeeId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<LeaveDTO> getPendingLeaves() {
-        return leaveRepository.findByStatus(LeaveStatus.PENDING).stream()
+        return leaveRepository.findWithEmployeeByStatus(LeaveStatus.PENDING).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
