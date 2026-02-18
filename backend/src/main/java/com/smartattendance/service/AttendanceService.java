@@ -73,8 +73,8 @@ public class AttendanceService {
             return List.of();
         }
 
-        // Get all active employees once
-        List<Employee> allEmployees = employeeRepository.findByIsActiveTrue();
+        // Get all active employees with their groups once
+        List<Employee> allEmployees = employeeRepository.findByIsActiveTrueWithGroup();
         logger.info("Starting bulk attendance process for {} employees", allEmployees.size());
 
         // Sort dates to process history in order

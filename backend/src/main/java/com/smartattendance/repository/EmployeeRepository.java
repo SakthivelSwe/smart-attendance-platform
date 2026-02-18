@@ -14,6 +14,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Optional<Employee> findByEmail(String email);
 
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group WHERE e.id = :id")
+    Optional<Employee> findByIdWithGroup(@Param("id") Long id);
+
     Optional<Employee> findByWhatsappName(String whatsappName);
 
     @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group")
