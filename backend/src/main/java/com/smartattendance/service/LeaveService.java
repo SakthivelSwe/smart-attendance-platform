@@ -48,6 +48,12 @@ public class LeaveService {
         return leaves.stream().anyMatch(l -> l.getStatus() == LeaveStatus.APPROVED);
     }
 
+    public java.util.Set<Long> getEmployeeIdsOnApprovedLeaveForDate(LocalDate date) {
+        return leaveRepository.findByStatusAndDateOverlap(LeaveStatus.APPROVED, date).stream()
+                .map(l -> l.getEmployee().getId())
+                .collect(Collectors.toSet());
+    }
+
     @Transactional
     public LeaveDTO applyLeave(LeaveDTO dto) {
         Employee employee = employeeRepository.findById(dto.getEmployeeId())

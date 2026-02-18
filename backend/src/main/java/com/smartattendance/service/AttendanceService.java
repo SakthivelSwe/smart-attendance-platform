@@ -74,59 +74,57 @@ public class AttendanceService {
             return List.of();
         }
 
-        // Get all active employees
+        // Get all active employees once
         List<Employee> allEmployees = employeeRepository.findByIsActiveTrue();
+        logger.info("Starting bulk attendance process for {} employees", allEmployees.size());
 
-        // Iterate through each date found in the chat
-        for (Map.Entry<LocalDate, Map<String, WhatsAppParser.AttendanceEntry>> dateEntry : fullAttendanceMap
-                .entrySet()) {
-            LocalDate date = dateEntry.getKey();
-            Map<String, WhatsAppParser.AttendanceEntry> dailyParsed = dateEntry.getValue();
-            java.util.Set<String> matchedKeys = new java.util.HashSet<>();
+        // Sort dates to process history in order
+        List<LocalDate> sortedDates = new java.util.ArrayList<>(fullAttendanceMap.keySet());
+        java.util.Collections.sort(sortedDates);
 
+        for (LocalDate date : sortedDates) {
             // Filter for current year (2026) early to avoid unnecessary DB load
             if (date.getYear() < 2026) {
-                logger.debug("Skipping date {} as it is before 2026", date);
                 continue;
             }
 
-            logger.info("Processing attendance for date: {}", date);
+            logger.info("Processing date: {}...", date);
+            Map<String, WhatsAppParser.AttendanceEntry> dailyParsed = fullAttendanceMap.get(date);
+            java.util.Set<String> matchedKeys = new java.util.HashSet<>();
+
+            // PRE-FETCH: Get all existing attendance and leaves for this date in bulk
+            List<Attendance> existingDaily = attendanceRepository.findByDate(date);
+            Map<Long, Attendance> employeeAttendanceMap = existingDaily.stream()
+                    .collect(Collectors.toMap(a -> a.getEmployee().getId(), a -> a, (a1, a2) -> a1));
+
+            java.util.Set<Long> leafEmployeeIds = leaveService.getEmployeeIdsOnApprovedLeaveForDate(date);
+            boolean isHoliday = holidayService.isHoliday(date);
+
+            List<Attendance> toSave = new java.util.ArrayList<>();
 
             for (Employee employee : allEmployees) {
-                // Determine if we should process this employee/date
-                boolean shouldProcess = true;
-                Attendance existing = null;
+                Attendance existing = employeeAttendanceMap.get(employee.getId());
+                boolean hasWhatsAppSource = existing != null && "WHATSAPP".equals(existing.getSource());
+                boolean isAbsentStatus = existing != null && existing.getStatus() == AttendanceStatus.ABSENT;
 
-                if (attendanceRepository.existsByEmployeeIdAndDate(employee.getId(), date)) {
-                    existing = attendanceRepository.findByEmployeeIdAndDate(employee.getId(), date).orElse(null);
-                    if (existing != null) {
-                        // Only overwrite if it was auto-generated (WHATSAPP) or is currently ABSENT
-                        if ("WHATSAPP".equals(existing.getSource())
-                                || existing.getStatus() == AttendanceStatus.ABSENT) {
-                            shouldProcess = true;
-                        } else {
-                            // Don't overwrite MANUAL or other verified records
-                            shouldProcess = false;
-                        }
-                    }
-                }
-
-                if (!shouldProcess) {
+                // Only overwrite if no record exists, or if the current record is
+                // auto-generated/Absent
+                if (existing != null && !hasWhatsAppSource && !isAbsentStatus) {
                     continue;
                 }
-                AttendanceStatus status;
+
                 WhatsAppParser.AttendanceEntry entry = null;
 
-                // 1. Match by WhatsApp Name (Exact & Normalized)
+                // 1. Match by WhatsApp Name
                 if (employee.getWhatsappName() != null) {
-                    if (dailyParsed.containsKey(employee.getWhatsappName())) {
-                        entry = dailyParsed.get(employee.getWhatsappName());
-                        matchedKeys.add(employee.getWhatsappName());
+                    String waName = employee.getWhatsappName();
+                    if (dailyParsed.containsKey(waName)) {
+                        entry = dailyParsed.get(waName);
+                        matchedKeys.add(waName);
                     } else {
-                        // Try normalized match
-                        String empWaNorm = normalizeName(employee.getWhatsappName());
+                        String norm = normalizeName(waName);
                         for (String key : dailyParsed.keySet()) {
-                            if (normalizeName(key).equals(empWaNorm)) {
+                            if (normalizeName(key).equals(norm)) {
                                 entry = dailyParsed.get(key);
                                 matchedKeys.add(key);
                                 break;
@@ -135,16 +133,16 @@ public class AttendanceService {
                     }
                 }
 
-                // 2. Match by Employee Name (Exact & Normalized)
+                // 2. Match by Employee Name
                 if (entry == null) {
-                    if (dailyParsed.containsKey(employee.getName())) {
-                        entry = dailyParsed.get(employee.getName());
-                        matchedKeys.add(employee.getName());
+                    String name = employee.getName();
+                    if (dailyParsed.containsKey(name)) {
+                        entry = dailyParsed.get(name);
+                        matchedKeys.add(name);
                     } else {
-                        // Try normalized match
-                        String empNameNorm = normalizeName(employee.getName());
+                        String norm = normalizeName(name);
                         for (String key : dailyParsed.keySet()) {
-                            if (normalizeName(key).equals(empNameNorm)) {
+                            if (normalizeName(key).equals(norm)) {
                                 entry = dailyParsed.get(key);
                                 matchedKeys.add(key);
                                 break;
@@ -153,28 +151,25 @@ public class AttendanceService {
                     }
                 }
 
-                // 3. Match by Phone Number (Normalize both sides)
+                // 3. Match by Phone
                 if (entry == null && employee.getPhone() != null && !employee.getPhone().isBlank()) {
                     String empPhone = normalizePhone(employee.getPhone());
-                    if (empPhone.length() >= 5) {
-                        for (String sender : dailyParsed.keySet()) {
-                            String senderNorm = normalizePhone(sender);
-                            if (senderNorm.length() >= 5) {
-                                if (senderNorm.equals(empPhone) || senderNorm.contains(empPhone)
-                                        || empPhone.contains(senderNorm)) {
-                                    entry = dailyParsed.get(sender);
-                                    matchedKeys.add(sender);
-                                    break;
-                                }
-                            }
+                    for (String sender : dailyParsed.keySet()) {
+                        String senderNorm = normalizePhone(sender);
+                        if (senderNorm.length() >= 5
+                                && (senderNorm.equals(empPhone) || senderNorm.contains(empPhone))) {
+                            entry = dailyParsed.get(sender);
+                            matchedKeys.add(sender);
+                            break;
                         }
                     }
                 }
 
-                // Determine status
-                if (holidayService.isHoliday(date)) {
+                // Determine new status
+                AttendanceStatus status;
+                if (isHoliday) {
                     status = AttendanceStatus.HOLIDAY;
-                } else if (leaveService.isOnApprovedLeave(employee.getId(), date)) {
+                } else if (leafEmployeeIds.contains(employee.getId())) {
                     status = AttendanceStatus.LEAVE;
                 } else if (entry != null && entry.getInTime() != null) {
                     status = entry.isWfh() ? AttendanceStatus.WFH : AttendanceStatus.WFO;
@@ -182,64 +177,54 @@ public class AttendanceService {
                     status = AttendanceStatus.ABSENT;
                 }
 
-                // Only save if we have data or if we want to mark absent
-                // If we are strictly processing "found" data, maybe we shouldn't mark everyone
-                // as ABSENT for past dates?
-                // But the requested feature implies "process attendance for these days".
-                // Let's go with saving.
-
-                // SKIP SAVING ABSENT for past dates to avoid cluttering DB with 'Absent' for
-                // dates irrelevant to the export?
-                // No, consistency is good. But creating Absent records for 2 years ago might be
-                // bad.
-                // Let's only save if status is NOT Absent OR if the date is close to
-                // targetDate?
-                // User said "update 01/01/2026 to 18/02/2026".
-                // No longer needed here as it's filtered at the top of the loop
-                // if (date.getYear() < 2026) {
-                // continue;
-                // }
-
+                // Prepare entity
                 if (existing != null) {
-                    // Update existing record
                     existing.setInTime(entry != null ? entry.getInTime() : null);
                     existing.setOutTime(entry != null ? entry.getOutTime() : null);
                     existing.setStatus(status);
-                    existing.setSource("WHATSAPP"); // Refresh source
-                    attendanceRepository.save(existing);
+                    existing.setSource("WHATSAPP");
+                    toSave.add(existing);
                 } else {
-                    Attendance attendance = Attendance.builder()
+                    toSave.add(Attendance.builder()
                             .employee(employee)
                             .date(date)
                             .inTime(entry != null ? entry.getInTime() : null)
                             .outTime(entry != null ? entry.getOutTime() : null)
                             .status(status)
                             .source("WHATSAPP")
-                            .build();
-                    attendanceRepository.save(attendance);
+                            .build());
                 }
             }
 
-            // Save unmatched entries to WhatsAppLog table
+            // Batch save for the date
+            if (!toSave.isEmpty()) {
+                attendanceRepository.saveAll(toSave);
+            }
+
+            // Save unmatched logs
+            List<WhatsAppLog> logsToSave = new java.util.ArrayList<>();
             for (Map.Entry<String, WhatsAppParser.AttendanceEntry> parsedEntry : dailyParsed.entrySet()) {
                 String sender = parsedEntry.getKey();
                 if (!matchedKeys.contains(sender)) {
-                    WhatsAppParser.AttendanceEntry entryData = parsedEntry.getValue();
-                    // Avoid saving redundant/empty entries
                     if (!whatsAppLogRepository.existsBySenderAndDate(sender, date)) {
-                        WhatsAppLog log = WhatsAppLog.builder()
+                        WhatsAppParser.AttendanceEntry entryData = parsedEntry.getValue();
+                        logsToSave.add(WhatsAppLog.builder()
                                 .sender(sender)
                                 .date(date)
                                 .inTime(entryData.getInTime())
                                 .outTime(entryData.getOutTime())
                                 .wfh(entryData.isWfh())
                                 .mapped(false)
-                                .build();
-                        whatsAppLogRepository.save(log);
+                                .build());
                     }
                 }
             }
+            if (!logsToSave.isEmpty()) {
+                whatsAppLogRepository.saveAll(logsToSave);
+            }
         }
+
+        logger.info("Successfully processed attendance history.");
 
         // Return the 'targetDate' attendance to satisfy the Controller return type
         return getAttendanceByDate(targetDate);
