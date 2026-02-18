@@ -149,11 +149,14 @@ public class GmailService {
             } catch (AuthenticationFailedException e) {
                 logger.error("Authentication failed for {}. check App Password.", email);
                 throw new Exception(
-                        "Gmail Authentication Failed: Please check your Email and App Password. Ensure you are using a 16-character App Password, not your regular password.");
+                        "Gmail Authentication Failed: Please check your Email and App Password. " +
+                                "IMPORTANT: You MUST use a 16-character 'App Password' from Google Account Settings, " +
+                                "not your regular Gmail password.");
             } catch (MessagingException e) {
                 logger.error("Messaging exception during connection to {}: {}", IMAP_HOST, e.getMessage());
-                throw new Exception("Connection to Gmail failed: " + e.getMessage()
-                        + ". Check if IMAP is enabled in Gmail settings.");
+                String technicalDetail = e.getMessage() != null ? e.getMessage() : "Unknown technical error";
+                throw new Exception("Connection to Gmail failed (" + technicalDetail + "). " +
+                        "Please ensure 'IMAP Access' is ENABLED in your Gmail Settings -> Forwarding and POP/IMAP.");
             } catch (Exception e) {
                 logger.error("Unexpected error during IMAP connection: {}", e.getMessage());
                 throw new Exception("Unexpected error connecting to Gmail: " + e.getMessage());
@@ -221,8 +224,14 @@ public class GmailService {
         props.put("mail.imaps.port", String.valueOf(IMAP_PORT));
         props.put("mail.imaps.ssl.enable", "true");
         props.put("mail.imaps.ssl.trust", IMAP_HOST);
-        props.put("mail.imaps.connectiontimeout", "15000");
-        props.put("mail.imaps.timeout", "15000");
+        props.put("mail.imaps.starttls.enable", "true");
+        props.put("mail.imaps.connectiontimeout", "30000");
+        props.put("mail.imaps.timeout", "30000");
+
+        // Critical for large attachments and robust connection
+        props.put("mail.imaps.partialfetch", "false");
+        props.put("mail.imaps.fetchsize", "1048576"); // 1MB buffer
+
         return Session.getInstance(props);
     }
 
