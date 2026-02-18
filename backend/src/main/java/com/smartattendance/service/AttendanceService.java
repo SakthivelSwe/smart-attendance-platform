@@ -12,6 +12,7 @@ import com.smartattendance.repository.WhatsAppLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -297,8 +298,11 @@ public class AttendanceService {
     /**
      * Process existing WhatsApp logs for a newly added or updated employee.
      */
+    @Async
     @Transactional
     public void processUnmappedLogsForEmployee(Employee employee) {
+        logger.info("Starting async background process: Matching unmapped WhatsApp logs for employee: {}",
+                employee.getName());
         List<WhatsAppLog> unmappedLogs = whatsAppLogRepository.findByMappedFalse();
         String empNameNorm = normalizeName(employee.getName());
         String empWaNorm = employee.getWhatsappName() != null ? normalizeName(employee.getWhatsappName()) : null;

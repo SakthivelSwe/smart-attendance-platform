@@ -45,7 +45,6 @@ public class EmployeeService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public EmployeeDTO createEmployee(EmployeeDTO dto) {
         if (employeeRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Employee with email " + dto.getEmail() + " already exists");
@@ -74,7 +73,6 @@ public class EmployeeService {
         return toDTO(saved);
     }
 
-    @Transactional
     public EmployeeDTO updateEmployee(Long id, EmployeeDTO dto) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
