@@ -49,7 +49,7 @@ public class LeaveService {
     }
 
     public java.util.Set<Long> getEmployeeIdsOnApprovedLeaveForDate(LocalDate date) {
-        return leaveRepository.findByStatusAndDateOverlap(LeaveStatus.APPROVED, date).stream()
+        return leaveRepository.findWithEmployeeByStatusAndDateOverlap(LeaveStatus.APPROVED, date).stream()
                 .map(l -> l.getEmployee().getId())
                 .collect(Collectors.toSet());
     }

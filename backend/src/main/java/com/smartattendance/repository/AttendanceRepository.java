@@ -14,25 +14,28 @@ import java.util.Optional;
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
-    Optional<Attendance> findByEmployeeIdAndDate(Long employeeId, LocalDate date);
+        Optional<Attendance> findByEmployeeIdAndDate(Long employeeId, LocalDate date);
 
-    List<Attendance> findByDate(LocalDate date);
+        @Query("SELECT a FROM Attendance a LEFT JOIN FETCH a.employee WHERE a.date = :date")
+        List<Attendance> findWithEmployeeByDate(@Param("date") LocalDate date);
 
-    List<Attendance> findByEmployeeId(Long employeeId);
+        List<Attendance> findByDate(LocalDate date);
 
-    List<Attendance> findByEmployeeIdAndDateBetween(Long employeeId, LocalDate startDate, LocalDate endDate);
+        List<Attendance> findByEmployeeId(Long employeeId);
 
-    List<Attendance> findByDateBetween(LocalDate startDate, LocalDate endDate);
+        List<Attendance> findByEmployeeIdAndDateBetween(Long employeeId, LocalDate startDate, LocalDate endDate);
 
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.date = :date AND a.status = :status")
-    long countByDateAndStatus(@Param("date") LocalDate date, @Param("status") AttendanceStatus status);
+        List<Attendance> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.employee.id = :employeeId " +
-            "AND a.status = :status AND MONTH(a.date) = :month AND YEAR(a.date) = :year")
-    long countByEmployeeAndStatusAndMonth(@Param("employeeId") Long employeeId,
-            @Param("status") AttendanceStatus status,
-            @Param("month") int month,
-            @Param("year") int year);
+        @Query("SELECT COUNT(a) FROM Attendance a WHERE a.date = :date AND a.status = :status")
+        long countByDateAndStatus(@Param("date") LocalDate date, @Param("status") AttendanceStatus status);
 
-    boolean existsByEmployeeIdAndDate(Long employeeId, LocalDate date);
+        @Query("SELECT COUNT(a) FROM Attendance a WHERE a.employee.id = :employeeId " +
+                        "AND a.status = :status AND MONTH(a.date) = :month AND YEAR(a.date) = :year")
+        long countByEmployeeAndStatusAndMonth(@Param("employeeId") Long employeeId,
+                        @Param("status") AttendanceStatus status,
+                        @Param("month") int month,
+                        @Param("year") int year);
+
+        boolean existsByEmployeeIdAndDate(Long employeeId, LocalDate date);
 }
