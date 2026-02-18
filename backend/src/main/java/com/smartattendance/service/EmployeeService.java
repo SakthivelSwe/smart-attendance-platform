@@ -70,6 +70,11 @@ public class EmployeeService {
         // Match existing unmapped logs for this new employee
         attendanceService.processUnmappedLogsForEmployee(saved);
 
+        // Ensure immediate feedback in daily list
+        if (Boolean.TRUE.equals(saved.getIsActive())) {
+            attendanceService.ensureAttendanceForToday(saved);
+        }
+
         return toDTO(saved);
     }
 
@@ -96,6 +101,11 @@ public class EmployeeService {
 
         // Re-match unmapped logs if name/phone changed
         attendanceService.processUnmappedLogsForEmployee(saved);
+
+        // Ensure immediate feedback if reactivated
+        if (Boolean.TRUE.equals(saved.getIsActive())) {
+            attendanceService.ensureAttendanceForToday(saved);
+        }
 
         return toDTO(saved);
     }

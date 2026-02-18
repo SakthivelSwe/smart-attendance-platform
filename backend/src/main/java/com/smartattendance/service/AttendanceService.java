@@ -296,6 +296,34 @@ public class AttendanceService {
     }
 
     /**
+     * Ensures an attendance record exists for the given employee for today.
+     * If not, creates one with default status (ABSENT, or LEAVE/HOLIDAY).
+     * This ensures the employee appears in the daily attendance list immediately.
+     */
+    @Transactional
+    public void ensureAttendanceForToday(Employee employee) {
+        LocalDate today = LocalDate.now();
+        if (!attendanceRepository.existsByEmployeeIdAndDate(employee.getId(), today)) {
+            AttendanceStatus status;
+            if (holidayService.isHoliday(today)) {
+                status = AttendanceStatus.HOLIDAY;
+            } else if (leaveService.isOnApprovedLeave(employee.getId(), today)) {
+                status = AttendanceStatus.LEAVE;
+            } else {
+                status = AttendanceStatus.ABSENT;
+            }
+
+            Attendance attendance = Attendance.builder()
+                    .employee(employee)
+                    .date(today)
+                    .status(status)
+                    .source("SYSTEM")
+                    .build();
+            attendanceRepository.save(attendance);
+        }
+    }
+
+    /**
      * Process existing WhatsApp logs for a newly added or updated employee.
      */
     @Async
@@ -331,29 +359,44 @@ public class AttendanceService {
             }
 
             if (matches) {
-                // Check if attendance already exists for this date
-                if (!attendanceRepository.existsByEmployeeIdAndDate(employee.getId(), log.getDate())) {
-                    AttendanceStatus status;
-                    if (holidayService.isHoliday(log.getDate())) {
-                        status = AttendanceStatus.HOLIDAY;
-                    } else if (leaveService.isOnApprovedLeave(employee.getId(), log.getDate())) {
-                        status = AttendanceStatus.LEAVE;
-                    } else if (log.getInTime() != null) {
-                        status = log.isWfh() ? AttendanceStatus.WFH : AttendanceStatus.WFO;
-                    } else {
-                        status = AttendanceStatus.ABSENT;
-                    }
+                Attendance existing = attendanceRepository.findByEmployeeIdAndDate(employee.getId(), log.getDate())
+                        .orElse(null);
 
+                // Determine correct status from log
+                AttendanceStatus logStatus;
+                if (holidayService.isHoliday(log.getDate())) {
+                    logStatus = AttendanceStatus.HOLIDAY;
+                } else if (leaveService.isOnApprovedLeave(employee.getId(), log.getDate())) {
+                    logStatus = AttendanceStatus.LEAVE;
+                } else if (log.getInTime() != null) {
+                    logStatus = log.isWfh() ? AttendanceStatus.WFH : AttendanceStatus.WFO;
+                } else {
+                    logStatus = AttendanceStatus.ABSENT;
+                }
+
+                if (existing == null) {
                     Attendance attendance = Attendance.builder()
                             .employee(employee)
                             .date(log.getDate())
                             .inTime(log.getInTime())
                             .outTime(log.getOutTime())
-                            .status(status)
+                            .status(logStatus)
                             .source("WHATSAPP")
                             .build();
                     attendanceRepository.save(attendance);
+                } else {
+                    // Update if existing is ABSENT or SYSTEM generated, or we have better data
+                    boolean isPlaceholder = existing.getStatus() == AttendanceStatus.ABSENT
+                            || "SYSTEM".equals(existing.getSource());
+                    if (isPlaceholder && logStatus != AttendanceStatus.ABSENT) {
+                        existing.setInTime(log.getInTime());
+                        existing.setOutTime(log.getOutTime());
+                        existing.setStatus(logStatus);
+                        existing.setSource("WHATSAPP");
+                        attendanceRepository.save(existing);
+                    }
                 }
+
                 log.setMapped(true);
                 whatsAppLogRepository.save(log);
             }
