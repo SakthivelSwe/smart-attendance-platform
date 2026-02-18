@@ -159,6 +159,24 @@
   .stagger-3 {
     animation-delay: 300ms;
   }
+
+  /* Sidebar Links */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--text-secondary)] font-medium transition-all duration-200 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-primary-600 dark:hover:text-primary-400 relative;
+  }
+
+  .sidebar-link.active {
+    @apply bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/30;
+  }
+
+  .sidebar-link.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-500 rounded-r-full shadow-lg shadow-primary-500/50;
+  }
+
+  .sidebar-link svg {
+    @apply transition-transform duration-300 group-hover:scale-110;
+  }
 }
 
 /* Custom Scrollbar */

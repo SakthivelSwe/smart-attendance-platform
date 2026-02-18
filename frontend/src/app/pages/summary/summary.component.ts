@@ -48,7 +48,7 @@ import { MonthlySummary } from '../../core/models/interfaces';
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
-                      {{ s.employeeName?.charAt(0) || '?' }}
+                      {{ s.employeeName.charAt(0) }}
                     </div>
                     <div>
                       <p class="text-sm font-medium text-[var(--text-primary)]">{{ s.employeeName }}</p>

@@ -6,10 +6,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { Group } from '../../core/models/interfaces';
 
 @Component({
-    selector: 'app-groups',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-groups',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -31,7 +31,7 @@ import { Group } from '../../core/models/interfaces';
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
               <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-sm">
-                {{ g.name?.charAt(0) }}
+                {{ g.name.charAt(0) }}
               </div>
               <div>
                 <p class="font-semibold text-[var(--text-primary)]">{{ g.name }}</p>
@@ -96,31 +96,31 @@ import { Group } from '../../core/models/interfaces';
   `
 })
 export class GroupsComponent implements OnInit {
-    groups: Group[] = [];
-    showModal = false;
-    editingId: number | null = null;
-    form: Partial<Group> = {};
+  groups: Group[] = [];
+  showModal = false;
+  editingId: number | null = null;
+  form: Partial<Group> = {};
 
-    constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService) { }
 
-    ngOnInit() { this.loadGroups(); }
+  ngOnInit() { this.loadGroups(); }
 
-    loadGroups() { this.api.getGroups().subscribe(data => this.groups = data); }
+  loadGroups() { this.api.getGroups().subscribe(data => this.groups = data); }
 
-    openModal() { this.editingId = null; this.form = {}; this.showModal = true; }
+  openModal() { this.editingId = null; this.form = {}; this.showModal = true; }
 
-    editGroup(g: Group) { this.editingId = g.id; this.form = { ...g }; this.showModal = true; }
+  editGroup(g: Group) { this.editingId = g.id; this.form = { ...g }; this.showModal = true; }
 
-    saveGroup() {
-        const obs = this.editingId
-            ? this.api.updateGroup(this.editingId, this.form)
-            : this.api.createGroup(this.form);
-        obs.subscribe(() => { this.showModal = false; this.loadGroups(); });
+  saveGroup() {
+    const obs = this.editingId
+      ? this.api.updateGroup(this.editingId, this.form)
+      : this.api.createGroup(this.form);
+    obs.subscribe(() => { this.showModal = false; this.loadGroups(); });
+  }
+
+  deleteGroup(id: number) {
+    if (confirm('Delete this group?')) {
+      this.api.deleteGroup(id).subscribe(() => this.loadGroups());
     }
-
-    deleteGroup(id: number) {
-        if (confirm('Delete this group?')) {
-            this.api.deleteGroup(id).subscribe(() => this.loadGroups());
-        }
-    }
+  }
 }
