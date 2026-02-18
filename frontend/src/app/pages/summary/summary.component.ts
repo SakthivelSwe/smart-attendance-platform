@@ -6,10 +6,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { MonthlySummary } from '../../core/models/interfaces';
 
 @Component({
-    selector: 'app-summary',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-summary',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -76,7 +76,7 @@ import { MonthlySummary } from '../../core/models/interfaces';
                           [class.text-emerald-600]="s.attendancePercentage >= 80"
                           [class.text-amber-600]="s.attendancePercentage >= 50 && s.attendancePercentage < 80"
                           [class.text-red-600]="s.attendancePercentage < 50">
-                      {{ s.attendancePercentage?.toFixed(1) }}%
+                      {{ s.attendancePercentage.toFixed(1) }}%
                     </span>
                   </div>
                 </td>
@@ -94,26 +94,26 @@ import { MonthlySummary } from '../../core/models/interfaces';
   `
 })
 export class SummaryComponent implements OnInit {
-    summaries: MonthlySummary[] = [];
-    selectedMonth = new Date().getMonth() + 1;
-    selectedYear = new Date().getFullYear();
+  summaries: MonthlySummary[] = [];
+  selectedMonth = new Date().getMonth() + 1;
+  selectedYear = new Date().getFullYear();
 
-    months = Array.from({ length: 12 }, (_, i) => ({
-        value: i + 1,
-        label: new Date(2000, i).toLocaleString('default', { month: 'long' })
-    }));
+  months = Array.from({ length: 12 }, (_, i) => ({
+    value: i + 1,
+    label: new Date(2000, i).toLocaleString('default', { month: 'long' })
+  }));
 
-    years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
-    constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService) { }
 
-    ngOnInit() { this.loadSummary(); }
+  ngOnInit() { this.loadSummary(); }
 
-    loadSummary() {
-        this.api.getMonthlySummary(this.selectedMonth, this.selectedYear).subscribe(data => this.summaries = data);
-    }
+  loadSummary() {
+    this.api.getMonthlySummary(this.selectedMonth, this.selectedYear).subscribe(data => this.summaries = data);
+  }
 
-    generateSummary() {
-        this.api.generateSummary(this.selectedMonth, this.selectedYear).subscribe(data => this.summaries = data);
-    }
+  generateSummary() {
+    this.api.generateSummary(this.selectedMonth, this.selectedYear).subscribe(data => this.summaries = data);
+  }
 }

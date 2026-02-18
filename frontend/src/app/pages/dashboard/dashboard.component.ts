@@ -39,7 +39,7 @@ import { DashboardStats } from '../../core/models/interfaces';
               </svg>
             </div>
             <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-              {{ stats?.totalEmployees ? ((stats!.presentToday / stats!.totalEmployees) * 100).toFixed(0) : 0 }}% Rate
+              {{ presentPercentage }}% Rate
             </span>
           </div>
           <p class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-400">{{ stats?.presentToday || 0 }}</p>
@@ -177,6 +177,11 @@ export class DashboardComponent implements OnInit {
       { label: 'On Leave', value: this.stats.onLeaveToday, percent: leavePercent, color: 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-amber-500/20 shadow-lg' },
       { label: 'Absent', value: this.stats.absentToday, percent: absentPercent, color: 'bg-gradient-to-r from-red-500 to-rose-400 shadow-red-500/20 shadow-lg' },
     ];
+  }
+
+  get presentPercentage(): number {
+    if (!this.stats || !this.stats.totalEmployees) return 0;
+    return Math.round((this.stats.presentToday / this.stats.totalEmployees) * 100);
   }
 
   constructor(private api: ApiService) { }
