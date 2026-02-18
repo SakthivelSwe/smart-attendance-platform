@@ -39,7 +39,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         <a *ngFor="let item of navItems"
            [routerLink]="item.route"
            routerLinkActive="active"
-           class="sidebar-link"
+           class="sidebar-link group"
            [title]="item.label">
           <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0"></span>
           <span *ngIf="!isCollapsed" class="truncate font-medium animate-fade-in">{{ item.label }}</span>
@@ -89,7 +89,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
            [routerLink]="item.route"
            routerLinkActive="active"
            (click)="closeMobile.emit()"
-           class="sidebar-link">
+           class="sidebar-link group">
           <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0"></span>
           <span class="font-medium">{{ item.label }}</span>
         </a>
