@@ -20,8 +20,16 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
     List<Leave> findByEmployeeIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Long employeeId, LocalDate endDate, LocalDate startDate);
 
+    List<Leave> findByStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            LeaveStatus status, LocalDate endDate, LocalDate startDate);
+
     default List<Leave> findByEmployeeIdAndDateOverlap(Long employeeId, LocalDate date) {
         return findByEmployeeIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                 employeeId, date, date);
+    }
+
+    default List<Leave> findByStatusAndDateOverlap(LeaveStatus status, LocalDate date) {
+        return findByStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                status, date, date);
     }
 }
