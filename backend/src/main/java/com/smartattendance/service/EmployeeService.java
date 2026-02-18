@@ -34,7 +34,7 @@ public class EmployeeService {
     }
 
     public EmployeeDTO getEmployeeById(Long id) {
-        Employee employee = employeeRepository.findById(id)
+        Employee employee = employeeRepository.findByIdWithGroup(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
         return toDTO(employee);
     }
