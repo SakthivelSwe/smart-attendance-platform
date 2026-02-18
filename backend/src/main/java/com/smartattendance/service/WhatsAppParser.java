@@ -46,6 +46,8 @@ public class WhatsAppParser {
             DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH),
             DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ENGLISH),
             DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("H:mm:ss", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("H:mm", Locale.ENGLISH),
             DateTimeFormatter.ofPattern("h:mm:ssa", Locale.ENGLISH),
             DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH));
 
@@ -83,7 +85,7 @@ public class WhatsAppParser {
             String sender = matcher.group(3).trim();
             String message = matcher.group(4).trim();
 
-            logger.info("Found Message - Date: {}, Time: {}, Sender: {}", dateStr, timeStr, sender);
+            logger.debug("Found Message - Date: {}, Time: {}, Sender: {}", dateStr, timeStr, sender);
 
             // Skip system messages
             if (sender.contains("added") || sender.contains("left") ||

@@ -140,9 +140,24 @@ public class GmailService {
 
         try {
             store = session.getStore("imaps");
-            logger.info("Connecting to Gmail IMAP as {}...", email);
-            store.connect(IMAP_HOST, IMAP_PORT, email, password);
-            logger.info("Connected to Gmail IMAP successfully.");
+            logger.info("Connecting to Gmail IMAP at {}:{} as {}...", IMAP_HOST, IMAP_PORT, email);
+
+            // Log connection attempt without password
+            try {
+                store.connect(IMAP_HOST, IMAP_PORT, email, password);
+                logger.info("Connection established successfully.");
+            } catch (AuthenticationFailedException e) {
+                logger.error("Authentication failed for {}. check App Password.", email);
+                throw new Exception(
+                        "Gmail Authentication Failed: Please check your Email and App Password. Ensure you are using a 16-character App Password, not your regular password.");
+            } catch (MessagingException e) {
+                logger.error("Messaging exception during connection to {}: {}", IMAP_HOST, e.getMessage());
+                throw new Exception("Connection to Gmail failed: " + e.getMessage()
+                        + ". Check if IMAP is enabled in Gmail settings.");
+            } catch (Exception e) {
+                logger.error("Unexpected error during IMAP connection: {}", e.getMessage());
+                throw new Exception("Unexpected error connecting to Gmail: " + e.getMessage());
+            }
 
             inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
