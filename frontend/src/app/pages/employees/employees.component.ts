@@ -32,46 +32,87 @@ import { Employee, Group } from '../../core/models/interfaces';
       </div>
 
       <!-- Employee cards grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div *ngFor="let emp of filteredEmployees" class="card p-5 hover:shadow-card-hover">
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold shrink-0">
-                  {{ emp.name.charAt(0) }}
-                </div>
-              </div>
-              <div>
-                <p class="font-semibold text-[var(--text-primary)]">{{ emp.name }}</p>
-                <p class="text-xs text-[var(--text-secondary)]">{{ emp.employeeCode }}</p>
-              </div>
-            </div>
-            <span *ngIf="emp.isActive" class="badge-approved">Active</span>
-            <span *ngIf="!emp.isActive" class="badge-absent">Inactive</span>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div *ngFor="let emp of filteredEmployees; let i = index" 
+             class="glass-card p-6 relative group hover:-translate-y-2 transition-all duration-300 animate-slide-up"
+             [style.animation-delay]="i * 50 + 'ms'">
+          
+          <!-- Status Badge -->
+           <span [class]="emp.isActive ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'"
+                 class="absolute top-4 right-4 px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md z-10">
+             {{ emp.isActive ? 'Active' : 'Inactive' }}
+           </span>
 
-          <div class="space-y-2 text-sm text-[var(--text-secondary)]">
-            <div class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              <span class="truncate">{{ emp.email }}</span>
+          <!-- Header -->
+          <div class="flex flex-col items-center text-center mb-6 relative">
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-400 to-indigo-600 p-0.5 shadow-lg shadow-primary-500/20 mb-4 group-hover:scale-105 transition-transform duration-300">
+               <div class="w-full h-full bg-white dark:bg-surface-800 rounded-xl flex items-center justify-center overflow-hidden">
+                  <span class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary-600 to-indigo-600">
+                    {{ emp.name.charAt(0) }}
+                  </span>
+               </div>
             </div>
-            <div class="flex items-center gap-2" *ngIf="emp.whatsappName">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-              <span>{{ emp.whatsappName }}</span>
+            <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">{{ emp.name }}</h3>
+            <p class="text-sm text-primary-500 font-mono bg-primary-50 dark:bg-primary-900/10 px-2 py-0.5 rounded-md border border-primary-100 dark:border-primary-800/30">
+              {{ emp.employeeCode }}
+            </p>
+          </div>
+
+          <!-- Details -->
+          <div class="space-y-3 mb-6">
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
+              <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-[var(--text-secondary)] truncate flex-1" [title]="emp.email">{{ emp.email }}</span>
             </div>
-            <div class="flex items-center gap-2" *ngIf="emp.groupName">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-              </svg>
-              <span>{{ emp.groupName }}</span>
+
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" *ngIf="emp.phone">
+               <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-[var(--text-secondary)] truncate flex-1">{{ emp.phone }}</span>
+            </div>
+
+            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" *ngIf="emp.whatsappName">
+               <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-[var(--text-secondary)] truncate flex-1">{{ emp.whatsappName }}</span>
+            </div>
+            
+             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" *ngIf="emp.groupName">
+               <div class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+              </div>
+              <span class="text-sm text-[var(--text-secondary)] truncate flex-1">{{ emp.groupName }}</span>
             </div>
           </div>
 
-          <div *ngIf="authService.isAdmin" class="flex gap-2 mt-4 pt-4 border-t border-[var(--border-color)]">
-            <button (click)="editEmployee(emp)" class="flex-1 py-2 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition">Edit</button>
-            <button (click)="deleteEmployee(emp.id)" class="flex-1 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">Delete</button>
+          <!-- Actions -->
+          <div *ngIf="authService.isAdmin" class="grid grid-cols-2 gap-3 mt-auto">
+            <button (click)="editEmployee(emp)" 
+                    class="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-sm font-semibold hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+               </svg>
+               Edit
+            </button>
+            <button (click)="deleteEmployee(emp.id)" 
+                    class="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+               </svg>
+               Delete
+            </button>
           </div>
         </div>
       </div>
