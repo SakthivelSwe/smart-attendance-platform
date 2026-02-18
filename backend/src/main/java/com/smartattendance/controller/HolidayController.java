@@ -27,13 +27,13 @@ public class HolidayController {
 
     @GetMapping("/range")
     public ResponseEntity<List<HolidayDTO>> getHolidaysByRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         return ResponseEntity.ok(holidayService.getHolidaysByDateRange(start, end));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<HolidayDTO> getHoliday(@PathVariable Long id) {
+    public ResponseEntity<HolidayDTO> getHoliday(@PathVariable("id") Long id) {
         return ResponseEntity.ok(holidayService.getHolidayById(id));
     }
 
@@ -45,13 +45,13 @@ public class HolidayController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<HolidayDTO> updateHoliday(@PathVariable Long id, @Valid @RequestBody HolidayDTO dto) {
+    public ResponseEntity<HolidayDTO> updateHoliday(@PathVariable("id") Long id, @Valid @RequestBody HolidayDTO dto) {
         return ResponseEntity.ok(holidayService.updateHoliday(id, dto));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteHoliday(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteHoliday(@PathVariable("id") Long id) {
         holidayService.deleteHoliday(id);
         return ResponseEntity.noContent().build();
     }

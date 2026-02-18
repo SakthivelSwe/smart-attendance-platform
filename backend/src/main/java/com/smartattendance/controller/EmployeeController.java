@@ -29,12 +29,12 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EmployeeDTO> getEmployee(@PathVariable Long id) {
+    public ResponseEntity<EmployeeDTO> getEmployee(@PathVariable("id") Long id) {
         return ResponseEntity.ok(employeeService.getEmployeeById(id));
     }
 
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<EmployeeDTO>> getEmployeesByGroup(@PathVariable Long groupId) {
+    public ResponseEntity<List<EmployeeDTO>> getEmployeesByGroup(@PathVariable("groupId") Long groupId) {
         return ResponseEntity.ok(employeeService.getEmployeesByGroup(groupId));
     }
 
@@ -46,13 +46,14 @@ public class EmployeeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable Long id, @Valid @RequestBody EmployeeDTO dto) {
+    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable("id") Long id,
+            @Valid @RequestBody EmployeeDTO dto) {
         return ResponseEntity.ok(employeeService.updateEmployee(id, dto));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEmployee(@PathVariable("id") Long id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();
     }

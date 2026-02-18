@@ -52,6 +52,17 @@ export class ApiService {
     processAttendance(chatText: string, date: string): Observable<Attendance[]> {
         return this.http.post<Attendance[]>(`${this.api}/attendance/process`, { chatText, date });
     }
+    processAttendanceFromEmail(date: string, gmailEmail: string, gmailPassword: string,
+        subjectPattern?: string, groupId?: number): Observable<any> {
+        return this.http.post<any>(`${this.api}/attendance/process-email`, {
+            date, gmailEmail, gmailPassword, subjectPattern, groupId: groupId?.toString()
+        });
+    }
+    getEmailStatus(gmailEmail: string, gmailPassword: string, subjectPattern?: string): Observable<any> {
+        return this.http.post<any>(`${this.api}/attendance/email-status`, {
+            gmailEmail, gmailPassword, subjectPattern
+        });
+    }
     updateAttendance(id: number, data: Partial<Attendance>): Observable<Attendance> {
         return this.http.put<Attendance>(`${this.api}/attendance/${id}`, data);
     }
@@ -115,5 +126,13 @@ export class ApiService {
     }
     getEmployeeSummary(employeeId: number): Observable<MonthlySummary[]> {
         return this.http.get<MonthlySummary[]>(`${this.api}/summary/employee/${employeeId}`);
+    }
+
+    // System Settings
+    saveGmailCredentials(data: any): Observable<any> {
+        return this.http.post<any>(`${this.api}/settings/gmail`, data);
+    }
+    getGmailStatus(): Observable<any> {
+        return this.http.get<any>(`${this.api}/settings/gmail/status`);
     }
 }

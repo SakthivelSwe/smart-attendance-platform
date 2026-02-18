@@ -1,27 +1,36 @@
-# Development profile - uses H2 in-memory database (no external DB needed)
+# Development profile - uses Supabase PostgreSQL for local testing
 spring:
   datasource:
-    url: jdbc:h2:mem:smartattendance;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:postgresql://aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+    username: postgres.npppkkmatyleuopiyyaa
+    password: "Luffy#zoro56"
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 60000
+      validation-timeout: 5000
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: false
+  # Google OAuth credentials
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 1080249198691-444ld2o9fqo8qdm76usdmie92lk8knjh.apps.googleusercontent.com
+            client-secret: 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
 
   # Disable mail in dev
   mail:
@@ -34,20 +43,15 @@ spring:
           starttls:
             enable: false
 
-  # Google OAuth credentials (set via environment variables)
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-
-# Dev JWT secret (set via environment variables)
+# Dev JWT secret
 app:
   jwt:
-    secret: ${JWT_SECRET:DevSecretKeyForLocalTestingOnly256BitsMinimumRequiredForHS256Algorithm2024!}
+    secret: DevSecretKeyForLocalTestingOnly256BitsMinimumRequiredForHS256Algorithm2024!
     expiration-ms: 86400000
+
+
+  admin:
+    emails: sakthiveltony@gmail.com
 
   cors:
     allowed-origins: http://localhost:4200,http://localhost:3000

@@ -34,7 +34,7 @@ public class LeaveController {
     }
 
     @GetMapping("/employee/{employeeId}")
-    public ResponseEntity<List<LeaveDTO>> getLeavesByEmployee(@PathVariable Long employeeId) {
+    public ResponseEntity<List<LeaveDTO>> getLeavesByEmployee(@PathVariable("employeeId") Long employeeId) {
         return ResponseEntity.ok(leaveService.getLeavesByEmployee(employeeId));
     }
 
@@ -46,7 +46,7 @@ public class LeaveController {
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<LeaveDTO> approveLeave(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, String> body,
             Authentication authentication) {
         User admin = (User) authentication.getPrincipal();
@@ -57,7 +57,7 @@ public class LeaveController {
     @PutMapping("/{id}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<LeaveDTO> rejectLeave(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, String> body,
             Authentication authentication) {
         User admin = (User) authentication.getPrincipal();
