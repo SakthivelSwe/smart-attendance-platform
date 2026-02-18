@@ -4,10 +4,10 @@ import { ApiService } from '../../core/services/api.service';
 import { DashboardStats } from '../../core/models/interfaces';
 
 @Component({
-    selector: 'app-dashboard',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div>
       <div class="mb-8">
         <h1 class="page-header">Dashboard</h1>
@@ -150,25 +150,25 @@ import { DashboardStats } from '../../core/models/interfaces';
   `
 })
 export class DashboardComponent implements OnInit {
-    stats: DashboardStats | null = null;
+  stats: DashboardStats | null = null;
 
-    get attendanceBars() {
-        if (!this.stats || !this.stats.totalEmployees) return [];
-        const total = this.stats.totalEmployees;
-        return [
-            { label: 'Work From Office', value: this.stats.wfoToday, percent: (this.stats.wfoToday / total) * 100, color: 'bg-emerald-500' },
-            { label: 'Work From Home', value: this.stats.wfhToday, percent: (this.stats.wfhToday / total) * 100, color: 'bg-blue-500' },
-            { label: 'On Leave', value: this.stats.onLeaveToday, percent: (this.stats.onLeaveToday / total) * 100, color: 'bg-amber-500' },
-            { label: 'Absent', value: this.stats.absentToday, percent: (this.stats.absentToday / total) * 100, color: 'bg-red-500' },
-        ];
-    }
+  get attendanceBars() {
+    if (!this.stats || !this.stats.totalEmployees) return [];
+    const total = this.stats.totalEmployees;
+    return [
+      { label: 'Work From Office', value: this.stats.wfoToday, percent: (this.stats.wfoToday / total) * 100, color: 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/20' },
+      { label: 'Work From Home', value: this.stats.wfhToday, percent: (this.stats.wfhToday / total) * 100, color: 'bg-gradient-to-r from-blue-500 to-indigo-400 shadow-sm shadow-blue-500/20' },
+      { label: 'On Leave', value: this.stats.onLeaveToday, percent: (this.stats.onLeaveToday / total) * 100, color: 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-sm shadow-amber-500/20' },
+      { label: 'Absent', value: this.stats.absentToday, percent: (this.stats.absentToday / total) * 100, color: 'bg-gradient-to-r from-red-500 to-rose-400 shadow-sm shadow-red-500/20' },
+    ];
+  }
 
-    constructor(private api: ApiService) { }
+  constructor(private api: ApiService) { }
 
-    ngOnInit() {
-        this.api.getDashboardStats().subscribe({
-            next: (data) => this.stats = data,
-            error: () => this.stats = { totalEmployees: 0, presentToday: 0, wfoToday: 0, wfhToday: 0, onLeaveToday: 0, absentToday: 0, pendingLeaves: 0, upcomingHolidays: 0 }
-        });
-    }
+  ngOnInit() {
+    this.api.getDashboardStats().subscribe({
+      next: (data) => this.stats = data,
+      error: () => this.stats = { totalEmployees: 0, presentToday: 0, wfoToday: 0, wfhToday: 0, onLeaveToday: 0, absentToday: 0, pendingLeaves: 0, upcomingHolidays: 0 }
+    });
+  }
 }

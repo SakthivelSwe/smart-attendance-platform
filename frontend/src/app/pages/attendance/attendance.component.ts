@@ -18,9 +18,12 @@ import { Attendance } from '../../core/models/interfaces';
         </div>
         <div class="flex items-center gap-3">
           <div *ngIf="automationConfigured" 
-               class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary-50 rounded-lg border border-primary-100 text-xs text-primary-600 mr-2">
-            <span class="material-icons text-[16px] animate-pulse">check_circle</span>
-            <span class="font-medium whitespace-nowrap">Automation ACTIVE (6AM/7PM)</span>
+               class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-full border border-emerald-200/60 dark:border-emerald-700/30 text-xs text-emerald-700 dark:text-emerald-400 shadow-sm mr-3">
+            <span class="relative flex h-2 w-2 mr-1">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="font-semibold tracking-wide">AUTOMATION ACTIVE</span>
           </div>
           <input type="date" [(ngModel)]="selectedDate" (change)="loadAttendance()"
                  class="input-field w-auto"/>
@@ -62,8 +65,8 @@ import { Attendance } from '../../core/models/interfaces';
       <div class="flex flex-wrap gap-2 mb-6">
         <button *ngFor="let f of filters"
                 (click)="activeFilter = f.value"
-                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200"
-                [ngClass]="activeFilter === f.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+                CLASS="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200"
+                [ngClass]="activeFilter === f.value ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30' : 'bg-white dark:bg-surface-800 text-[var(--text-secondary)] border border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-surface-700'">
           {{ f.label }} ({{ getCount(f.value) }})
         </button>
       </div>
