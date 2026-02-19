@@ -81,12 +81,20 @@ import { ToastComponent } from './shared/toast/toast.component';
   `
 })
 export class AppComponent implements OnInit {
-  showSchedulerNotification = true;
+  showSchedulerNotification = false;
 
   ngOnInit() {
-    // Show notification for 1.5 seconds on app load
-    setTimeout(() => {
-      this.showSchedulerNotification = false;
-    }, 1500);
+    // Check if we've already shown the notification in this session
+    const hasShown = sessionStorage.getItem('scheduler_popup_shown');
+
+    if (!hasShown) {
+      this.showSchedulerNotification = true;
+      sessionStorage.setItem('scheduler_popup_shown', 'true');
+
+      // Show notification for 2.5 seconds (slightly longer for first view)
+      setTimeout(() => {
+        this.showSchedulerNotification = false;
+      }, 2500);
+    }
   }
 }
