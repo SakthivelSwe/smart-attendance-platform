@@ -49,6 +49,7 @@ export class AuthService {
 
     logout(): void {
         sessionStorage.removeItem('user');
+        sessionStorage.removeItem('scheduler_popup_shown');
         this.currentUserSubject.next(null);
         this.router.navigate(['/login']);
     }
