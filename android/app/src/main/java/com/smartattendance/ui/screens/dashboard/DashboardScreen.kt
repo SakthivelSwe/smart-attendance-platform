@@ -10,7 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.smartattendance.data.model.DashboardStats
 import com.smartattendance.ui.components.*
@@ -45,7 +48,9 @@ fun DashboardScreen(
                 },
                 actions = {
                     if (uiState.userRole == "ADMIN") {
-                        Badge(content = { }) {
+                        BadgedBox(
+                            badge = { Badge { } }
+                        ) {
                             IconButton(onClick = {}) {
                                 Icon(Icons.Outlined.Notifications, contentDescription = "Notifications")
                             }
@@ -210,7 +215,7 @@ fun DashboardScreen(
 
 @Composable
 private fun QuickActionCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -247,7 +252,7 @@ private fun QuickActionCard(
 
 @Composable
 private fun NotificationCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     color: androidx.compose.ui.graphics.Color
 ) {
