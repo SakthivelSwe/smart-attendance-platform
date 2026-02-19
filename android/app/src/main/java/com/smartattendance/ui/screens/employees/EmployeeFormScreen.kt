@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.smartattendance.data.model.Employee
+import com.smartattendance.data.model.Group
 import com.smartattendance.ui.components.LoadingView
 
 @OptIn(ExperimentalMaterial3Api::class)

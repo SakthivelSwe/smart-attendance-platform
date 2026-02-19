@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.smartattendance.data.model.AttendanceRecord
 import com.smartattendance.ui.components.*
 import com.smartattendance.util.DateUtils
 import java.time.LocalDate

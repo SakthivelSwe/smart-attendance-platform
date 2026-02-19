@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.smartattendance.data.model.DashboardStats
 import com.smartattendance.ui.components.*
 import com.smartattendance.ui.theme.*
 
