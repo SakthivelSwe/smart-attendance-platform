@@ -57,6 +57,35 @@ public class EmailNotificationService {
         }
     }
 
+    public void sendReminderToAdmin(String toEmail) {
+        if (fromEmail == null || fromEmail.isBlank())
+            return;
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("⚠️ Action Required: Export WhatsApp Chat");
+
+            String html = "<html><body>" +
+                    "<h2 style='color: #DC2626;'>Attendance Export Missing</h2>" +
+                    "<p>This is a reminder that the automated attendance processor runs at <b>12:00 PM</b> today.</p>" +
+                    "<p>We have not yet detected a 'WhatsApp Chat with...' export email in your inbox for today.</p>" +
+                    "<p><b>Please export the chat from WhatsApp to your email immediately.</b></p>" +
+                    "<br><p style='color: #6B7280; font-size: 12px;'>—Smart Attendance Platform</p>" +
+                    "</body></html>";
+
+            helper.setText(html, true);
+            mailSender.send(message);
+            logger.info("Reminder email sent to {}", toEmail);
+
+        } catch (MessagingException e) {
+            logger.error("Failed to send reminder email: {}", e.getMessage());
+        }
+    }
+
     private String buildSummaryHtml(List<AttendanceDTO> list, LocalDate date) {
         long wfo = list.stream().filter(a -> a.getStatus() == AttendanceStatus.WFO).count();
         long wfh = list.stream().filter(a -> a.getStatus() == AttendanceStatus.WFH).count();

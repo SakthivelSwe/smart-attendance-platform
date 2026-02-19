@@ -111,6 +111,46 @@ public class GmailService {
         return results;
     }
 
+    /**
+     * Check if a WhatsApp export email exists for the given date.
+     */
+    public boolean hasAttendanceEmailForDate(String gmailEmail, String gmailAppPassword,
+            String emailSubjectPattern, LocalDate targetDate) throws Exception {
+        Session session = createSession();
+        Store store = null;
+        Folder inbox = null;
+
+        try {
+            store = session.getStore("imaps");
+            store.connect(IMAP_HOST, IMAP_PORT, gmailEmail, gmailAppPassword);
+
+            inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_ONLY);
+
+            SearchTerm searchTerm = buildSearchTerm(emailSubjectPattern, targetDate);
+            Message[] messages = inbox.search(searchTerm);
+
+            return messages.length > 0;
+
+        } catch (Exception e) {
+            logger.error("Error checking email existence: {}", e.getMessage());
+            return false;
+        } finally {
+            if (inbox != null && inbox.isOpen()) {
+                try {
+                    inbox.close(false);
+                } catch (Exception ignored) {
+                }
+            }
+            if (store != null && store.isConnected()) {
+                try {
+                    store.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
     // ==================== Private Methods ====================
 
     private String fetchEmailWithRetry(String email, String password,
