@@ -51,8 +51,8 @@ spring:
 # App Config
 app:
   jwt:
-    secret: ${JWT_SECRET}
-    expiration-ms: 86400000  # 24 hours
+    secret: ${ }
+    expiration-ms: 1800000  # 30 minutes
 
   supabase:
     url: ${SUPABASE_URL}

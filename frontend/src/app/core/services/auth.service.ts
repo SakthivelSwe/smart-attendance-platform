@@ -12,7 +12,7 @@ export class AuthService {
     currentUser$ = this.currentUserSubject.asObservable();
 
     constructor(private http: HttpClient, private router: Router) {
-        const stored = localStorage.getItem('user');
+        const stored = sessionStorage.getItem('user');
         if (stored) {
             this.currentUserSubject.next(JSON.parse(stored));
         }
@@ -37,7 +37,7 @@ export class AuthService {
     loginWithGoogle(credential: string): Observable<User> {
         return this.http.post<User>(`${this.apiUrl}/auth/google`, { credential }).pipe(
             tap(user => {
-                localStorage.setItem('user', JSON.stringify(user));
+                sessionStorage.setItem('user', JSON.stringify(user));
                 this.currentUserSubject.next(user);
             })
         );
@@ -48,7 +48,7 @@ export class AuthService {
     }
 
     logout(): void {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         this.currentUserSubject.next(null);
         this.router.navigate(['/login']);
     }
