@@ -22,7 +22,36 @@ public class AttendanceScheduler {
     private final GmailService gmailService;
 
     /**
-     * Weekday morning processing - Monday to Friday at 6:00 AM IST.
+     * Pre-check logic - Monday to Friday at 11:30 AM IST.
+     * Reminds admin if attendance email is missing.
+     */
+    @Scheduled(cron = "0 30 11 * * MON-FRI", zone = "Asia/Kolkata")
+    public void checkImportStatus() {
+        logger.info("=== Checking for attendance email availability (11:30 AM Check) ===");
+
+        String email = systemSettingService.getGmailEmail();
+        String password = systemSettingService.getGmailPassword();
+
+        if (email == null || password == null)
+            return;
+
+        try {
+            boolean exists = gmailService.hasAttendanceEmailForDate(email, password, "WhatsApp Chat with %",
+                    LocalDate.now());
+
+            if (!exists) {
+                logger.warn("No attendance email found for today yet. Sending reminder.");
+                emailNotificationService.sendReminderToAdmin(email);
+            } else {
+                logger.info("Attendance email found. Ready for 12:00 PM processing.");
+            }
+        } catch (Exception e) {
+            logger.error("Error checking import status: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Weekday morning processing - Monday to Friday at 12:00 PM IST.
      */
     @Scheduled(cron = "0 0 12 * * MON-FRI", zone = "Asia/Kolkata")
     public void processWeekdays() {
