@@ -24,7 +24,7 @@ public class AttendanceScheduler {
     /**
      * Weekday morning processing - Monday to Friday at 6:00 AM IST.
      */
-    @Scheduled(cron = "0 0 6 * * MON-FRI", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 12 * * MON-FRI", zone = "Asia/Kolkata")
     public void processWeekdays() {
         logger.info("=== Starting scheduled Weekday Morning attendance processing (6 AM) ===");
         runAutomaticProcess();

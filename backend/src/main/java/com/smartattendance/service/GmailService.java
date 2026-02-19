@@ -173,10 +173,6 @@ public class GmailService {
                 return null;
             }
 
-            if (messages.length == 0) {
-                return null;
-            }
-
             // Iterate from newest to oldest to find the first one with a valid chat
             // attachment
             for (int i = messages.length - 1; i >= 0; i--) {
