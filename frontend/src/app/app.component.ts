@@ -73,7 +73,7 @@ import { ToastComponent } from './shared/toast/toast.component';
       <div class="scheduler-popup-card">
         <span class="material-icons popup-icon">schedule_send</span>
         <h2 class="popup-title">Scheduler Active</h2>
-        <p class="popup-subtitle">Fetching Emails Mon-Fri @ 12:00 PM</p>
+        <p class="popup-subtitle">Fetching Emails Mon-Fri &#64; 12:00 PM</p>
       </div>
     </div>
     <router-outlet></router-outlet>
