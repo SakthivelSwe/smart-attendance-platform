@@ -208,6 +208,14 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }
+                }
+            }
+            else -> {
+                // Determine what to show if no error, no stats, and not loading.
+                // This shouldn't typically happen if initial state is correct, but safe to show loading or empty.
+                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Text("No data available")
+                }
             }
         }
     }
