@@ -36,7 +36,7 @@ import { ToastService } from '../../core/services/toast.service';
                  <span class="material-icons text-sm">check_circle</span>
                  <span class="text-sm font-medium">Currently linked to: {{ gmailStatus.email }}</span>
                </div>
-               <p class="text-xs text-primary-600 mt-1 ml-6">Automated fetching is ACTIVE (Mon-Fri 12PM, Sat 7PM)</p>
+               <p class="text-xs text-primary-600 mt-1 ml-6">Automated fetching is ACTIVE (Mon-Fri 1:30PM, Sat 7PM)</p>
             </div>
 
             <div class="space-y-4">

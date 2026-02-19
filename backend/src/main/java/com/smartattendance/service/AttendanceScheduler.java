@@ -22,12 +22,12 @@ public class AttendanceScheduler {
     private final GmailService gmailService;
 
     /**
-     * Pre-check logic - Monday to Friday at 11:30 AM IST.
+     * Pre-check logic - Monday to Friday at 1:00 PM IST.
      * Reminds admin if attendance email is missing.
      */
-    @Scheduled(cron = "0 30 11 * * MON-FRI", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 13 * * MON-FRI", zone = "Asia/Kolkata")
     public void checkImportStatus() {
-        logger.info("=== Checking for attendance email availability (11:30 AM Check) ===");
+        logger.info("=== Checking for attendance email availability (1:00 PM Check) ===");
 
         String email = systemSettingService.getGmailEmail();
         String password = systemSettingService.getGmailPassword();
@@ -43,7 +43,7 @@ public class AttendanceScheduler {
                 logger.warn("No attendance email found for today yet. Sending reminder.");
                 emailNotificationService.sendReminderToAdmin(email);
             } else {
-                logger.info("Attendance email found. Ready for 12:00 PM processing.");
+                logger.info("Attendance email found. Ready for 1:30 PM processing.");
             }
         } catch (Exception e) {
             logger.error("Error checking import status: {}", e.getMessage());
@@ -51,11 +51,11 @@ public class AttendanceScheduler {
     }
 
     /**
-     * Weekday morning processing - Monday to Friday at 12:00 PM IST.
+     * Weekday morning processing - Monday to Friday at 1:30 PM IST.
      */
-    @Scheduled(cron = "0 0 12 * * MON-FRI", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 30 13 * * MON-FRI", zone = "Asia/Kolkata")
     public void processWeekdays() {
-        logger.info("=== Starting scheduled Weekday Morning attendance processing (6 AM) ===");
+        logger.info("=== Starting scheduled Weekday Morning attendance processing (1:30 PM) ===");
         runAutomaticProcess();
     }
 
