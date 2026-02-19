@@ -95,7 +95,7 @@ import { HeaderComponent } from '../header/header.component';
 
       <!-- Main content -->
       <div class="flex-1 flex flex-col min-w-0 transition-all duration-300"
-           [class.lg:ml-64]="!sidebarCollapsed"
+           [class.lg:ml-72]="!sidebarCollapsed"
            [class.lg:ml-20]="sidebarCollapsed">
         <app-header
           (toggleMobileMenu)="mobileMenuOpen = !mobileMenuOpen"

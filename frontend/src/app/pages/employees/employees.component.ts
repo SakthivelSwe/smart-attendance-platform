@@ -26,95 +26,104 @@ import { Employee, Group } from '../../core/models/interfaces';
         </button>
       </div>
 
-      <!-- Search -->
-      <div class="mb-6">
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Search by name, email, code..." class="input-field max-w-md"/>
+      <!-- Search & Filters -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 bg-surface-50 dark:bg-surface-900/30 p-4 rounded-2xl border border-surface-200 dark:border-surface-700">
+        <div class="relative w-full sm:w-80">
+           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 material-icons text-sm">search</span>
+           <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="currentPage = 1" placeholder="Search employees..." 
+                  class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all text-sm"/>
+        </div>
+        
+        <div class="text-sm text-surface-500 font-medium">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length) }} of {{ filteredEmployees.length }}
+        </div>
       </div>
 
       <!-- Employee cards grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div *ngFor="let emp of filteredEmployees; let i = index" 
-             class="glass-card p-6 relative group hover:-translate-y-2 transition-all duration-300 animate-slide-up"
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div *ngFor="let emp of paginatedEmployees; let i = index" 
+             class="glass-card p-4 relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm hover:shadow-md"
              [style.animation-delay]="i * 50 + 'ms'">
           
-          <!-- Status Badge -->
-           <span [class]="emp.isActive ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'"
-                 class="absolute top-4 right-4 px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md z-10">
-             {{ emp.isActive ? 'Active' : 'Inactive' }}
+          <!-- Status Dot -->
+           <span [class]="emp.isActive ? 'bg-emerald-500' : 'bg-red-500'"
+                 class="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-surface-900"
+                 [title]="emp.isActive ? 'Active' : 'Inactive'">
            </span>
 
-          <!-- Header -->
-          <div class="flex flex-col items-center text-center mb-6 relative">
-            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-400 to-indigo-600 p-0.5 shadow-lg shadow-primary-500/20 mb-4 group-hover:scale-105 transition-transform duration-300">
-               <div class="w-full h-full bg-white dark:bg-surface-800 rounded-xl flex items-center justify-center overflow-hidden">
-                  <span class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary-600 to-indigo-600">
-                    {{ emp.name.charAt(0) }}
-                  </span>
-               </div>
+          <!-- Header (Compact) -->
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/50 dark:to-indigo-900/50 flex items-center justify-center shrink-0">
+               <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
+                 {{ emp.name.charAt(0) }}
+               </span>
             </div>
-            <h3 class="text-lg font-bold text-[var(--text-primary)] mb-1">{{ emp.name }}</h3>
-            <p class="text-sm text-primary-500 font-mono bg-primary-50 dark:bg-primary-900/10 px-2 py-0.5 rounded-md border border-primary-100 dark:border-primary-800/30">
-              {{ emp.employeeCode }}
-            </p>
+            <div class="min-w-0">
+              <h3 class="text-base font-bold text-[var(--text-primary)] truncate" [title]="emp.name">{{ emp.name }}</h3>
+              <p class="text-xs text-surface-500 font-mono bg-surface-100 dark:bg-surface-800 px-1.5 py-0.5 rounded inline-block mt-1">
+                {{ emp.employeeCode }}
+              </p>
+            </div>
           </div>
 
-          <!-- Details -->
-          <div class="space-y-3 mb-6">
-            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
-              <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-              </div>
-              <span class="text-sm text-[var(--text-secondary)] truncate flex-1" [title]="emp.email">{{ emp.email }}</span>
+          <!-- Compact Details -->
+          <div class="space-y-2 mb-4 text-sm">
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" [title]="emp.email">
+              <span class="material-icons text-base text-surface-400">email</span>
+              <span class="truncate">{{ emp.email }}</span>
             </div>
 
-            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" *ngIf="emp.phone">
-               <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                </svg>
-              </div>
-              <span class="text-sm text-[var(--text-secondary)] truncate flex-1">{{ emp.phone }}</span>
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.phone">
+               <span class="material-icons text-base text-surface-400">phone</span>
+              <span class="truncate">{{ emp.phone }}</span>
             </div>
 
-            <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" *ngIf="emp.whatsappName">
-               <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                </svg>
-              </div>
-              <span class="text-sm text-[var(--text-secondary)] truncate flex-1">{{ emp.whatsappName }}</span>
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.whatsappName">
+               <span class="material-icons text-base text-green-500">chat</span>
+              <span class="truncate">{{ emp.whatsappName }}</span>
             </div>
             
-             <div class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" *ngIf="emp.groupName">
-               <div class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-              </div>
-              <span class="text-sm text-[var(--text-secondary)] truncate flex-1">{{ emp.groupName }}</span>
+             <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.groupName">
+               <span class="material-icons text-base text-amber-500">group</span>
+              <span class="truncate">{{ emp.groupName }}</span>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div *ngIf="authService.isAdmin" class="grid grid-cols-2 gap-3 mt-auto">
+          <!-- Actions (Icon only) -->
+          <div *ngIf="authService.isAdmin" class="flex justify-end gap-2 pt-3 border-t border-surface-100 dark:border-surface-800">
             <button (click)="editEmployee(emp)" 
-                    class="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-sm font-semibold hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-colors">
-               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-               </svg>
-               Edit
+                    class="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-colors" title="Edit">
+               <span class="material-icons text-lg">edit</span>
             </button>
             <button (click)="deleteEmployee(emp.id)" 
-                    class="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
-               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-               </svg>
-               Delete
+                    class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors" title="Delete">
+               <span class="material-icons text-lg">delete</span>
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex justify-center mt-8 gap-2" *ngIf="totalPages > 1">
+        <button (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1"
+                class="btn-secondary px-3 py-1 flex items-center disabled:opacity-50">
+          <span class="material-icons text-sm">chevron_left</span>
+        </button>
+        
+        <button *ngFor="let page of visiblePages" 
+                (click)="setPage(page)"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-colors"
+                [class.bg-primary-600]="currentPage === page"
+                [class.text-white]="currentPage === page"
+                [class.hover:bg-surface-200]="currentPage !== page"
+                [class.dark:hover:bg-surface-700]="currentPage !== page">
+          {{ page }}
+        </button>
+
+        <button (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages"
+                class="btn-secondary px-3 py-1 flex items-center disabled:opacity-50">
+          <span class="material-icons text-sm">chevron_right</span>
+        </button>
       </div>
 
       <div *ngIf="filteredEmployees.length === 0" class="text-center py-12 text-[var(--text-secondary)]">
@@ -178,6 +187,11 @@ export class EmployeesComponent implements OnInit {
   editingId: number | null = null;
   form: Partial<Employee> = {};
 
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 12;
+  Math = Math; // for template usage
+
   constructor(private api: ApiService, public authService: AuthService) { }
 
   ngOnInit() {
@@ -197,6 +211,38 @@ export class EmployeesComponent implements OnInit {
       e.email.toLowerCase().includes(s) ||
       e.employeeCode?.toLowerCase().includes(s)
     );
+  }
+
+  get paginatedEmployees() {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    return this.filteredEmployees.slice(startIndex, startIndex + this.itemsPerPage);
+  }
+
+  get totalPages() {
+    return Math.ceil(this.filteredEmployees.length / this.itemsPerPage);
+  }
+
+  get visiblePages() {
+    const pages = [];
+    const total = this.totalPages;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, start + 4);
+
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  setPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   openModal() {
