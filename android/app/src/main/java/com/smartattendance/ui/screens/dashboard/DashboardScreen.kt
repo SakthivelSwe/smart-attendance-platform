@@ -208,7 +208,6 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }
-                }
             }
             else -> {
                 // Determine what to show if no error, no stats, and not loading.
