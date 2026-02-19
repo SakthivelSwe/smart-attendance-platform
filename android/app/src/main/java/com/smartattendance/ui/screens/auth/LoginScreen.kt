@@ -143,8 +143,8 @@ fun LoginScreen(
                                 IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                             )
                         }
-                        .addOnFailureListener {
-                            viewModel.clearError()
+                        .addOnFailureListener { e ->
+                            viewModel.setError(e.localizedMessage ?: "Google Sign-In failed")
                         }
                 },
                 modifier = Modifier

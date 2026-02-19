@@ -27,7 +27,7 @@ android {
     buildTypes {
         debug {
             isDebuggable = true
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"https://smart-attendance-platform-production.up.railway.app/\"")
         }
         release {
             isMinifyEnabled = true
