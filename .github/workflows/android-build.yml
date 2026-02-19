@@ -1,0 +1,111 @@
+name: Android Build & Release APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.11.1
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-attendance-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-attendance-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  release:
+    name: Create Release with APK
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: smart-attendance-release-apk
+          path: apk
+
+      - name: Download Debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: smart-attendance-debug-apk
+          path: apk-debug
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-build.${{ steps.date.outputs.date }}
+          name: "SmartAttend Android v1.0.0 (Build ${{ steps.date.outputs.date }})"
+          body: |
+            ## 📱 Smart Attendance Android App
+
+            **Auto-built from main branch merge**
+
+            ### Downloads
+            - `app-release.apk` — Release build (minified, optimized)
+            - `app-debug.apk` — Debug build (with logging)
+
+            ### Features
+            - Google Sign-In authentication
+            - Dashboard with live attendance stats
+            - Attendance tracking with WhatsApp chat processing
+            - Employee, Group, Holiday & Leave management
+            - Monthly summary reports with analytics
+            - Material Design 3 UI with dynamic colors
+          files: |
+            apk/*.apk
+            apk-debug/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
