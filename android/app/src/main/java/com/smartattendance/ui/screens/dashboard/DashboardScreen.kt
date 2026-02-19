@@ -60,160 +60,165 @@ fun DashboardScreen(
             )
         }
     ) { padding ->
-        when {
-            uiState.isLoading -> LoadingView(modifier = Modifier.padding(padding))
-            uiState.error != null -> ErrorView(
-                message = uiState.error!!,
-                onRetry = { viewModel.loadDashboard() },
-                modifier = Modifier.padding(padding)
-            )
-            uiState.stats != null -> {
-                val stats = uiState.stats!!
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(horizontal = 16.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Stats Grid
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            when {
+                uiState.isLoading -> LoadingView(modifier = Modifier.padding(padding))
+                uiState.error != null -> ErrorView(
+                    message = uiState.error!!,
+                    onRetry = { viewModel.loadDashboard() },
+                    modifier = Modifier.padding(padding)
+                )
+                uiState.stats != null -> {
+                    val stats = uiState.stats!!
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(horizontal = 16.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        StatsCard(
-                            title = "Total Employees",
-                            value = "${stats.totalEmployees}",
-                            icon = Icons.Filled.People,
-                            color = Indigo600,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatsCard(
-                            title = "Present Today",
-                            value = "${stats.presentToday}",
-                            icon = Icons.Filled.CheckCircle,
-                            color = Emerald600,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        // Stats Grid
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            StatsCard(
+                                title = "Total Employees",
+                                value = "${stats.totalEmployees}",
+                                icon = Icons.Filled.People,
+                                color = Indigo600,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatsCard(
+                                title = "Present Today",
+                                value = "${stats.presentToday}",
+                                icon = Icons.Filled.CheckCircle,
+                                color = Emerald600,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        StatsCard(
-                            title = "WFO Today",
-                            value = "${stats.wfoToday}",
-                            icon = Icons.Filled.Business,
-                            color = WfoGreen,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatsCard(
-                            title = "WFH Today",
-                            value = "${stats.wfhToday}",
-                            icon = Icons.Filled.Home,
-                            color = WfhBlue,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        StatsCard(
-                            title = "On Leave",
-                            value = "${stats.onLeaveToday}",
-                            icon = Icons.Filled.BeachAccess,
-                            color = LeaveAmber,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatsCard(
-                            title = "Absent",
-                            value = "${stats.absentToday}",
-                            icon = Icons.Filled.PersonOff,
-                            color = AbsentRed,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Quick Actions (Admin only)
-                    if (uiState.userRole == "ADMIN") {
-                        Text(
-                            text = "Quick Actions",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            QuickActionCard(
-                                icon = Icons.Filled.Groups,
-                                label = "Groups",
-                                onClick = onNavigateToGroups,
+                            StatsCard(
+                                title = "WFO Today",
+                                value = "${stats.wfoToday}",
+                                icon = Icons.Filled.Business,
+                                color = WfoGreen,
                                 modifier = Modifier.weight(1f)
                             )
-                            QuickActionCard(
-                                icon = Icons.Filled.CalendarMonth,
-                                label = "Holidays",
-                                onClick = onNavigateToHolidays,
-                                modifier = Modifier.weight(1f)
-                            )
-                            QuickActionCard(
-                                icon = Icons.Filled.Assessment,
-                                label = "Summary",
-                                onClick = onNavigateToSummary,
+                            StatsCard(
+                                title = "WFH Today",
+                                value = "${stats.wfhToday}",
+                                icon = Icons.Filled.Home,
+                                color = WfhBlue,
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                    }
 
-                    // Pending Info
-                    if (stats.pendingLeaves > 0 || stats.upcomingHolidays > 0) {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "Notifications",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        if (stats.pendingLeaves > 0) {
-                            NotificationCard(
-                                icon = Icons.Filled.PendingActions,
-                                text = "${stats.pendingLeaves} pending leave request(s)",
-                                color = LeaveAmber
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            StatsCard(
+                                title = "On Leave",
+                                value = "${stats.onLeaveToday}",
+                                icon = Icons.Filled.BeachAccess,
+                                color = LeaveAmber,
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        if (stats.upcomingHolidays > 0) {
-                            NotificationCard(
-                                icon = Icons.Filled.Celebration,
-                                text = "${stats.upcomingHolidays} upcoming holiday(s)",
-                                color = HolidayPurple
+                            StatsCard(
+                                title = "Absent",
+                                value = "${stats.absentToday}",
+                                icon = Icons.Filled.PersonOff,
+                                color = AbsentRed,
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Quick Actions (Admin only)
+                        if (uiState.userRole == "ADMIN") {
+                            Text(
+                                text = "Quick Actions",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                QuickActionCard(
+                                    icon = Icons.Filled.Groups,
+                                    label = "Groups",
+                                    onClick = onNavigateToGroups,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                QuickActionCard(
+                                    icon = Icons.Filled.CalendarMonth,
+                                    label = "Holidays",
+                                    onClick = onNavigateToHolidays,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                QuickActionCard(
+                                    icon = Icons.Filled.Assessment,
+                                    label = "Summary",
+                                    onClick = onNavigateToSummary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        // Pending Info
+                        if (stats.pendingLeaves > 0 || stats.upcomingHolidays > 0) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "Notifications",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            if (stats.pendingLeaves > 0) {
+                                NotificationCard(
+                                    icon = Icons.Filled.PendingActions,
+                                    text = "${stats.pendingLeaves} pending leave request(s)",
+                                    color = LeaveAmber
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            if (stats.upcomingHolidays > 0) {
+                                NotificationCard(
+                                    icon = Icons.Filled.Celebration,
+                                    text = "${stats.upcomingHolidays} upcoming holiday(s)",
+                                    color = HolidayPurple
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                 }
-            }
-            else -> {
-                // Determine what to show if no error, no stats, and not loading.
-                // This shouldn't typically happen if initial state is correct, but safe to show loading or empty.
-                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("No data available")
+                else -> {
+                    // Determine what to show if no error, no stats, and not loading.
+                    // This shouldn't typically happen if initial state is correct, but safe to show loading or empty.
+                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text("No data available", color = MaterialTheme.colorScheme.onBackground)
+                    }
                 }
             }
         }
