@@ -74,7 +74,7 @@ import { HeaderComponent } from '../header/header.component';
       <div class="scheduler-popup-card">
         <span class="material-icons popup-icon">schedule_send</span>
         <h2 class="popup-title">Scheduler Active</h2>
-        <p class="popup-subtitle">Fetching Emails Mon-Fri &#64; 12:00 PM</p>
+        <p class="popup-subtitle">Fetching Emails Mon-Fri &#64; 1:30 PM</p>
       </div>
     </div>
     <div class="flex h-screen overflow-hidden bg-[var(--bg-primary)]">

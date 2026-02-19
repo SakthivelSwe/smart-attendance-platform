@@ -71,7 +71,7 @@ public class EmailNotificationService {
 
             String html = "<html><body>" +
                     "<h2 style='color: #DC2626;'>Attendance Export Missing</h2>" +
-                    "<p>This is a reminder that the automated attendance processor runs at <b>12:00 PM</b> today.</p>" +
+                    "<p>This is a reminder that the automated attendance processor runs at <b>1:30 PM</b> today.</p>" +
                     "<p>We have not yet detected a 'WhatsApp Chat with...' export email in your inbox for today.</p>" +
                     "<p><b>Please export the chat from WhatsApp to your email immediately.</b></p>" +
                     "<br><p style='color: #6B7280; font-size: 12px;'>—Smart Attendance Platform</p>" +
