@@ -57,6 +57,12 @@ import { ToastService } from '../../core/services/toast.service';
                   <span *ngIf="loading" class="material-icons animate-spin text-sm">sync</span>
                   <span>{{ gmailStatus?.configured ? 'Update Credentials' : 'Save & Enable Automation' }}</span>
                 </button>
+                
+                <button (click)="testEmail()" [disabled]="loading" *ngIf="gmailStatus?.configured || gmailData.email"
+                        class="btn-secondary w-full flex items-center justify-center gap-2">
+                  <span class="material-icons text-sm">send</span>
+                  <span>Send Test Email</span>
+                </button>
             </div>
           </div>
         </div>
@@ -135,8 +141,34 @@ export class SettingsComponent implements OnInit {
 
   loadGmailStatus() {
     this.apiService.getGmailStatus().subscribe({
-      next: (status) => this.gmailStatus = status,
+      next: (status) => {
+        this.gmailStatus = status;
+        if (status.configured && status.email) {
+          this.gmailData.email = status.email;
+        }
+      },
       error: () => console.error('Failed to load Gmail status')
+    });
+  }
+
+  testEmail() {
+    const emailToTest = this.gmailData.email;
+    if (!emailToTest) {
+      this.toast.error('Please enter an email address first');
+      return;
+    }
+
+    this.loading = true;
+    this.apiService.sendTestEmail(emailToTest).subscribe({
+      next: (res) => {
+        this.toast.success(res.message || 'Test email sent successfully');
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.toast.error('Failed to send test email. Check backend logs.');
+        this.loading = false;
+      }
     });
   }
 

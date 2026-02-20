@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,7 +25,8 @@ public class EmailNotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
-    private final JavaMailSender mailSender;
+    private final JavaMailSender defaultMailSender;
+    private final SystemSettingService systemSettingService;
 
     @Value("${spring.mail.username:}")
     private String fromEmail;
@@ -32,16 +35,20 @@ public class EmailNotificationService {
      * Send daily attendance summary email.
      */
     public void sendDailySummaryEmail(List<AttendanceDTO> attendanceList, LocalDate date, String toEmail) {
-        if (fromEmail == null || fromEmail.isBlank()) {
-            logger.warn("Mail not configured. Skipping email notification.");
+        JavaMailSender sender = getEffectiveMailSender();
+        String senderEmail = getSenderEmail();
+
+        if (sender == null || senderEmail == null) {
+            logger.warn(
+                    "Mail not configured (checked both Spring properties and System Settings). Skipping email notification.");
             return;
         }
 
         try {
-            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessage message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromEmail);
+            helper.setFrom(senderEmail);
             helper.setTo(toEmail);
             helper.setSubject(
                     "📊 Daily Attendance Summary - " + date.format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
@@ -49,7 +56,7 @@ public class EmailNotificationService {
             String htmlContent = buildSummaryHtml(attendanceList, date);
             helper.setText(htmlContent, true);
 
-            mailSender.send(message);
+            sender.send(message);
             logger.info("Daily summary email sent to {}", toEmail);
 
         } catch (MessagingException e) {
@@ -58,14 +65,19 @@ public class EmailNotificationService {
     }
 
     public void sendReminderToAdmin(String toEmail) {
-        if (fromEmail == null || fromEmail.isBlank())
+        JavaMailSender sender = getEffectiveMailSender();
+        String senderEmail = getSenderEmail();
+
+        if (sender == null || senderEmail == null) {
+            logger.error("Attempted to send reminder but Mail is not configured.");
             return;
+        }
 
         try {
-            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessage message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromEmail);
+            helper.setFrom(senderEmail);
             helper.setTo(toEmail);
             helper.setSubject("⚠️ Action Required: Export WhatsApp Chat");
 
@@ -78,12 +90,50 @@ public class EmailNotificationService {
                     "</body></html>";
 
             helper.setText(html, true);
-            mailSender.send(message);
+            sender.send(message);
             logger.info("Reminder email sent to {}", toEmail);
 
         } catch (MessagingException e) {
             logger.error("Failed to send reminder email: {}", e.getMessage());
         }
+    }
+
+    private JavaMailSender getEffectiveMailSender() {
+        if (fromEmail != null && !fromEmail.isBlank()) {
+            return defaultMailSender;
+        }
+
+        String dbEmail = systemSettingService.getGmailEmail();
+        String dbPassword = systemSettingService.getGmailPassword();
+
+        if (dbEmail != null && dbPassword != null) {
+            return createMailSender(dbEmail, dbPassword);
+        }
+
+        return null;
+    }
+
+    private String getSenderEmail() {
+        if (fromEmail != null && !fromEmail.isBlank()) {
+            return fromEmail;
+        }
+        return systemSettingService.getGmailEmail();
+    }
+
+    private JavaMailSender createMailSender(String email, String password) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setHost("smtp.gmail.com");
+        sender.setPort(587);
+        sender.setUsername(email);
+        sender.setPassword(password);
+
+        Properties props = sender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.debug", "false");
+
+        return sender;
     }
 
     private String buildSummaryHtml(List<AttendanceDTO> list, LocalDate date) {

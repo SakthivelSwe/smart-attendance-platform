@@ -135,4 +135,7 @@ export class ApiService {
     getGmailStatus(): Observable<any> {
         return this.http.get<any>(`${this.api}/settings/gmail/status`);
     }
+    sendTestEmail(email: string): Observable<any> {
+        return this.http.post<any>(`${this.api}/settings/test-email`, { email });
+    }
 }

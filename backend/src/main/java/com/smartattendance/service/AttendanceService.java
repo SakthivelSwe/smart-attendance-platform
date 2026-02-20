@@ -60,9 +60,12 @@ public class AttendanceService {
 
     /**
      * Process WhatsApp chat text and create attendance records.
-     * Processes ALL dates found in the chat text.
+     * 
+     * @param processFullHistory if true, processes ALL dates in chat. If false,
+     *                           processes only last 7 days.
      */
-    public List<AttendanceDTO> processWhatsAppAttendance(String chatText, LocalDate targetDate) {
+    public List<AttendanceDTO> processWhatsAppAttendance(String chatText, LocalDate targetDate,
+            boolean processFullHistory) {
         logger.info("Processing WhatsApp attendance. Target date provided: {}", targetDate);
 
         // Parse WhatsApp messages (Returns Date -> (Sender -> Entry))
@@ -83,7 +86,12 @@ public class AttendanceService {
         java.util.Collections.sort(sortedDates);
 
         for (LocalDate date : sortedDates) {
-            // Filter for current year (2026) early to avoid unnecessary DB load
+            // Optimization: If NOT full history, only process recent dates (last 7 days)
+            if (!processFullHistory && date.isBefore(targetDate.minusDays(7))) {
+                continue;
+            }
+
+            // Filter for current year (sanity check)
             if (date.getYear() < 2026) {
                 continue;
             }

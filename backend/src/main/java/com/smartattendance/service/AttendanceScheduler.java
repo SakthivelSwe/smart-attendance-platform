@@ -20,6 +20,7 @@ public class AttendanceScheduler {
     private final EmailNotificationService emailNotificationService;
     private final SystemSettingService systemSettingService;
     private final GmailService gmailService;
+    private final WhatsAppNotificationService whatsAppNotificationService;
 
     /**
      * Pre-check logic - Monday to Friday at 11:30 AM IST.
@@ -41,7 +42,12 @@ public class AttendanceScheduler {
 
             if (!exists) {
                 logger.warn("No attendance email found for today yet. Sending reminder.");
+                logger.warn("No attendance email found for today yet. Sending reminder.");
                 emailNotificationService.sendReminderToAdmin(email);
+
+                // Send WhatsApp Reminder
+                String whatsAppMessage = "*Attendance Reminder*\nAttendance export email not found for today. Please export the WhatsApp chat immediately.";
+                whatsAppNotificationService.sendWhatsAppMessage(whatsAppMessage);
             } else {
                 logger.info("Attendance email found. Ready for 12:00 PM processing.");
             }
@@ -86,7 +92,9 @@ public class AttendanceScheduler {
             String chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
 
             if (chatText != null && !chatText.isBlank()) {
-                attendanceService.processWhatsAppAttendance(chatText, today);
+                // For automatic daily processing, we only need the latest few days (performance
+                // optimization)
+                attendanceService.processWhatsAppAttendance(chatText, today, false);
                 logger.info("Automatically processed attendance from email for {}", today);
             } else {
                 logger.info("No attendance email found for {}", today);

@@ -141,7 +141,7 @@ public class WhatsAppParser {
             } catch (DateTimeParseException ignored) {
             }
         }
-        logger.warn("Could not parse date: {}", dateStr);
+        logger.debug("Could not parse date: {}", dateStr);
         return null;
     }
 
@@ -180,7 +180,7 @@ public class WhatsAppParser {
             }
         }
 
-        logger.warn("Could not parse time: '{}' (original: '{}')", cleaned, timeStr);
+        logger.debug("Could not parse time: '{}' (original: '{}')", cleaned, timeStr);
         return null;
     }
 

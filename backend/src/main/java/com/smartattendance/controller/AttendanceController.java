@@ -62,8 +62,10 @@ public class AttendanceController {
         String chatText = request.get("chatText");
         String dateStr = request.get("date");
         LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
+        boolean processFullHistory = request.getOrDefault("fullHistory", "true").equals("true");
 
-        List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date);
+        // Use 'true' by default for manual uploads to ensure corrections are applied
+        List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date, processFullHistory);
         return ResponseEntity.ok(result);
     }
 
@@ -132,7 +134,8 @@ public class AttendanceController {
         }
 
         // Process the chat text
-        List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date);
+        // Process the chat text - Manual email triggering usually warrants a full check
+        List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date, true);
 
         response.put("success", true);
         response.put("message", "Successfully processed " + result.size() + " attendance records from email.");
