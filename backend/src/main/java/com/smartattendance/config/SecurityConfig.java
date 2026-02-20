@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
+                .exceptionHandling(e -> e.authenticationEntryPoint(
+                        (request, response, authException) -> response.sendError(401, "Unauthorized")))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -56,8 +58,7 @@ public class SecurityConfig {
                 Arrays.stream(allowedOrigins.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
-                        .toList()
-        );
+                        .toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));

@@ -34,4 +34,9 @@ public class AuthController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("OK");
+    }
 }
