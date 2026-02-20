@@ -59,10 +59,19 @@ fun LoginScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val credential = oneTapClient.getSignInCredentialFromIntent(result.data)
-            credential.googleIdToken?.let { token ->
-                viewModel.loginWithGoogle(token)
+            try {
+                val credential = oneTapClient.getSignInCredentialFromIntent(result.data)
+                credential.googleIdToken?.let { token ->
+                    viewModel.loginWithGoogle(token)
+                } ?: run {
+                    viewModel.setError("Google ID Token is missing")
+                }
+            } catch (e: Exception) {
+                // Commonly happens if SHA-1 fingerprint is mismatching
+                viewModel.setError("Sign-In Error: ${e.localizedMessage}")
             }
+        } else {
+            viewModel.setError("Sign-In cancelled or failed (Code: ${result.resultCode})")
         }
     }
 
