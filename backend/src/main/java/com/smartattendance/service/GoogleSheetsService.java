@@ -35,6 +35,9 @@ public class GoogleSheetsService {
     @Value("${app.google.sheets.credentials-path}")
     private Resource credentialsResource;
 
+    @Value("${GOOGLE_CREDENTIALS_JSON:#{null}}")
+    private String credentialsJson;
+
     @Value("${app.gmail.application-name:Smart Attendance}")
     private String applicationName;
 
@@ -46,7 +49,16 @@ public class GoogleSheetsService {
             logger.info("Initializing Google Sheets Service...");
             NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
 
-            InputStream credentialsStream = credentialsResource.getInputStream();
+            InputStream credentialsStream;
+            if (credentialsJson != null && !credentialsJson.trim().isEmpty()) {
+                credentialsStream = new java.io.ByteArrayInputStream(
+                        credentialsJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                logger.info("Using GOOGLE_CREDENTIALS_JSON environment variable for authentication.");
+            } else {
+                credentialsStream = credentialsResource.getInputStream();
+                logger.info("Using credentials file for authentication.");
+            }
+
             GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
                     .createScoped(Collections.singletonList(SheetsScopes.SPREADSHEETS));
 
