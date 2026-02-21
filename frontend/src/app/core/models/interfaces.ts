@@ -27,7 +27,7 @@ export interface Attendance {
     date: string;
     inTime: string;
     outTime: string;
-    status: 'WFO' | 'WFH' | 'LEAVE' | 'HOLIDAY' | 'ABSENT';
+    status: 'WFO' | 'WFH' | 'LEAVE' | 'HOLIDAY' | 'ABSENT' | 'BENCH' | 'TRAINING';
     source: string;
     remarks: string;
     groupName: string;
@@ -78,7 +78,10 @@ export interface MonthlySummary {
     leaveCount: number;
     holidayCount: number;
     absentCount: number;
+    benchCount: number;
+    trainingCount: number;
     totalWorkingDays: number;
+    totalWorkingHours: number;
     attendancePercentage: number;
 }
 

@@ -243,6 +243,8 @@ export class AttendanceComponent implements OnInit {
     { label: 'Leave', value: 'LEAVE' },
     { label: 'Holiday', value: 'HOLIDAY' },
     { label: 'Absent', value: 'ABSENT' },
+    { label: 'Bench', value: 'BENCH' },
+    { label: 'Training', value: 'TRAINING' },
   ];
 
   constructor(private api: ApiService, public authService: AuthService) { }
@@ -258,9 +260,7 @@ export class AttendanceComponent implements OnInit {
         this.automationConfigured = status.configured;
         if (status.configured) {
           this.gmailEmail = status.email;
-          // We keep password blank for security, 
-          // but the backend can use stored if we send a special flag or handle it differently.
-          // For now, if we have it in settings, we can inform the user.
+          this.gmailPassword = '***SAVED_IN_DB***';
         }
       }
     });
@@ -283,7 +283,8 @@ export class AttendanceComponent implements OnInit {
   getStatusBadge(status: string): string {
     const map: Record<string, string> = {
       'WFO': 'badge-wfo', 'WFH': 'badge-wfh', 'LEAVE': 'badge-leave',
-      'HOLIDAY': 'badge-holiday', 'ABSENT': 'badge-absent'
+      'HOLIDAY': 'badge-holiday', 'ABSENT': 'badge-absent',
+      'BENCH': 'badge-bench', 'TRAINING': 'badge-training'
     };
     return map[status] || 'badge';
   }

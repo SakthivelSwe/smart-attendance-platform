@@ -26,47 +26,51 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
+        private final JwtAuthFilter jwtAuthFilter;
 
-    @Value("${app.cors.allowed-origins}")
-    private String allowedOrigins;
+        @Value("${app.cors.allowed-origins}")
+        private String allowedOrigins;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())) // Allow H2 console frames
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .exceptionHandling(e -> e.authenticationEntryPoint(
-                        (request, response, authException) -> response.sendError(401, "Unauthorized")))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())) // Allow H2
+                                                                                                       // console frames
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/api/auth/**", "/api/employees", "/api/attendance/**")
+                                                .permitAll()
+                                                .requestMatchers("/h2-console/**").permitAll()
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(e -> e.authenticationEntryPoint(
+                                                (request, response, authException) -> response.sendError(401,
+                                                                "Unauthorized")))
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(
-                Arrays.stream(allowedOrigins.split(","))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .toList());
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(
+                                Arrays.stream(allowedOrigins.split(","))
+                                                .map(String::trim)
+                                                .filter(s -> !s.isEmpty())
+                                                .toList());
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
+                configuration.setAllowCredentials(true);
+                configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }

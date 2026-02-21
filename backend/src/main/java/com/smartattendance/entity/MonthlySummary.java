@@ -47,7 +47,19 @@ public class MonthlySummary {
     @Builder.Default
     private Integer absentCount = 0;
 
+    @Column(name = "bench_count")
+    @Builder.Default
+    private Integer benchCount = 0;
+
+    @Column(name = "training_count")
+    @Builder.Default
+    private Integer trainingCount = 0;
+
     @Column(name = "total_working_days")
     @Builder.Default
     private Integer totalWorkingDays = 0;
+
+    @Column(name = "total_working_hours")
+    @Builder.Default
+    private Integer totalWorkingHours = 0;
 }
