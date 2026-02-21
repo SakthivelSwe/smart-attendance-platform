@@ -135,6 +135,20 @@ public class WhatsAppParser {
     }
 
     private LocalDate parseDate(String dateStr) {
+        String[] parts = dateStr.split("/");
+        if (parts.length >= 3) {
+            try {
+                int d = Integer.parseInt(parts[0].trim());
+                int m = Integer.parseInt(parts[1].trim());
+                int y = Integer.parseInt(parts[2].trim());
+                if (y < 100)
+                    y += 2000;
+                return LocalDate.of(y, m, d);
+            } catch (Exception e) {
+                // Ignore and fall through to formatter fallback
+            }
+        }
+
         for (DateTimeFormatter formatter : DATE_FORMATTERS) {
             try {
                 return LocalDate.parse(dateStr, formatter);
@@ -149,16 +163,35 @@ public class WhatsAppParser {
         if (timeStr == null)
             return null;
 
-        // Clean up time string:
-        // 1. Convert to uppercase
-        // 2. Replace any non-alphanumeric/non-separator character (including those
-        // weird '?' spaces) with a space
-        // 3. Normalize multiple spaces to a single space
-        // 4. Trim
         String cleaned = timeStr.toUpperCase()
                 .replaceAll("[^0-9A-Z:.]", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
+
+        String colonTime = cleaned.replace(".", ":");
+
+        try {
+            boolean isPM = colonTime.contains("PM");
+            boolean isAM = colonTime.contains("AM");
+            String timeOnly = colonTime.replace("AM", "").replace("PM", "").trim();
+            String[] parts = timeOnly.split(":");
+
+            if (parts.length >= 2) {
+                int h = Integer.parseInt(parts[0].trim());
+                int m = Integer.parseInt(parts[1].trim());
+                int s = parts.length > 2 ? Integer.parseInt(parts[2].trim()) : 0;
+
+                if (h <= 23 && m <= 59 && s <= 59) {
+                    if (isPM && h < 12)
+                        h += 12;
+                    if (isAM && h == 12)
+                        h = 0;
+                    return LocalTime.of(h, m, s);
+                }
+            }
+        } catch (Exception e) {
+            // Ignore and fall through to formatter fallback
+        }
 
         logger.debug("Attempting to parse cleaned time: '{}' from original: '{}'", cleaned, timeStr);
 
@@ -169,8 +202,6 @@ public class WhatsAppParser {
             }
         }
 
-        // Try cleaning up common issues like '9.06 AM' -> '9:06 AM'
-        String colonTime = cleaned.replace(".", ":");
         if (!colonTime.equals(cleaned)) {
             for (DateTimeFormatter formatter : TIME_FORMATTERS) {
                 try {
