@@ -213,7 +213,7 @@ public class GoogleSheetsService {
 
             // 5. Find the Row for the specific employee
             int employeeRowIndex = -1;
-            logger.info("DEBUG: Looking for employee '{}' (normalized: '{}') in sheet '{}'",
+            logger.debug("Looking for employee '{}' (normalized: '{}') in sheet '{}'",
                     employee.getName(),
                     employee.getName() != null ? employee.getName().replaceAll("[\\s\\u00A0]+", "").trim() : "null",
                     sheetName);
@@ -228,7 +228,7 @@ public class GoogleSheetsService {
                             boolean match = normalizedSheetName.equalsIgnoreCase(normalizedDbName);
 
                             if (match) {
-                                logger.info("DEBUG: MATCH FOUND at row {} for '{}' == '{}'", r, normalizedSheetName,
+                                logger.debug("Match found at row {} for '{}' == '{}'", r, normalizedSheetName,
                                         normalizedDbName);
                                 employeeRowIndex = r;
                                 break;
