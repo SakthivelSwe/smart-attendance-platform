@@ -20,6 +20,9 @@ public class MonthlySummaryDTO {
     private Integer leaveCount;
     private Integer holidayCount;
     private Integer absentCount;
+    private Integer benchCount;
+    private Integer trainingCount;
     private Integer totalWorkingDays;
+    private Integer totalWorkingHours;
     private Double attendancePercentage;
 }

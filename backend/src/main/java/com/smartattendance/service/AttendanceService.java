@@ -33,6 +33,7 @@ public class AttendanceService {
     private final LeaveService leaveService;
     private final WhatsAppParser whatsAppParser;
     private final WhatsAppLogRepository whatsAppLogRepository;
+    private final GoogleSheetsService googleSheetsService;
 
     public List<AttendanceDTO> getAttendanceByDate(LocalDate date) {
         return attendanceRepository.findWithEmployeeByDate(date).stream()
@@ -84,6 +85,9 @@ public class AttendanceService {
         // Sort dates to process history in order
         List<LocalDate> sortedDates = new java.util.ArrayList<>(fullAttendanceMap.keySet());
         java.util.Collections.sort(sortedDates);
+
+        // Collect all attendance records that need Google Sheets sync
+        List<Attendance> allSheetUpdates = new java.util.ArrayList<>();
 
         for (LocalDate date : sortedDates) {
             // Optimization: If NOT full history, only process recent dates (last 7 days)
@@ -211,7 +215,17 @@ public class AttendanceService {
 
             // Batch save for the date
             if (!toSave.isEmpty()) {
-                attendanceRepository.saveAll(toSave);
+                List<Attendance> savedRecords = attendanceRepository.saveAll(toSave);
+
+                // Collect records for Google Sheets sync (will be processed after all dates)
+                for (Attendance saved : savedRecords) {
+                    if (saved.getEmployee() != null && saved.getEmployee().getGroup() != null) {
+                        String sheetId = saved.getEmployee().getGroup().getGoogleSheetId();
+                        if (sheetId != null && !sheetId.isBlank()) {
+                            allSheetUpdates.add(saved);
+                        }
+                    }
+                }
             }
 
             // Save unmatched logs
@@ -239,6 +253,32 @@ public class AttendanceService {
 
         logger.info("Successfully processed attendance history.");
 
+        // Process ALL Google Sheets updates in a SINGLE sequential async thread
+        // This prevents multiple parallel threads from overwhelming the API quota
+        if (!allSheetUpdates.isEmpty()) {
+            logger.info("Queuing {} Google Sheet updates (throttled at 1 per second)...", allSheetUpdates.size());
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                int successCount = 0;
+                for (Attendance saved : allSheetUpdates) {
+                    try {
+                        String sheetId = saved.getEmployee().getGroup().getGoogleSheetId();
+                        String currentMonthName = saved.getDate().getMonth().name().substring(0, 1).toUpperCase()
+                                + saved.getDate().getMonth().name().substring(1).toLowerCase() + " Month";
+                        googleSheetsService.updateAttendanceSync(sheetId, currentMonthName, saved);
+                        successCount++;
+                        // Throttle: 1 second between calls to respect Google quota
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    } catch (Exception e) {
+                        logger.error("Sheet sync error for {}: {}", saved.getEmployee().getName(), e.getMessage());
+                    }
+                }
+                logger.info("Google Sheet sync completed: {}/{} records synced.", successCount, allSheetUpdates.size());
+            });
+        }
+
         // Return the 'targetDate' attendance to satisfy the Controller return type
         return getAttendanceByDate(targetDate);
     }
@@ -262,6 +302,13 @@ public class AttendanceService {
             return digits.substring(2);
         }
         return digits;
+    }
+
+    /**
+     * Get raw Attendance entity by ID (for testing/debugging only).
+     */
+    public Attendance findRawAttendanceById(Long id) {
+        return attendanceRepository.findById(id).orElse(null);
     }
 
     /**

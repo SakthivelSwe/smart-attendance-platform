@@ -58,7 +58,7 @@ public class MonthlySummaryService {
             List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(
                     employee.getId(), startDate, endDate);
 
-            int wfo = 0, wfh = 0, leave = 0, holiday = 0, absent = 0;
+            int wfo = 0, wfh = 0, leave = 0, holiday = 0, absent = 0, bench = 0, training = 0;
 
             for (Attendance record : records) {
                 switch (record.getStatus()) {
@@ -67,10 +67,14 @@ public class MonthlySummaryService {
                     case LEAVE -> leave++;
                     case HOLIDAY -> holiday++;
                     case ABSENT -> absent++;
+                    case BENCH -> bench++;
+                    case TRAINING -> training++;
                 }
             }
 
-            int totalWorkingDays = wfo + wfh + leave + absent; // Excluding holidays
+            int totalWorkingDays = wfo + wfh + bench + training; // Including bench and training, excluding
+                                                                 // holidays/leaves/absent
+            int totalWorkingHours = totalWorkingDays * 8;
 
             MonthlySummary summary = summaryRepository
                     .findByEmployeeIdAndMonthAndYear(employee.getId(), month, year)
@@ -85,7 +89,10 @@ public class MonthlySummaryService {
             summary.setLeaveCount(leave);
             summary.setHolidayCount(holiday);
             summary.setAbsentCount(absent);
+            summary.setBenchCount(bench);
+            summary.setTrainingCount(training);
             summary.setTotalWorkingDays(totalWorkingDays);
+            summary.setTotalWorkingHours(totalWorkingHours);
 
             summaryRepository.save(summary);
         }
@@ -114,7 +121,10 @@ public class MonthlySummaryService {
                 .leaveCount(summary.getLeaveCount())
                 .holidayCount(summary.getHolidayCount())
                 .absentCount(summary.getAbsentCount())
+                .benchCount(summary.getBenchCount())
+                .trainingCount(summary.getTrainingCount())
                 .totalWorkingDays(summary.getTotalWorkingDays())
+                .totalWorkingHours(summary.getTotalWorkingHours())
                 .attendancePercentage(Math.round(attendancePercentage * 100.0) / 100.0)
                 .build();
     }

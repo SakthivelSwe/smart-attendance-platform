@@ -39,7 +39,10 @@ import { MonthlySummary } from '../../core/models/interfaces';
                 <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Leave</th>
                 <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Holiday</th>
                 <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Absent</th>
+                <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Bench</th>
+                <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Training</th>
                 <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Working Days</th>
+                <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Working Hours</th>
                 <th class="text-center px-4 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Attendance %</th>
               </tr>
             </thead>
@@ -61,7 +64,10 @@ import { MonthlySummary } from '../../core/models/interfaces';
                 <td class="px-4 py-4 text-center"><span class="badge-leave">{{ s.leaveCount }}</span></td>
                 <td class="px-4 py-4 text-center"><span class="badge-holiday">{{ s.holidayCount }}</span></td>
                 <td class="px-4 py-4 text-center"><span class="badge-absent">{{ s.absentCount }}</span></td>
+                <td class="px-4 py-4 text-center"><span class="badge-bench">{{ s.benchCount }}</span></td>
+                <td class="px-4 py-4 text-center"><span class="badge-training">{{ s.trainingCount }}</span></td>
                 <td class="px-4 py-4 text-center text-sm font-medium text-[var(--text-primary)]">{{ s.totalWorkingDays }}</td>
+                <td class="px-4 py-4 text-center text-sm font-medium text-[var(--text-primary)]">{{ s.totalWorkingHours }}</td>
                 <td class="px-4 py-4 text-center">
                   <div class="flex items-center justify-center gap-2">
                     <div class="w-16 h-2 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
@@ -82,7 +88,7 @@ import { MonthlySummary } from '../../core/models/interfaces';
                 </td>
               </tr>
               <tr *ngIf="summaries.length === 0">
-                <td colspan="8" class="px-6 py-12 text-center text-[var(--text-secondary)]">
+                <td colspan="10" class="px-6 py-12 text-center text-[var(--text-secondary)]">
                   No summary data available. Click "Generate" to create a summary.
                 </td>
               </tr>
