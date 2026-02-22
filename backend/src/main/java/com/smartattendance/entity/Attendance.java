@@ -10,7 +10,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "attendance", uniqueConstraints = @UniqueConstraint(columnNames = { "employee_id", "date" }))
+@Table(name = "attendance", uniqueConstraints = @UniqueConstraint(columnNames = { "employee_id", "date" }), indexes = {
+        @Index(name = "idx_attendance_date", columnList = "date"),
+        @Index(name = "idx_attendance_status", columnList = "status"),
+        @Index(name = "idx_attendance_emp_date", columnList = "employee_id, date")
+})
 @Getter
 @Setter
 @NoArgsConstructor

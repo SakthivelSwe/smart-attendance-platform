@@ -15,13 +15,13 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
       <!-- Logo -->
       <div class="flex items-center gap-3 px-6 py-6 border-b border-[var(--border-color)]">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/20">
+        <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-sm border border-primary-700">
           <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
         </div>
         <div *ngIf="!isCollapsed" class="min-w-0 animate-fade-in">
-          <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600 dark:from-primary-400 dark:to-indigo-400 truncate">SmartAttend</h1>
+          <h1 class="text-xl font-sans font-bold text-[var(--text-primary)] tracking-tight truncate">SmartAttend</h1>
           <p class="text-xs text-[var(--text-secondary)] font-medium tracking-wide">Automation Platform</p>
         </div>
       </div>
@@ -70,12 +70,12 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
            class="lg:hidden fixed left-0 top-0 h-screen w-80 bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-50 animate-slide-in-right shadow-2xl">
       <div class="flex items-center justify-between px-6 py-6 border-b border-[var(--border-color)]">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
+          <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center shadow-sm border border-primary-700">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <h1 class="text-xl font-bold text-[var(--text-primary)]">SmartAttend</h1>
+          <h1 class="text-xl font-sans font-bold tracking-tight text-[var(--text-primary)]">SmartAttend</h1>
         </div>
         <button (click)="closeMobile.emit()" class="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition text-[var(text-secondary)]">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

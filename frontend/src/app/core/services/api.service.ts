@@ -17,6 +17,9 @@ export class ApiService {
     getDashboardStats(): Observable<DashboardStats> {
         return this.http.get<DashboardStats>(`${this.api}/dashboard/stats`);
     }
+    getDashboardInsights(): Observable<{ insight: string }> {
+        return this.http.get<{ insight: string }>(`${this.api}/dashboard/insights`);
+    }
 
     // Employees
     getEmployees(): Observable<Employee[]> {

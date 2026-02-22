@@ -26,7 +26,31 @@ import { Group } from '../../core/models/interfaces';
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Skeleton Loaders -->
+      <div *ngIf="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div *ngFor="let i of [1,2,3]" class="card p-5 animate-pulse">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-surface-200 dark:bg-surface-700"></div>
+              <div class="space-y-2">
+                <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-24"></div>
+                <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-16"></div>
+              </div>
+            </div>
+            <div class="h-5 bg-surface-200 dark:bg-surface-700 rounded w-12"></div>
+          </div>
+          <div class="space-y-3 mb-4">
+            <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-3/4"></div>
+            <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-1/2"></div>
+          </div>
+          <div class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
+             <div class="flex-1 h-8 bg-surface-200 dark:bg-surface-700 rounded"></div>
+             <div class="flex-1 h-8 bg-surface-200 dark:bg-surface-700 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div *ngFor="let g of groups" class="card p-5">
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
@@ -58,10 +82,18 @@ import { Group } from '../../core/models/interfaces';
           </div>
 
           <div *ngIf="authService.isAdmin" class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
-            <button (click)="editGroup(g)" class="flex-1 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition">Edit</button>
-            <button (click)="deleteGroup(g.id)" class="flex-1 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">Delete</button>
+            <button (click)="editGroup(g)" class="flex-1 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg transition-colors">Edit</button>
+            <button (click)="deleteGroup(g.id)" class="flex-1 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors">Delete</button>
           </div>
         </div>
+      </div>
+
+      <div *ngIf="!isLoading && groups.length === 0" class="text-center py-12 text-[var(--text-secondary)] bg-surface-50 dark:bg-surface-800/50 rounded-2xl border border-dashed border-surface-200 dark:border-surface-700 mt-6">
+        <svg class="w-16 h-16 mx-auto mb-4 text-surface-300 dark:text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <p class="font-medium">No groups found</p>
+        <p class="text-sm opacity-70 mt-1">Add a group to organize your team</p>
       </div>
 
       <!-- Modal -->
@@ -97,6 +129,7 @@ import { Group } from '../../core/models/interfaces';
 })
 export class GroupsComponent implements OnInit {
   groups: Group[] = [];
+  isLoading = true;
   showModal = false;
   editingId: number | null = null;
   form: Partial<Group> = {};
@@ -105,7 +138,16 @@ export class GroupsComponent implements OnInit {
 
   ngOnInit() { this.loadGroups(); }
 
-  loadGroups() { this.api.getGroups().subscribe(data => this.groups = data); }
+  loadGroups() {
+    this.isLoading = true;
+    this.api.getGroups().subscribe({
+      next: (data) => {
+        this.groups = data;
+        this.isLoading = false;
+      },
+      error: () => this.isLoading = false
+    });
+  }
 
   openModal() { this.editingId = null; this.form = {}; this.showModal = true; }
 

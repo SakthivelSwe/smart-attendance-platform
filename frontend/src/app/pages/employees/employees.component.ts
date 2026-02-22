@@ -39,8 +39,30 @@ import { Employee, Group } from '../../core/models/interfaces';
         </div>
       </div>
 
+      <!-- Skeleton Loaders -->
+      <div *ngIf="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="glass-card p-4 animate-pulse bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm">
+           <div class="flex items-center gap-4 mb-5">
+              <div class="w-12 h-12 rounded-xl bg-surface-200 dark:bg-surface-800 shrink-0"></div>
+              <div class="space-y-2 flex-1">
+                 <div class="h-4 bg-surface-200 dark:bg-surface-800 rounded w-3/4"></div>
+                 <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-1/3"></div>
+              </div>
+           </div>
+           <div class="space-y-3">
+              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-full"></div>
+              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-5/6"></div>
+              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-4/6"></div>
+           </div>
+           <div class="mt-4 pt-3 border-t border-surface-100 dark:border-surface-800 flex justify-end gap-2">
+              <div class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800"></div>
+              <div class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800"></div>
+           </div>
+        </div>
+      </div>
+
       <!-- Employee cards grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div *ngFor="let emp of paginatedEmployees; let i = index" 
              class="glass-card p-4 relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm hover:shadow-md"
              [style.animation-delay]="i * 50 + 'ms'">
@@ -53,8 +75,8 @@ import { Employee, Group } from '../../core/models/interfaces';
 
           <!-- Header (Compact) -->
           <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-indigo-100 dark:from-primary-900/50 dark:to-indigo-900/50 flex items-center justify-center shrink-0">
-               <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
+            <div class="w-12 h-12 rounded bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 flex items-center justify-center shrink-0">
+               <span class="text-xl font-sans font-semibold text-primary-600 dark:text-primary-400">
                  {{ emp.name.charAt(0) }}
                </span>
             </div>
@@ -126,7 +148,7 @@ import { Employee, Group } from '../../core/models/interfaces';
         </button>
       </div>
 
-      <div *ngIf="filteredEmployees.length === 0" class="text-center py-12 text-[var(--text-secondary)]">
+      <div *ngIf="!isLoading && filteredEmployees.length === 0" class="text-center py-12 text-[var(--text-secondary)]">
         <svg class="w-16 h-16 mx-auto mb-4 text-surface-300 dark:text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
         </svg>
@@ -182,6 +204,7 @@ import { Employee, Group } from '../../core/models/interfaces';
 export class EmployeesComponent implements OnInit {
   employees: Employee[] = [];
   groups: Group[] = [];
+  isLoading = true;
   searchTerm = '';
   showModal = false;
   editingId: number | null = null;
@@ -200,7 +223,14 @@ export class EmployeesComponent implements OnInit {
   }
 
   loadEmployees() {
-    this.api.getEmployees().subscribe(data => this.employees = data);
+    this.isLoading = true;
+    this.api.getEmployees().subscribe({
+      next: (data) => {
+        this.employees = data;
+        this.isLoading = false;
+      },
+      error: () => this.isLoading = false
+    });
   }
 
   get filteredEmployees() {
