@@ -65,12 +65,7 @@ app:
     anon-key: ${SUPABASE_ANON_KEY}
 
   gmail:
-    credentials-path: ${GMAIL_CREDENTIALS_PATH:}
     application-name: Smart Attendance Platform
-
-  google:
-    sheets:
-      credentials-path: ${GOOGLE_SHEETS_CREDENTIALS_PATH:}
 
   admin:
     emails: sakthiveltony@gmail.com
