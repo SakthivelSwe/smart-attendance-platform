@@ -29,8 +29,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 1080249198691-444ld2o9fqo8qdm76usdmie92lk8knjh.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID:your_client_id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your_client_secret}
 
   # Disable mail in dev
   mail:
@@ -48,7 +48,8 @@ app:
   jwt:
     secret: DevSecretKeyForLocalTestingOnly256BitsMinimumRequiredForHS256Algorithm2024!
     expiration-ms: 86400000
-
+  gemini:
+    api-key: ${GEMINI_API_KEY:your_gemini_api_key}
 
   admin:
     emails: sakthiveltony@gmail.com

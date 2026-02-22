@@ -7,6 +7,8 @@ import com.smartattendance.exception.ResourceNotFoundException;
 import com.smartattendance.repository.EmployeeRepository;
 import com.smartattendance.repository.GroupRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +23,14 @@ public class EmployeeService {
     private final GroupRepository groupRepository;
     private final AttendanceService attendanceService;
 
+    @Cacheable(value = "employees")
     public List<EmployeeDTO> getAllEmployees() {
         return employeeRepository.findAllWithGroup().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = "activeEmployees")
     public List<EmployeeDTO> getActiveEmployees() {
         return employeeRepository.findByIsActiveTrueWithGroup().stream()
                 .map(this::toDTO)
@@ -45,6 +49,7 @@ public class EmployeeService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = { "employees", "activeEmployees", "dashboardStats" }, allEntries = true)
     public EmployeeDTO createEmployee(EmployeeDTO dto) {
         if (employeeRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Employee with email " + dto.getEmail() + " already exists");
@@ -78,6 +83,7 @@ public class EmployeeService {
         return toDTO(saved);
     }
 
+    @CacheEvict(value = { "employees", "activeEmployees", "dashboardStats" }, allEntries = true)
     public EmployeeDTO updateEmployee(Long id, EmployeeDTO dto) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
@@ -111,6 +117,7 @@ public class EmployeeService {
     }
 
     @Transactional
+    @CacheEvict(value = { "employees", "activeEmployees", "dashboardStats" }, allEntries = true)
     public void deleteEmployee(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));

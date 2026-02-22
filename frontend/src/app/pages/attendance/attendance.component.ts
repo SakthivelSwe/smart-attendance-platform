@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Attendance } from '../../core/models/interfaces';
+import { LottieComponent, AnimationOptions } from 'ngx-lottie';
 
 @Component({
   selector: 'app-attendance',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LottieComponent],
   template: `
     <div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -119,13 +120,26 @@ import { Attendance } from '../../core/models/interfaces';
                 </td>
                 <td class="px-6 py-4 text-sm text-[var(--text-secondary)] max-w-[200px] truncate">{{ a.remarks || '—' }}</td>
               </tr>
-              <tr *ngIf="filteredAttendance.length === 0">
+              <tr *ngIf="isLoading">
+                <td colspan="7" class="p-0">
+                  <div class="divide-y divide-[var(--border-color)]">
+                    <div *ngFor="let i of [1,2,3,4,5]" class="px-6 py-4 flex items-center gap-6 animate-pulse">
+                      <div class="w-8 h-8 rounded-full bg-surface-200 dark:bg-surface-700 flex-shrink-0"></div>
+                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-32"></div>
+                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
+                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
+                      <div class="h-6 bg-surface-200 dark:bg-surface-700 rounded-full w-24"></div>
+                      <div class="h-5 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
+                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-full max-w-[150px]"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="!isLoading && filteredAttendance.length === 0">
                 <td colspan="7" class="px-6 py-12 text-center text-[var(--text-secondary)]">
                   <div class="flex flex-col items-center animate-fade-in">
-                    <div class="w-16 h-16 bg-surface-100 dark:bg-surface-800 rounded-full flex items-center justify-center mb-4">
-                      <svg class="w-8 h-8 text-surface-400 dark:text-surface-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
+                    <div class="mb-4">
+                      <ng-lottie [options]="emptyStateOptions" width="160px" height="160px"></ng-lottie>
                     </div>
                     <p class="text-lg font-medium">No records found</p>
                     <p class="text-sm opacity-70">Try selecting a different date or filter</p>
@@ -218,7 +232,12 @@ import { Attendance } from '../../core/models/interfaces';
 })
 export class AttendanceComponent implements OnInit {
   attendance: Attendance[] = [];
+  isLoading = true;
   selectedDate = new Date().toISOString().split('T')[0];
+
+  emptyStateOptions: AnimationOptions = {
+    path: 'https://assets10.lottiefiles.com/packages/lf20_chf3tt1b.json',
+  };
   activeFilter = 'ALL';
   showProcessModal = false;
   chatText = '';
@@ -267,7 +286,18 @@ export class AttendanceComponent implements OnInit {
   }
 
   loadAttendance() {
-    this.api.getAttendanceByDate(this.selectedDate).subscribe(data => this.attendance = data);
+    this.isLoading = true;
+    this.attendance = []; // Clear current records while loading
+    this.api.getAttendanceByDate(this.selectedDate).subscribe({
+      next: (data) => {
+        this.attendance = data;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+        this.attendance = [];
+      }
+    });
   }
 
   get filteredAttendance() {

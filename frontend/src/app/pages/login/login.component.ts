@@ -12,104 +12,83 @@ declare var google: any;
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <!-- Background Image with Overlay -->
-      <div class="absolute inset-0 z-0">
-        <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1920" 
-             alt="Background" 
-             class="w-full h-full object-cover animate-fade-in"
-             style="animation-duration: 1.5s">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/90 via-surface-900/80 to-primary-900/90 backdrop-blur-sm"></div>
-      </div>
-
-      <!-- Animated Particles/Orbs (Pure CSS) -->
-      <div class="absolute top-20 left-20 w-72 h-72 bg-primary-500/30 rounded-full blur-[100px] animate-pulse-slow"></div>
-      <div class="absolute bottom-20 right-20 w-96 h-96 bg-accent-500/20 rounded-full blur-[120px] animate-pulse-slow" style="animation-delay: 2s"></div>
+    <div class="min-h-screen flex items-center justify-center relative bg-[var(--bg-primary)] p-4">
+      
+      <!-- Minimalist Background Decoration (Enterprise) -->
+      <div class="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(0,0,0,0.8),rgba(0,0,0,0.2))] bg-[bottom_1px_center] z-0"></div>
 
       <!-- Main Content Container -->
       <div class="relative z-10 w-full max-w-5xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12 lg:gap-20">
         
-        <!-- Left Side: Hero Text (Hidden on Mobile) -->
-        <div class="hidden md:block flex-1 text-white space-y-6 animate-slide-in-right">
-          <h1 class="text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-            Seamless <br>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400">Attendance</span>
-            <br> Automation
+        <!-- Left Side: Hero Text -->
+        <div class="hidden md:block flex-1 space-y-8 animate-slide-in-right z-10">
+          <h1 class="text-5xl lg:text-6xl font-sans font-bold tracking-tight text-[var(--text-primary)]">
+            Attendance <br>
+            <span class="text-primary-600 dark:text-primary-400">Automation</span>
           </h1>
-          <p class="text-lg text-white/80 max-w-md leading-relaxed">
+          <p class="text-lg text-[var(--text-secondary)] max-w-md leading-relaxed font-sans">
             Empower your workforce with AI-driven tracking. Effortless, accurate, and integrated directly with your workflow.
           </p>
           <div class="flex items-center gap-4 pt-4">
              <div class="flex -space-x-3">
-               <div class="w-10 h-10 rounded-full border-2 border-primary-900 bg-surface-800 flex items-center justify-center text-xs font-bold">AI</div>
-               <div class="w-10 h-10 rounded-full border-2 border-primary-900 bg-surface-700 flex items-center justify-center text-xs font-bold">HR</div>
-               <div class="w-10 h-10 rounded-full border-2 border-primary-900 bg-surface-600 flex items-center justify-center text-xs font-bold">IT</div>
+               <div class="w-10 h-10 rounded-full border border-surface-200 dark:border-surface-700 bg-[var(--card-bg)] flex items-center justify-center text-xs font-bold text-[var(--text-primary)] shadow-sm">AI</div>
+               <div class="w-10 h-10 rounded-full border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800 flex items-center justify-center text-xs font-bold text-[var(--text-primary)] shadow-sm">HR</div>
+               <div class="w-10 h-10 rounded-full border border-surface-200 dark:border-surface-700 bg-surface-100 dark:bg-surface-700 flex items-center justify-center text-xs font-bold text-[var(--text-primary)] shadow-sm">IT</div>
              </div>
-             <div class="text-sm font-medium text-white/90">Trusted by modern teams</div>
+             <div class="text-sm font-medium text-[var(--text-secondary)]">Trusted by modern teams</div>
           </div>
         </div>
 
         <!-- Right Side: Login Card -->
-        <div class="w-full max-w-md animate-slide-up" style="animation-delay: 0.2s">
-          <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl relative overflow-hidden group hover:border-white/30 transition-all duration-500">
-            <!-- Shine Effect -->
-            <div class="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/0 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-
+        <div class="w-full max-w-md animate-slide-up z-10" style="animation-delay: 0.1s">
+          <div class="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] p-8 lg:p-10 shadow-lg relative overflow-hidden">
+            
             <!-- Logo Area -->
-            <div class="text-center mb-8 relative">
-              <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary-500 to-accent-600 flex items-center justify-center mb-4 shadow-lg shadow-primary-500/40 transform group-hover:scale-105 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="text-center mb-8">
+              <div class="w-16 h-16 mx-auto rounded-xl bg-primary-600 flex items-center justify-center mb-6 shadow-sm border border-primary-700">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </div>
-              <h2 class="text-3xl font-bold text-white tracking-tight">Welcome Back</h2>
-              <p class="text-white/60 text-sm mt-1">Sign in to access your dashboard</p>
+              <h2 class="text-2xl font-sans font-bold text-[var(--text-primary)] tracking-tight">Welcome Back</h2>
+              <p class="text-[var(--text-secondary)] mt-1.5 text-sm">Sign in to your workspace</p>
             </div>
 
-            <!-- Features List (Compact) -->
-            <div class="space-y-4 mb-8">
-              <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors duration-300">
-                <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <!-- Features List (Enterprise Minimalist) -->
+            <div class="space-y-3 mb-8">
+              <div class="flex items-center gap-4 py-2">
+                <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-white font-medium text-sm">WhatsApp Integration</h3>
-                  <p class="text-white/50 text-xs">Log attendance via chat</p>
+                  <h3 class="text-[var(--text-primary)] font-semibold text-sm">WhatsApp Integration</h3>
+                  <p class="text-[var(--text-secondary)] text-xs mt-0.5">Automated logging</p>
                 </div>
               </div>
               
-              <div class="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors duration-300">
-                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+              <div class="flex items-center gap-4 py-2">
+                <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                   </svg>
                 </div>
                  <div>
-                  <h3 class="text-white font-medium text-sm">Real-time Analytics</h3>
-                  <p class="text-white/50 text-xs">Live dashboard updates</p>
+                  <h3 class="text-[var(--text-primary)] font-semibold text-sm">Real-time Analytics</h3>
+                  <p class="text-[var(--text-secondary)] text-xs mt-0.5">Live activity dashboard</p>
                 </div>
               </div>
             </div>
 
             <!-- Google Sign In -->
-            <div class="relative">
-              <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-white/10"></div>
-              </div>
-              <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-transparent text-white/50 bg-[#1e1b4b]">Continue with</span>
-              </div>
-            </div>
-
-            <div class="mt-6 flex justify-center">
-               <div id="googleSignInButton" class="w-full flex justify-center transform hover:scale-[1.02] transition-transform duration-200"></div>
+            <div class="mt-8 flex justify-center">
+               <div id="googleSignInButton" class="w-full flex justify-center"></div>
             </div>
 
             <div *ngIf="loading" class="flex justify-center mt-6">
-              <div class="flex items-center gap-3 text-primary-300">
-                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <div class="flex items-center gap-3 text-primary-500">
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
@@ -117,16 +96,16 @@ declare var google: any;
               </div>
             </div>
 
-            <div *ngIf="error" class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 animate-fade-in">
-              <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div *ngIf="error" class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex items-center gap-3 animate-fade-in">
+              <svg class="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <p class="text-red-200 text-sm">{{ error }}</p>
+              <p class="text-red-700 dark:text-red-400 text-sm">{{ error }}</p>
             </div>
             
-            <div class="mt-8 text-center">
-              <p class="text-xs text-white/30">
-                By signing in, you agree to our <a href="#" class="text-primary-400 hover:text-primary-300 underline">Terms</a> and <a href="#" class="text-primary-400 hover:text-primary-300 underline">Privacy Policy</a>
+            <div class="mt-10 text-center">
+              <p class="text-xs text-[var(--text-secondary)] uppercase tracking-widest">
+                <a href="#" class="hover:text-[var(--text-primary)] transition-colors">Terms</a> · <a href="#" class="hover:text-[var(--text-primary)] transition-colors">Privacy</a>
               </p>
             </div>
           </div>

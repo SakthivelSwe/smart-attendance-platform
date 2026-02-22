@@ -90,6 +90,12 @@ public class GmailService {
             SearchTerm searchTerm = buildSearchTerm(subjectPattern, null);
             Message[] messages = inbox.search(searchTerm);
 
+            if (messages.length > 0) {
+                jakarta.mail.FetchProfile fp = new jakarta.mail.FetchProfile();
+                fp.add(jakarta.mail.FetchProfile.Item.ENVELOPE);
+                inbox.fetch(messages, fp);
+            }
+
             int startIdx = Math.max(0, messages.length - maxResults);
             for (int i = messages.length - 1; i >= startIdx; i--) {
                 Message msg = messages[i];
@@ -129,6 +135,12 @@ public class GmailService {
 
             SearchTerm searchTerm = buildSearchTerm(emailSubjectPattern, targetDate);
             Message[] messages = inbox.search(searchTerm);
+
+            if (messages.length > 0) {
+                jakarta.mail.FetchProfile fp = new jakarta.mail.FetchProfile();
+                fp.add(jakarta.mail.FetchProfile.Item.ENVELOPE);
+                inbox.fetch(messages, fp);
+            }
 
             return messages.length > 0;
 
@@ -213,6 +225,11 @@ public class GmailService {
                 return null;
             }
 
+            // Bulk prefetch envelope headers to prevent network roundtrip per message
+            jakarta.mail.FetchProfile fp = new jakarta.mail.FetchProfile();
+            fp.add(jakarta.mail.FetchProfile.Item.ENVELOPE);
+            inbox.fetch(messages, fp);
+
             // Iterate from newest to oldest to find the first one with a valid chat
             // attachment
             for (int i = messages.length - 1; i >= 0; i--) {
@@ -275,13 +292,20 @@ public class GmailService {
         String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
         SearchTerm subjectTerm = new SubjectTerm(cleanSubject);
 
-        // Optimize search window: If targetDate is provided, search from that day.
-        // Otherwise, search only the last 2 days instead of 7 to be faster.
+        // Optimize search window:
         LocalDate fromDate = targetDate != null ? targetDate : LocalDate.now().minusDays(1);
-        Date date = Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        SearchTerm dateTerm = new ReceivedDateTerm(ComparisonTerm.GE, date);
+        Date startDate = Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SearchTerm dateTerm = new ReceivedDateTerm(ComparisonTerm.GE, startDate);
 
-        return new AndTerm(subjectTerm, dateTerm);
+        // Cap the maximum search window to 2 days after the target date to avoid
+        // scanning years of emails
+        LocalDate toDate = fromDate.plusDays(3);
+        Date endDate = Date.from(toDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SearchTerm maxDateTerm = new ReceivedDateTerm(ComparisonTerm.LE, endDate);
+
+        SearchTerm boundedDateTerm = new AndTerm(dateTerm, maxDateTerm);
+
+        return new AndTerm(subjectTerm, boundedDateTerm);
     }
 
     private String extractChatText(Message message) throws Exception {

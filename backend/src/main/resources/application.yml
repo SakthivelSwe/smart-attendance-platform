@@ -59,6 +59,9 @@ app:
     secret: ${JWT_SECRET}
     expiration-ms: 1800000  # 30 minutes
 
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+
   supabase:
     url: ${SUPABASE_URL}
     anon-key: ${SUPABASE_ANON_KEY}

@@ -8,7 +8,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "employees")
+@Table(name = "employees", indexes = {
+        @Index(name = "idx_employee_email", columnList = "email"),
+        @Index(name = "idx_employee_active", columnList = "is_active"),
+        @Index(name = "idx_employee_group", columnList = "group_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
