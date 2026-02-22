@@ -1,6 +1,7 @@
 import { Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
@@ -10,7 +11,7 @@ declare var google: any;
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="min-h-screen flex items-center justify-center relative bg-[var(--bg-primary)] p-4">
       
@@ -54,35 +55,35 @@ declare var google: any;
               <p class="text-[var(--text-secondary)] mt-1.5 text-sm">Sign in to your workspace</p>
             </div>
 
-            <!-- Features List (Enterprise Minimalist) -->
-            <div class="space-y-3 mb-8">
-              <div class="flex items-center gap-4 py-2">
-                <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="text-[var(--text-primary)] font-semibold text-sm">WhatsApp Integration</h3>
-                  <p class="text-[var(--text-secondary)] text-xs mt-0.5">Automated logging</p>
-                </div>
+            <!-- Email/Password Login Form -->
+            <form (ngSubmit)="loginWithEmail()" #loginForm="ngForm" class="space-y-4 mb-6">
+              <div>
+                <label for="email" class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Address</label>
+                <input type="email" id="email" name="email" [(ngModel)]="email" required
+                       class="w-full px-4 py-2 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-[var(--text-primary)]">
               </div>
-              
-              <div class="flex items-center gap-4 py-2">
-                <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                  </svg>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label for="password" class="block text-sm font-medium text-[var(--text-secondary)]">Password</label>
+                  <a routerLink="/forgot-password" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">Forgot password?</a>
                 </div>
-                 <div>
-                  <h3 class="text-[var(--text-primary)] font-semibold text-sm">Real-time Analytics</h3>
-                  <p class="text-[var(--text-secondary)] text-xs mt-0.5">Live activity dashboard</p>
-                </div>
+                <input type="password" id="password" name="password" [(ngModel)]="password" required
+                       class="w-full px-4 py-2 bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-[var(--text-primary)]">
               </div>
+              <button type="submit" [disabled]="!loginForm.form.valid || loading"
+                      class="w-full py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                Sign In
+              </button>
+            </form>
+
+            <div class="relative flex py-2 items-center mb-6">
+              <div class="flex-grow border-t border-[var(--border-color)]"></div>
+              <span class="flex-shrink-0 mx-4 text-[var(--text-secondary)] text-sm">Or continue with</span>
+              <div class="flex-grow border-t border-[var(--border-color)]"></div>
             </div>
 
             <!-- Google Sign In -->
-            <div class="mt-8 flex justify-center">
+            <div class="flex justify-center">
                <div id="googleSignInButton" class="w-full flex justify-center"></div>
             </div>
 
@@ -103,7 +104,12 @@ declare var google: any;
               <p class="text-red-700 dark:text-red-400 text-sm">{{ error }}</p>
             </div>
             
-            <div class="mt-10 text-center">
+            <div class="mt-8 text-center text-sm">
+              <span class="text-[var(--text-secondary)]">Don't have an account? </span>
+              <a routerLink="/register" class="text-primary-600 dark:text-primary-400 font-medium hover:underline">Register here</a>
+            </div>
+
+            <div class="mt-8 text-center">
               <p class="text-xs text-[var(--text-secondary)] uppercase tracking-widest">
                 <a href="#" class="hover:text-[var(--text-primary)] transition-colors">Terms</a> · <a href="#" class="hover:text-[var(--text-primary)] transition-colors">Privacy</a>
               </p>
@@ -117,6 +123,8 @@ declare var google: any;
 export class LoginComponent implements OnInit {
   loading = false;
   error = '';
+  email = '';
+  password = '';
 
   constructor(
     private authService: AuthService,
@@ -131,6 +139,24 @@ export class LoginComponent implements OnInit {
       return;
     }
     this.loadGoogleSDK();
+  }
+
+  loginWithEmail() {
+    if (!this.email || !this.password) return;
+    this.loading = true;
+    this.error = '';
+
+    this.authService.login({ email: this.email, password: this.password }).subscribe({
+      next: () => {
+        this.loading = false;
+        this.toast.success('Welcome! Signed in successfully.');
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.error = err.error?.message || 'Authentication failed. Please try again.';
+      }
+    });
   }
 
   private loadGoogleSDK() {

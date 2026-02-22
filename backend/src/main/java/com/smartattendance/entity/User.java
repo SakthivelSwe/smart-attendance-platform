@@ -42,6 +42,29 @@ public class User {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "password")
+    private String password;
+
+    @Column(name = "email_verified")
+    @Builder.Default
+    private Boolean emailVerified = false;
+
+    public boolean isEmailVerified() {
+        return Boolean.TRUE.equals(this.emailVerified);
+    }
+
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    @Column(name = "verification_token_expiry")
+    private LocalDateTime verificationTokenExpiry;
+
+    @Column(name = "reset_password_token")
+    private String resetPasswordToken;
+
+    @Column(name = "reset_password_token_expiry")
+    private LocalDateTime resetPasswordTokenExpiry;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

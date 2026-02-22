@@ -50,6 +50,12 @@ spring:
 
 # App Config
 app:
+  frontend:
+    url: ${FRONTEND_URL:https://smart-attendance-automation.netlify.app}
+
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 1800000  # 30 minutes
@@ -61,6 +67,10 @@ app:
   gmail:
     credentials-path: ${GMAIL_CREDENTIALS_PATH:}
     application-name: Smart Attendance Platform
+
+  google:
+    sheets:
+      credentials-path: ${GOOGLE_SHEETS_CREDENTIALS_PATH:}
 
   admin:
     emails: sakthiveltony@gmail.com

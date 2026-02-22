@@ -16,6 +16,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.smartattendance.dto.RegisterRequest;
+import com.smartattendance.dto.LoginRequest;
+import com.smartattendance.dto.ForgotPasswordRequest;
+import com.smartattendance.dto.ResetPasswordRequest;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +39,9 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
@@ -112,5 +126,113 @@ public class AuthService {
     public User getCurrentUser(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public void register(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
+        String token = UUID.randomUUID().toString();
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .name(request.getName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(UserRole.USER)
+                .emailVerified(false)
+                .verificationToken(token)
+                .verificationTokenExpiry(LocalDateTime.now().plusHours(1))
+                .isActive(true)
+                .build();
+
+        userRepository.save(user);
+        logger.info("=== VERIFICATION TOKEN FOR {} is: {} ===", user.getEmail(), token);
+        emailService.sendVerificationEmail(user.getEmail(), token);
+    }
+
+    public void verifyEmail(String token) {
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid verification token"));
+
+        if (user.getVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Verification token expired");
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiry(null);
+        userRepository.save(user);
+    }
+
+    public AuthResponse login(LoginRequest request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!user.isEmailVerified()) {
+            throw new IllegalArgumentException("Email not verified. Please verify your email first.");
+        }
+
+        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+
+        return AuthResponse.builder()
+                .token(token)
+                .email(user.getEmail())
+                .name(user.getName())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
+                .userId(user.getId())
+                .build();
+    }
+
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String token = UUID.randomUUID().toString();
+        user.setResetPasswordToken(token);
+        user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+        logger.info("=== RESET TOKEN FOR {} is: {} ===", user.getEmail(), token);
+        emailService.sendPasswordResetEmail(user.getEmail(), token);
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findByResetPasswordToken(request.getToken())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid reset token"));
+
+        if (user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Reset token expired");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiry(null);
+        userRepository.save(user);
+    }
+
+    public void resendVerification(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (user.isEmailVerified()) {
+            throw new IllegalArgumentException("Email is already verified");
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.setVerificationToken(token);
+        user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), token);
+    }
+
+    public String getVerificationTokenForTesting(String email) {
+        return userRepository.findByEmail(email)
+                .map(User::getVerificationToken)
+                .orElse("USER_NOT_FOUND");
     }
 }

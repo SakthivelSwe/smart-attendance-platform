@@ -43,6 +43,35 @@ export class AuthService {
         );
     }
 
+    login(credentials: { email: string; password: string }): Observable<User> {
+        return this.http.post<User>(`${this.apiUrl}/auth/login`, credentials).pipe(
+            tap(user => {
+                sessionStorage.setItem('user', JSON.stringify(user));
+                this.currentUserSubject.next(user);
+            })
+        );
+    }
+
+    register(data: any): Observable<string> {
+        return this.http.post(`${this.apiUrl}/auth/register`, data, { responseType: 'text' });
+    }
+
+    verifyEmail(token: string): Observable<string> {
+        return this.http.get(`${this.apiUrl}/auth/verify?token=${token}`, { responseType: 'text' });
+    }
+
+    forgotPassword(email: string): Observable<string> {
+        return this.http.post(`${this.apiUrl}/auth/forgot-password`, { email }, { responseType: 'text' });
+    }
+
+    resetPassword(data: any): Observable<string> {
+        return this.http.post(`${this.apiUrl}/auth/reset-password`, data, { responseType: 'text' });
+    }
+
+    resendVerification(email: string): Observable<string> {
+        return this.http.post(`${this.apiUrl}/auth/resend-verification?email=${email}`, null, { responseType: 'text' });
+    }
+
     getCurrentUser(): Observable<User> {
         return this.http.get<User>(`${this.apiUrl}/auth/me`);
     }
