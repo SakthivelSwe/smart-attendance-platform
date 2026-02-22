@@ -1,6 +1,5 @@
 package com.smartattendance.service;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -22,6 +21,9 @@ public class EmailService {
 
     @Value("${app.frontend.url:http://localhost:4200}")
     private String frontendUrl;
+
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
 
     public void sendVerificationEmail(String to, String token) {
         String subject = "Verify your email - Smart Attendance";
@@ -66,8 +68,12 @@ public class EmailService {
             javaMailSender.send(message);
             logger.info("Email sent successfully to: {}", to);
         } catch (Exception e) {
-            logger.error("Failed to send email to: {} (Suppressed for local testing)", to, e);
-            // throw new RuntimeException("Failed to send email");
+            logger.error("Failed to send email to: {}", to, e);
+            if ("dev".equalsIgnoreCase(activeProfile)) {
+                logger.warn("Suppressing email sending failure for local development testing.");
+            } else {
+                throw new RuntimeException("Failed to dispatch email. Please check the mail server configuration.", e);
+            }
         }
     }
 }
