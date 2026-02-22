@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -128,6 +129,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    @Transactional
     public void register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already registered");
@@ -188,6 +190,7 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -214,6 +217,7 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    @Transactional
     public void resendVerification(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
