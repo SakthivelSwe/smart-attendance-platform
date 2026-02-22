@@ -20,7 +20,7 @@
     "@angular/router": "^17.3.0",
     "apexcharts": "^3.54.1",
     "lottie-web": "^5.13.0",
-    "ng-apexcharts": "^1.10.0",
+    "ng-apexcharts": "1.10.0",
     "ngx-lottie": "^21.2.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
