@@ -42,21 +42,35 @@ public class GoogleSheetsService {
     private String applicationName;
 
     private Sheets sheetsService;
+    private boolean initializationFailed = false;
+    private String lastInitError = null;
 
     @PostConstruct
     public void init() {
         try {
             logger.info("Initializing Google Sheets Service...");
+            
+            if (sheetsService != null) {
+                logger.info("Google Sheets Service already initialized.");
+                return;
+            }
+
             NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
 
-            InputStream credentialsStream;
+            InputStream credentialsStream = null;
             if (credentialsJson != null && !credentialsJson.trim().isEmpty()) {
                 credentialsStream = new java.io.ByteArrayInputStream(
                         credentialsJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 logger.info("Using GOOGLE_CREDENTIALS_JSON environment variable for authentication.");
-            } else {
+            } else if (credentialsResource != null && credentialsResource.exists()) {
                 credentialsStream = credentialsResource.getInputStream();
-                logger.info("Using credentials file for authentication.");
+                logger.info("Using credentials file for authentication: {}", credentialsResource.getFilename());
+            } else {
+                String error = "No Google credentials provided. Neither GOOGLE_CREDENTIALS_JSON nor valid credentials-path found.";
+                logger.error(error);
+                initializationFailed = true;
+                lastInitError = error;
+                return;
             }
 
             GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
@@ -67,9 +81,26 @@ public class GoogleSheetsService {
                     .setApplicationName(applicationName)
                     .build();
 
+            initializationFailed = false;
+            lastInitError = null;
             logger.info("Google Sheets Service initialized successfully.");
         } catch (IOException | GeneralSecurityException e) {
-            logger.error("Failed to initialize Google Sheets Service: {}", e.getMessage());
+            initializationFailed = true;
+            lastInitError = e.getMessage();
+            logger.error("Failed to initialize Google Sheets Service: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Ensures the service is initialized before use.
+     */
+    private synchronized void ensureInitialized() {
+        if (sheetsService == null && !initializationFailed) {
+            init();
+        }
+        
+        if (sheetsService == null) {
+            throw new RuntimeException("Google Sheets Service is not initialized. Last error: " + lastInitError);
         }
     }
 
@@ -83,6 +114,7 @@ public class GoogleSheetsService {
         }
 
         try {
+            ensureInitialized();
             Employee employee = record.getEmployee();
             LocalDate date = record.getDate();
             String valueToWrite = formatStatusValue(record);
@@ -318,6 +350,7 @@ public class GoogleSheetsService {
         }
 
         try {
+            ensureInitialized();
             // Use the date of the first record to find the sheet tab
             LocalDate date = records.get(0).getDate();
 

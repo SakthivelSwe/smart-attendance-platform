@@ -52,11 +52,26 @@ public class MonthlySummaryService {
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
 
+        // 1. Fetch all active employees
         List<Employee> employees = employeeRepository.findByIsActiveTrue();
+        
+        // 2. Bulk fetch all attendance records for the month
+        List<Attendance> allRecords = attendanceRepository.findByDateBetween(startDate, endDate);
+        
+        // Group attendance by employee ID
+        java.util.Map<Long, List<Attendance>> attendanceByEmployee = allRecords.stream()
+                .filter(a -> a.getEmployee() != null)
+                .collect(Collectors.groupingBy(a -> a.getEmployee().getId()));
+
+        // 3. Bulk fetch existing summaries to avoid repeated lookups
+        List<MonthlySummary> existingSummaries = summaryRepository.findByMonthAndYear(month, year);
+        java.util.Map<Long, MonthlySummary> summaryMap = existingSummaries.stream()
+                .collect(Collectors.toMap(s -> s.getEmployee().getId(), s -> s));
+
+        List<MonthlySummary> summariesToSave = new java.util.ArrayList<>();
 
         for (Employee employee : employees) {
-            List<Attendance> records = attendanceRepository.findByEmployeeIdAndDateBetween(
-                    employee.getId(), startDate, endDate);
+            List<Attendance> records = attendanceByEmployee.getOrDefault(employee.getId(), List.of());
 
             int wfo = 0, wfh = 0, leave = 0, holiday = 0, absent = 0, bench = 0, training = 0;
 
@@ -72,17 +87,17 @@ public class MonthlySummaryService {
                 }
             }
 
-            int totalWorkingDays = wfo + wfh + bench + training; // Including bench and training, excluding
-                                                                 // holidays/leaves/absent
+            int totalWorkingDays = wfo + wfh + bench + training;
             int totalWorkingHours = totalWorkingDays * 8;
 
-            MonthlySummary summary = summaryRepository
-                    .findByEmployeeIdAndMonthAndYear(employee.getId(), month, year)
-                    .orElse(MonthlySummary.builder()
-                            .employee(employee)
-                            .month(month)
-                            .year(year)
-                            .build());
+            MonthlySummary summary = summaryMap.get(employee.getId());
+            if (summary == null) {
+                summary = MonthlySummary.builder()
+                        .employee(employee)
+                        .month(month)
+                        .year(year)
+                        .build();
+            }
 
             summary.setWfoCount(wfo);
             summary.setWfhCount(wfh);
@@ -94,7 +109,11 @@ public class MonthlySummaryService {
             summary.setTotalWorkingDays(totalWorkingDays);
             summary.setTotalWorkingHours(totalWorkingHours);
 
-            summaryRepository.save(summary);
+            summariesToSave.add(summary);
+        }
+
+        if (!summariesToSave.isEmpty()) {
+            summaryRepository.saveAll(summariesToSave);
         }
 
         return getSummaryByMonthAndYear(month, year);
