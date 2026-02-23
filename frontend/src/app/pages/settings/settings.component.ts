@@ -21,8 +21,8 @@ import { ToastService } from '../../core/services/toast.service';
         <!-- Automation Settings (Admin ONLY) -->
         <div class="card p-6 border-2 border-primary-500/20" *ngIf="authService.currentUser?.role === 'ADMIN'">
           <div class="flex items-center gap-3 mb-6">
-            <div class="p-2 bg-primary-100 rounded-lg text-primary-600">
-              <span class="material-icons">robot</span>
+            <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg text-primary-600 dark:text-primary-400">
+              <span class="material-icons">autorenew</span>
             </div>
             <div>
               <h3 class="text-lg font-semibold text-[var(--text-primary)]">WhatsApp Automation</h3>
@@ -31,38 +31,53 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="space-y-4">
-            <div class="p-4 rounded-xl bg-primary-50 border border-primary-100 mb-4" *ngIf="gmailStatus?.configured">
-               <div class="flex items-center gap-2 text-primary-700">
+            <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 mb-4 transition-colors" *ngIf="gmailStatus?.configured">
+               <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                  <span class="material-icons text-sm">check_circle</span>
                  <span class="text-sm font-medium">Currently linked to: {{ gmailStatus.email }}</span>
                </div>
-               <p class="text-xs text-primary-600 mt-1 ml-6">Automated fetching is ACTIVE (Mon-Fri 12PM, Sat 7PM)</p>
+               <p class="text-xs text-emerald-600 dark:text-emerald-500/80 mt-1 ml-6">
+                 Automated fetching is ACTIVE (Mon-Fri at {{ formatTime(automationData.processingTime) }}, Sat at 07:00 PM)
+               </p>
             </div>
 
             <div class="space-y-4">
+              <ng-container *ngIf="!gmailStatus?.configured || editingCredentials">
                 <div class="form-group">
-                  <label class="label">Gmail Address</label>
-                  <input type="email" [(ngModel)]="gmailData.email" class="input" placeholder="example@gmail.com">
+                  <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail Address</label>
+                  <input type="email" [(ngModel)]="gmailData.email" class="input-field" placeholder="example@gmail.com">
                 </div>
                 <div class="form-group">
-                  <label class="label">Gmail App Password</label>
-                  <input type="password" [(ngModel)]="gmailData.appPassword" class="input" placeholder="xxxx xxxx xxxx xxxx">
+                  <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail App Password</label>
+                  <input type="password" [(ngModel)]="gmailData.appPassword" class="input-field" placeholder="xxxx xxxx xxxx xxxx">
                   <p class="text-xs text-[var(--text-secondary)] mt-1">
                     Use a 16-character App Password from Google Account settings.
                   </p>
                 </div>
                 
-                <button (click)="saveGmail()" [disabled]="loading || !gmailData.email || !gmailData.appPassword" 
-                        class="btn-primary w-full flex items-center justify-center gap-2">
-                  <span *ngIf="loading" class="material-icons animate-spin text-sm">sync</span>
-                  <span>{{ gmailStatus?.configured ? 'Update Credentials' : 'Save & Enable Automation' }}</span>
-                </button>
-                
-                <button (click)="testEmail()" [disabled]="loading" *ngIf="gmailStatus?.configured || gmailData.email"
-                        class="btn-secondary w-full flex items-center justify-center gap-2">
-                  <span class="material-icons text-sm">send</span>
-                  <span>Send Test Email</span>
-                </button>
+                <div class="flex gap-3">
+                  <button *ngIf="gmailStatus?.configured" (click)="editingCredentials = false; loadGmailStatus()" class="btn-secondary flex-1">
+                    Cancel
+                  </button>
+                  <button (click)="saveGmail()" [disabled]="loading || !gmailData.email || !gmailData.appPassword" 
+                          class="btn-primary flex-1 flex items-center justify-center gap-2">
+                    <span *ngIf="loading" class="material-icons animate-spin text-sm">sync</span>
+                    <span>{{ gmailStatus?.configured ? 'Update' : 'Save & Enable Automation' }}</span>
+                  </button>
+                </div>
+              </ng-container>
+
+              <button *ngIf="gmailStatus?.configured && !editingCredentials" (click)="editingCredentials = true"
+                      class="btn-secondary w-full flex items-center justify-center gap-2">
+                <span class="material-icons text-sm">edit</span>
+                <span>Change Credentials</span>
+              </button>
+              
+              <button (click)="testEmail()" [disabled]="loading" *ngIf="gmailStatus?.configured || (!gmailStatus?.configured && gmailData.email)"
+                      class="btn-secondary w-full flex items-center justify-center gap-2">
+                <span class="material-icons text-sm">send</span>
+                <span>Send Test Email</span>
+              </button>
             </div>
           </div>
         </div>
@@ -70,7 +85,7 @@ import { ToastService } from '../../core/services/toast.service';
         <!-- Automation Preferences -->
         <div class="card p-6 border-2 border-primary-500/20 mt-6" *ngIf="authService.currentUser?.role === 'ADMIN'">
           <div class="flex items-center gap-3 mb-6">
-            <div class="p-2 bg-primary-100 rounded-lg text-primary-600">
+            <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg text-primary-600 dark:text-primary-400">
               <span class="material-icons">schedule</span>
             </div>
             <div>
@@ -91,25 +106,15 @@ import { ToastService } from '../../core/services/toast.service';
               </label>
             </div>
 
-            <div class="form-group flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)]">
-              <div>
-                <p class="font-medium text-[var(--text-primary)]">WhatsApp Reminders</p>
-                <p class="text-xs text-[var(--text-secondary)]">Get notified via WhatsApp (Requires setup)</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" [(ngModel)]="automationData.whatsappReminderEnabled" class="sr-only peer">
-                <div class="w-11 h-6 bg-surface-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-              </label>
-            </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div class="form-group">
-                <label class="label">Reminder Time</label>
-                <input type="time" [(ngModel)]="automationData.reminderTime" class="input">
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Reminder Time</label>
+                <input type="time" [(ngModel)]="automationData.reminderTime" class="input-field">
               </div>
               <div class="form-group">
-                <label class="label">Processing Time</label>
-                <input type="time" [(ngModel)]="automationData.processingTime" class="input">
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Processing Time</label>
+                <input type="time" [(ngModel)]="automationData.processingTime" class="input-field">
               </div>
             </div>
 
@@ -121,8 +126,9 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
         </div>
 
+
         <!-- Appearance -->
-        <div class="card p-6">
+        <div class="card p-6 mt-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Appearance</h3>
           <div class="flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)]">
             <div>
@@ -179,6 +185,8 @@ export class SettingsComponent implements OnInit {
   gmailData = { email: '', appPassword: '' };
   gmailStatus: any = null;
   loading = false;
+  editingCredentials = false;
+
 
   automationData = {
     emailReminderEnabled: true,
@@ -241,6 +249,7 @@ export class SettingsComponent implements OnInit {
       next: (res) => {
         this.toast.success('Gmail credentials saved! Automation is now active.');
         this.gmailData.appPassword = ''; // Clear password field
+        this.editingCredentials = false;
         this.loadGmailStatus();
         this.loading = false;
       },
@@ -250,6 +259,7 @@ export class SettingsComponent implements OnInit {
       }
     });
   }
+
 
   loadAutomationSettings() {
     this.apiService.getAutomationSettings().subscribe({
@@ -275,4 +285,17 @@ export class SettingsComponent implements OnInit {
       }
     });
   }
-}
+
+  formatTime(time: string): string {
+    if (!time) return '12:00 PM';
+    try {
+      const [hours, minutes] = time.split(':');
+      const h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const formattedHours = h % 12 || 12;
+      return `${formattedHours}:${minutes} ${ampm}`;
+    } catch {
+      return time;
+    }
+  }
+} 
