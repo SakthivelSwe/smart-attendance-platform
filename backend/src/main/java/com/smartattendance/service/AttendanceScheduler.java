@@ -23,6 +23,7 @@ public class AttendanceScheduler {
     private final SystemSettingService systemSettingService;
     private final GmailService gmailService;
     private final WhatsAppNotificationService whatsAppNotificationService;
+    private final MonthlySummaryService monthlySummaryService;
 
     private org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler taskScheduler;
 
@@ -180,8 +181,13 @@ public class AttendanceScheduler {
      * Monthly summary generation - runs on the 1st of every month at 6 AM.
      */
     public void generateMonthlySummary() {
-        logger.info("=== Generating monthly summary ===");
         LocalDate lastMonth = LocalDate.now().minusMonths(1);
-        logger.info("Monthly summary generation triggered for {}/{}", lastMonth.getMonthValue(), lastMonth.getYear());
+        logger.info("=== Generating monthly summary for {}/{} ===", lastMonth.getMonthValue(), lastMonth.getYear());
+        try {
+            monthlySummaryService.generateMonthlySummary(lastMonth.getMonthValue(), lastMonth.getYear());
+            logger.info("Successfully generated monthly summary.");
+        } catch (Exception e) {
+            logger.error("Failed to generate monthly summary: {}", e.getMessage());
+        }
     }
 }
