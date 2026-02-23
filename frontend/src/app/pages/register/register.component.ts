@@ -168,10 +168,15 @@ export class RegisterComponent {
               errorMessage = err.error;
             }
           } else {
-            errorMessage = err.error.message || errorMessage;
+            errorMessage = err.error.message || err.error.error || errorMessage;
           }
         }
-        this.error = errorMessage;
+
+        if (errorMessage === 'Email already registered' || errorMessage.includes('already registered')) {
+          this.error = "Email already registered (possibly via Google). Please 'Sign in here' and use Continue with Google.";
+        } else {
+          this.error = errorMessage;
+        }
       }
     });
   }
