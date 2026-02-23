@@ -254,29 +254,47 @@ public class AttendanceService {
 
         logger.info("Successfully processed attendance history.");
 
-        // Process ALL Google Sheets updates in a SINGLE sequential async thread
-        // This prevents multiple parallel threads from overwhelming the API quota
+        // Process Google Sheets updates in bulk to avoid API rate limits
         if (!allSheetUpdates.isEmpty()) {
-            logger.info("Queuing {} Google Sheet updates (throttled at 1 per second)...", allSheetUpdates.size());
+            logger.info("Grouping {} Google Sheet updates for batch processing...", allSheetUpdates.size());
+
+            // Group by Spreadsheet ID and then by Year-Month to properly route to correct
+            // sheet tabs
+            Map<String, Map<String, List<Attendance>>> groupedUpdates = allSheetUpdates.stream()
+                    .collect(Collectors.groupingBy(
+                            a -> a.getEmployee().getGroup().getGoogleSheetId(),
+                            Collectors.groupingBy(a -> a.getDate().getYear() + "-" + a.getDate().getMonthValue())));
+
             java.util.concurrent.CompletableFuture.runAsync(() -> {
-                int successCount = 0;
-                for (Attendance saved : allSheetUpdates) {
-                    try {
-                        String sheetId = saved.getEmployee().getGroup().getGoogleSheetId();
-                        String currentMonthName = saved.getDate().getMonth().name().substring(0, 1).toUpperCase()
-                                + saved.getDate().getMonth().name().substring(1).toLowerCase() + " Month";
-                        googleSheetsService.updateAttendanceSync(sheetId, currentMonthName, saved);
-                        successCount++;
-                        // Throttle: 1 second between calls to respect Google quota
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    } catch (Exception e) {
-                        logger.error("Sheet sync error for {}: {}", saved.getEmployee().getName(), e.getMessage());
+                for (Map.Entry<String, Map<String, List<Attendance>>> sheetEntry : groupedUpdates.entrySet()) {
+                    String sheetId = sheetEntry.getKey();
+                    if (sheetId == null || sheetId.isBlank())
+                        continue;
+
+                    for (Map.Entry<String, List<Attendance>> monthEntry : sheetEntry.getValue().entrySet()) {
+                        List<Attendance> records = monthEntry.getValue();
+                        if (records.isEmpty())
+                            continue;
+
+                        try {
+                            String currentMonthName = records.get(0).getDate().getMonth().name().substring(0, 1)
+                                    .toUpperCase()
+                                    + records.get(0).getDate().getMonth().name().substring(1).toLowerCase() + " Month";
+                            logger.info("Submitting batch update of {} records to sheet ID {} (Month: {})...",
+                                    records.size(), sheetId, currentMonthName);
+                            googleSheetsService.updateAttendanceBatch(sheetId, currentMonthName, records);
+
+                            // Throttle: 2 seconds between batch calls
+                            Thread.sleep(2000);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        } catch (Exception e) {
+                            logger.error("Batch sheet sync error for sheet ID {}: {}", sheetId, e.getMessage());
+                        }
                     }
                 }
-                logger.info("Google Sheet sync completed: {}/{} records synced.", successCount, allSheetUpdates.size());
+                logger.info("Google Sheet batch sync completed.");
             });
         }
 

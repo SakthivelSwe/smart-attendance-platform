@@ -101,9 +101,34 @@
     @apply px-6 py-2.5 bg-transparent text-[var(--text-primary)] font-medium rounded-md border border-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all duration-300 active:scale-95;
   }
 
+  .btn-ghost {
+    @apply px-5 py-2 bg-transparent text-[var(--text-secondary)] font-medium rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  .btn-success {
+    @apply px-5 py-2 bg-emerald-600 text-white font-medium rounded-lg shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  .btn-danger {
+    @apply px-5 py-2 bg-rose-600 text-white font-medium rounded-lg shadow-sm hover:bg-rose-700 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
   /* Crisp Inputs */
   .input-field {
     @apply w-full px-4 py-3 bg-transparent border border-[var(--border-color)] rounded-md text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300;
+  }
+
+  .form-label {
+    @apply block text-xs font-bold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider;
+  }
+
+  /* Modal Utilities */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in;
+  }
+
+  .modal-container {
+    @apply bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-2xl w-full animate-slide-up relative z-[101];
   }
 
   /* Enterprise Stat Cards */
