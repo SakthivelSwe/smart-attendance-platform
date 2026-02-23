@@ -54,6 +54,23 @@ public class LeaveService {
                 .collect(Collectors.toSet());
     }
 
+    public java.util.Map<LocalDate, java.util.Set<Long>> getEmployeeIdsOnApprovedLeaveForDateRange(LocalDate start,
+            LocalDate end) {
+        List<Leave> leaves = leaveRepository.findWithEmployeeByStatusAndDateRange(LeaveStatus.APPROVED, start, end);
+        java.util.Map<LocalDate, java.util.Set<Long>> map = new java.util.HashMap<>();
+
+        for (Leave leave : leaves) {
+            LocalDate current = leave.getStartDate();
+            while (!current.isAfter(leave.getEndDate()) && !current.isAfter(end)) {
+                if (!current.isBefore(start)) {
+                    map.computeIfAbsent(current, k -> new java.util.HashSet<>()).add(leave.getEmployee().getId());
+                }
+                current = current.plusDays(1);
+            }
+        }
+        return map;
+    }
+
     @Transactional
     public LeaveDTO applyLeave(LeaveDTO dto) {
         Employee employee = employeeRepository.findById(dto.getEmployeeId())

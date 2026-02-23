@@ -13,4 +13,6 @@ public interface WhatsAppLogRepository extends JpaRepository<WhatsAppLog, Long> 
     List<WhatsAppLog> findBySenderAndMappedFalse(String sender);
 
     boolean existsBySenderAndDate(String sender, java.time.LocalDate date);
+
+    java.util.List<WhatsAppLog> findByDateBetween(java.time.LocalDate start, java.time.LocalDate end);
 }

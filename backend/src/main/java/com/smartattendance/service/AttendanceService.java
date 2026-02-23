@@ -79,54 +79,70 @@ public class AttendanceService {
             return List.of();
         }
 
-        // Get all active employees with their groups once
-        List<Employee> allEmployees = employeeRepository.findByIsActiveTrueWithGroup();
-        logger.info("Starting bulk attendance process for {} employees", allEmployees.size());
-
-        // Sort dates to process history in order
+        // Filter dates to process history in order
         List<LocalDate> sortedDates = new java.util.ArrayList<>(fullAttendanceMap.keySet());
         java.util.Collections.sort(sortedDates);
 
-        // Collect all attendance records that need Google Sheets sync
+        // Filter for relevant dates (Optimization: limit history if not full)
+        LocalDate startDateLimit = processFullHistory ? LocalDate.of(2026, 1, 1) : targetDate.minusDays(7);
+        List<LocalDate> datesToProcess = sortedDates.stream()
+                .filter(d -> !d.isBefore(startDateLimit))
+                .filter(d -> d.getYear() >= 2026) // Sanity check for year
+                .collect(Collectors.toList());
+
+        if (datesToProcess.isEmpty()) {
+            logger.warn("No relevant dates to process within the specified range.");
+            return List.of();
+        }
+
+        LocalDate minDate = datesToProcess.get(0);
+        LocalDate maxDate = datesToProcess.get(datesToProcess.size() - 1);
+        logger.info("Bulk processing {} dates from {} to {}...", datesToProcess.size(), minDate, maxDate);
+
+        // PRE-FETCH everything in bulk
+        List<Employee> allEmployees = employeeRepository.findByIsActiveTrueWithGroup();
+
+        // 1. Existing Attendance Map (Date -> EmployeeId -> Attendance)
+        List<Attendance> allExisting = attendanceRepository.findWithEmployeeByDateRange(minDate, maxDate);
+        Map<LocalDate, Map<Long, Attendance>> existingMap = new java.util.HashMap<>();
+        for (Attendance a : allExisting) {
+            if (a.getEmployee() != null) {
+                existingMap.computeIfAbsent(a.getDate(), k -> new java.util.HashMap<>()).put(a.getEmployee().getId(), a);
+            }
+        }
+
+        // 2. Approved Leaves (Date -> Set of EmployeeIds)
+        Map<LocalDate, java.util.Set<Long>> leafMap = leaveService.getEmployeeIdsOnApprovedLeaveForDateRange(minDate,
+                maxDate);
+
+        // 3. Holidays (Set of Dates)
+        java.util.Set<LocalDate> holidayDates = holidayService.getHolidayDatesForRange(minDate, maxDate);
+
+        // 4. Existing WhatsApp Logs to avoid duplicates (Format "Sender|Date")
+        java.util.Set<String> existingLogKeys = whatsAppLogRepository.findByDateBetween(minDate, maxDate).stream()
+                .map(log -> log.getSender() + "|" + log.getDate())
+                .collect(Collectors.toSet());
+
+        // Lists to collect all changes for bulk saving
+        List<Attendance> allToSave = new java.util.ArrayList<>();
+        List<WhatsAppLog> allLogsToSave = new java.util.ArrayList<>();
         List<Attendance> allSheetUpdates = new java.util.ArrayList<>();
 
-        for (LocalDate date : sortedDates) {
-            // Optimization: If NOT full history, only process recent dates (last 7 days)
-            if (!processFullHistory && date.isBefore(targetDate.minusDays(7))) {
-                continue;
-            }
-
-            // Filter for current year (sanity check)
-            if (date.getYear() < 2026) {
-                continue;
-            }
-
-            logger.info("Processing date: {}...", date);
+        // MAIN PROCESSING LOOP (Zero DB queries inside)
+        for (LocalDate date : datesToProcess) {
             Map<String, WhatsAppParser.AttendanceEntry> dailyParsed = fullAttendanceMap.get(date);
+            Map<Long, Attendance> dailyExisting = existingMap.getOrDefault(date, java.util.Collections.emptyMap());
+            java.util.Set<Long> dailyLeaves = leafMap.getOrDefault(date, java.util.Collections.emptySet());
+            boolean isHoliday = holidayDates.contains(date) || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+
             java.util.Set<String> matchedKeys = new java.util.HashSet<>();
 
-            // PRE-FETCH: Get all existing attendance and leaves for this date in bulk
-            // Use findWithEmployeeByDate to eagerly fetch employee associations
-            List<Attendance> existingDaily = attendanceRepository.findWithEmployeeByDate(date);
-            Map<Long, Attendance> employeeAttendanceMap = new java.util.HashMap<>();
-            for (Attendance a : existingDaily) {
-                if (a.getEmployee() != null) {
-                    employeeAttendanceMap.put(a.getEmployee().getId(), a);
-                }
-            }
-
-            java.util.Set<Long> leafEmployeeIds = leaveService.getEmployeeIdsOnApprovedLeaveForDate(date);
-            boolean isHoliday = holidayService.isHoliday(date);
-
-            List<Attendance> toSave = new java.util.ArrayList<>();
-
             for (Employee employee : allEmployees) {
-                Attendance existing = employeeAttendanceMap.get(employee.getId());
+                Attendance existing = dailyExisting.get(employee.getId());
                 boolean hasWhatsAppSource = existing != null && "WHATSAPP".equals(existing.getSource());
                 boolean isAbsentStatus = existing != null && existing.getStatus() == AttendanceStatus.ABSENT;
 
-                // Only overwrite if no record exists, or if the current record is
-                // auto-generated/Absent
+                // Only overwrite if no record exists, or if current record is auto-generated/Absent
                 if (existing != null && !hasWhatsAppSource && !isAbsentStatus) {
                     continue;
                 }
@@ -187,7 +203,7 @@ public class AttendanceService {
                 AttendanceStatus status;
                 if (isHoliday) {
                     status = AttendanceStatus.HOLIDAY;
-                } else if (leafEmployeeIds.contains(employee.getId())) {
+                } else if (dailyLeaves.contains(employee.getId())) {
                     status = AttendanceStatus.LEAVE;
                 } else if (entry != null && entry.getInTime() != null) {
                     status = entry.isWfh() ? AttendanceStatus.WFH : AttendanceStatus.WFO;
@@ -195,48 +211,43 @@ public class AttendanceService {
                     status = AttendanceStatus.ABSENT;
                 }
 
-                // Prepare entity
+                // Update or Create
                 if (existing != null) {
                     existing.setInTime(entry != null ? entry.getInTime() : null);
                     existing.setOutTime(entry != null ? entry.getOutTime() : null);
                     existing.setStatus(status);
                     existing.setSource("WHATSAPP");
-                    toSave.add(existing);
+                    allToSave.add(existing);
+                    
+                    // Trigger sheet update if needed
+                    if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
+                        allSheetUpdates.add(existing);
+                    }
                 } else {
-                    toSave.add(Attendance.builder()
+                    Attendance newRecord = Attendance.builder()
                             .employee(employee)
                             .date(date)
                             .inTime(entry != null ? entry.getInTime() : null)
                             .outTime(entry != null ? entry.getOutTime() : null)
                             .status(status)
                             .source("WHATSAPP")
-                            .build());
-                }
-            }
-
-            // Batch save for the date
-            if (!toSave.isEmpty()) {
-                List<Attendance> savedRecords = attendanceRepository.saveAll(toSave);
-
-                // Collect records for Google Sheets sync (will be processed after all dates)
-                for (Attendance saved : savedRecords) {
-                    if (saved.getEmployee() != null && saved.getEmployee().getGroup() != null) {
-                        String sheetId = saved.getEmployee().getGroup().getGoogleSheetId();
-                        if (sheetId != null && !sheetId.isBlank()) {
-                            allSheetUpdates.add(saved);
-                        }
+                            .build();
+                    allToSave.add(newRecord);
+                    
+                    if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
+                        allSheetUpdates.add(newRecord);
                     }
                 }
             }
 
-            // Save unmatched logs
-            List<WhatsAppLog> logsToSave = new java.util.ArrayList<>();
+            // Collect unmatched logs
             for (Map.Entry<String, WhatsAppParser.AttendanceEntry> parsedEntry : dailyParsed.entrySet()) {
                 String sender = parsedEntry.getKey();
                 if (!matchedKeys.contains(sender)) {
-                    if (!whatsAppLogRepository.existsBySenderAndDate(sender, date)) {
+                    String logKey = sender + "|" + date;
+                    if (!existingLogKeys.contains(logKey)) {
                         WhatsAppParser.AttendanceEntry entryData = parsedEntry.getValue();
-                        logsToSave.add(WhatsAppLog.builder()
+                        allLogsToSave.add(WhatsAppLog.builder()
                                 .sender(sender)
                                 .date(date)
                                 .inTime(entryData.getInTime())
@@ -247,50 +258,54 @@ public class AttendanceService {
                     }
                 }
             }
-            if (!logsToSave.isEmpty()) {
-                whatsAppLogRepository.saveAll(logsToSave);
+        }
+
+        // PERFORM BULK SAVES (Chunked for memory efficiency if needed, but saveAll is fine here)
+        if (!allToSave.isEmpty()) {
+            logger.info("Saving {} attendance records...", allToSave.size());
+            // Small chunks of 500 to keep transactions manageable on free tier DB
+            for (int i = 0; i < allToSave.size(); i += 500) {
+                int end = Math.min(i + 500, allToSave.size());
+                attendanceRepository.saveAll(allToSave.subList(i, end));
+                attendanceRepository.flush();
             }
         }
 
-        logger.info("Successfully processed attendance history.");
+        if (!allLogsToSave.isEmpty()) {
+            logger.info("Saving {} unmatched logs...", allLogsToSave.size());
+            for (int i = 0; i < allLogsToSave.size(); i += 500) {
+                int end = Math.min(i + 500, allLogsToSave.size());
+                whatsAppLogRepository.saveAll(allLogsToSave.subList(i, end));
+                whatsAppLogRepository.flush();
+            }
+        }
 
-        // Process Google Sheets updates in bulk to avoid API rate limits
+        logger.info("Processing complete. Grouping Google Sheet updates...");
+
+        // Async sheet sync remains the same
         if (!allSheetUpdates.isEmpty()) {
-            logger.info("Grouping {} Google Sheet updates for batch processing...", allSheetUpdates.size());
-
-            // Group by Spreadsheet ID and then by Year-Month to properly route to correct
-            // sheet tabs
-            Map<String, Map<String, List<Attendance>>> groupedUpdates = allSheetUpdates.stream()
-                    .collect(Collectors.groupingBy(
-                            a -> a.getEmployee().getGroup().getGoogleSheetId(),
-                            Collectors.groupingBy(a -> a.getDate().getYear() + "-" + a.getDate().getMonthValue())));
-
+            final List<Attendance> sheetRecords = new java.util.ArrayList<>(allSheetUpdates);
             java.util.concurrent.CompletableFuture.runAsync(() -> {
+                // Same grouping logic as before...
+                Map<String, Map<String, List<Attendance>>> groupedUpdates = sheetRecords.stream()
+                        .filter(a -> a.getEmployee() != null && a.getEmployee().getGroup() != null)
+                        .collect(Collectors.groupingBy(
+                                a -> a.getEmployee().getGroup().getGoogleSheetId(),
+                                Collectors.groupingBy(a -> a.getDate().getYear() + "-" + a.getDate().getMonthValue())));
+
                 for (Map.Entry<String, Map<String, List<Attendance>>> sheetEntry : groupedUpdates.entrySet()) {
                     String sheetId = sheetEntry.getKey();
-                    if (sheetId == null || sheetId.isBlank())
-                        continue;
+                    if (sheetId == null || sheetId.isBlank()) continue;
 
                     for (Map.Entry<String, List<Attendance>> monthEntry : sheetEntry.getValue().entrySet()) {
                         List<Attendance> records = monthEntry.getValue();
-                        if (records.isEmpty())
-                            continue;
-
                         try {
-                            String currentMonthName = records.get(0).getDate().getMonth().name().substring(0, 1)
-                                    .toUpperCase()
+                            String currentMonthName = records.get(0).getDate().getMonth().name().substring(0, 1).toUpperCase()
                                     + records.get(0).getDate().getMonth().name().substring(1).toLowerCase() + " Month";
-                            logger.info("Submitting batch update of {} records to sheet ID {} (Month: {})...",
-                                    records.size(), sheetId, currentMonthName);
                             googleSheetsService.updateAttendanceBatch(sheetId, currentMonthName, records);
-
-                            // Throttle: 2 seconds between batch calls
-                            Thread.sleep(2000);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            break;
+                            Thread.sleep(1000); // Slight throttle
                         } catch (Exception e) {
-                            logger.error("Batch sheet sync error for sheet ID {}: {}", sheetId, e.getMessage());
+                            logger.error("Sheet sync error: {}", e.getMessage());
                         }
                     }
                 }
@@ -298,7 +313,6 @@ public class AttendanceService {
             });
         }
 
-        // Return the 'targetDate' attendance to satisfy the Controller return type
         return getAttendanceByDate(targetDate);
     }
 
