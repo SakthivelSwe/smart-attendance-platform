@@ -65,6 +65,7 @@ public class AttendanceService {
      * @param processFullHistory if true, processes ALL dates in chat. If false,
      *                           processes only last 7 days.
      */
+    @Transactional
     public List<AttendanceDTO> processWhatsAppAttendance(String chatText, LocalDate targetDate,
             boolean processFullHistory) {
         logger.info("Processing WhatsApp attendance. Target date provided: {}", targetDate);

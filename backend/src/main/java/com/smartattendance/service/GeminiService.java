@@ -58,6 +58,9 @@ public class GeminiService {
             JsonNode textNode = rootNode.path("candidates").get(0).path("content").path("parts").get(0).path("text");
             return textNode.asText().trim();
 
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+            log.warn("Gemini API Quota Exceeded (429). Returning fallback message.");
+            return "Unable to generate insights at this time as the AI service daily quota has been reached.";
         } catch (Exception e) {
             log.error("Error calling Gemini API: {}", e.getMessage());
             return "Unable to generate insights at this time due to an AI service connection issue.";

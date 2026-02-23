@@ -67,6 +67,60 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
         </div>
 
+        <!-- Automation Preferences -->
+        <div class="card p-6 border-2 border-primary-500/20 mt-6" *ngIf="authService.currentUser?.role === 'ADMIN'">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="p-2 bg-primary-100 rounded-lg text-primary-600">
+              <span class="material-icons">schedule</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold text-[var(--text-primary)]">Automation Timings & Reminders</h3>
+              <p class="text-sm text-[var(--text-secondary)]">Configure when tasks run and how you are notified</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="form-group flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)]">
+              <div>
+                <p class="font-medium text-[var(--text-primary)]">Email Reminders</p>
+                <p class="text-xs text-[var(--text-secondary)]">Receive reminders if attendance export is missing</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" [(ngModel)]="automationData.emailReminderEnabled" class="sr-only peer">
+                <div class="w-11 h-6 bg-surface-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <div class="form-group flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)]">
+              <div>
+                <p class="font-medium text-[var(--text-primary)]">WhatsApp Reminders</p>
+                <p class="text-xs text-[var(--text-secondary)]">Get notified via WhatsApp (Requires setup)</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" [(ngModel)]="automationData.whatsappReminderEnabled" class="sr-only peer">
+                <div class="w-11 h-6 bg-surface-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="form-group">
+                <label class="label">Reminder Time</label>
+                <input type="time" [(ngModel)]="automationData.reminderTime" class="input">
+              </div>
+              <div class="form-group">
+                <label class="label">Processing Time</label>
+                <input type="time" [(ngModel)]="automationData.processingTime" class="input">
+              </div>
+            </div>
+
+            <button (click)="saveAutomationSettings()" [disabled]="automationLoading" 
+                    class="btn-primary w-full flex items-center justify-center gap-2 mt-4">
+              <span *ngIf="automationLoading" class="material-icons animate-spin text-sm">sync</span>
+              <span>Save Automation Settings</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Appearance -->
         <div class="card p-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Appearance</h3>
@@ -126,6 +180,14 @@ export class SettingsComponent implements OnInit {
   gmailStatus: any = null;
   loading = false;
 
+  automationData = {
+    emailReminderEnabled: true,
+    whatsappReminderEnabled: false,
+    reminderTime: '11:30',
+    processingTime: '12:00'
+  };
+  automationLoading = false;
+
   constructor(
     public authService: AuthService,
     public themeService: ThemeService,
@@ -136,6 +198,7 @@ export class SettingsComponent implements OnInit {
   ngOnInit() {
     if (this.authService.currentUser?.role === 'ADMIN') {
       this.loadGmailStatus();
+      this.loadAutomationSettings();
     }
   }
 
@@ -184,6 +247,31 @@ export class SettingsComponent implements OnInit {
       error: (err) => {
         this.toast.error('Failed to save credentials');
         this.loading = false;
+      }
+    });
+  }
+
+  loadAutomationSettings() {
+    this.apiService.getAutomationSettings().subscribe({
+      next: (data) => {
+        if (data) {
+          this.automationData = data;
+        }
+      },
+      error: () => console.error('Failed to load automation settings')
+    });
+  }
+
+  saveAutomationSettings() {
+    this.automationLoading = true;
+    this.apiService.saveAutomationSettings(this.automationData).subscribe({
+      next: (res) => {
+        this.toast.success(res.message || 'Automation settings saved successfully!');
+        this.automationLoading = false;
+      },
+      error: (err) => {
+        this.toast.error('Failed to save automation settings');
+        this.automationLoading = false;
       }
     });
   }

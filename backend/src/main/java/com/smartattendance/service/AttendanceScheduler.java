@@ -4,8 +4,10 @@ import com.smartattendance.dto.AttendanceDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
+import jakarta.annotation.PostConstruct;
+import java.util.concurrent.ScheduledFuture;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,13 +24,71 @@ public class AttendanceScheduler {
     private final GmailService gmailService;
     private final WhatsAppNotificationService whatsAppNotificationService;
 
+    private org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler taskScheduler;
+
+    private ScheduledFuture<?> reminderFuture;
+    private ScheduledFuture<?> processingFuture;
+    private ScheduledFuture<?> saturdayFuture;
+    private ScheduledFuture<?> monthlyFuture;
+
+    @PostConstruct
+    public void init() {
+        taskScheduler = new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
+        taskScheduler.setPoolSize(2);
+        taskScheduler.setThreadNamePrefix("DynamicScheduler-");
+        taskScheduler.initialize();
+        rescheduleJobs();
+    }
+
+    public synchronized void rescheduleJobs() {
+        logger.info("Scheduling/Rescheduling attendance jobs...");
+
+        if (reminderFuture != null)
+            reminderFuture.cancel(false);
+        if (processingFuture != null)
+            processingFuture.cancel(false);
+        if (saturdayFuture != null)
+            saturdayFuture.cancel(false);
+        if (monthlyFuture != null)
+            monthlyFuture.cancel(false);
+
+        String reminderTime = systemSettingService.getSchedulerReminderTime();
+        String processingTime = systemSettingService.getSchedulerProcessingTime();
+
+        String reminderCron = timeToCron(reminderTime, "MON-FRI");
+        String processingCron = timeToCron(processingTime, "MON-FRI");
+
+        logger.info("Scheduling Reminder for: {}", reminderCron);
+        reminderFuture = taskScheduler.schedule(this::checkImportStatus,
+                new CronTrigger(reminderCron, java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+
+        logger.info("Scheduling Weekday Processing for: {}", processingCron);
+        processingFuture = taskScheduler.schedule(this::processWeekdays,
+                new CronTrigger(processingCron, java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+
+        saturdayFuture = taskScheduler.schedule(this::processSaturday,
+                new CronTrigger("0 0 19 * * SAT", java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+
+        monthlyFuture = taskScheduler.schedule(this::generateMonthlySummary,
+                new CronTrigger("0 0 6 1 * *", java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+    }
+
+    private String timeToCron(String timeStr, String days) {
+        try {
+            String[] parts = timeStr.split(":");
+            return String.format("0 %s %s * * %s", Integer.parseInt(parts[1]), Integer.parseInt(parts[0]), days);
+        } catch (Exception e) {
+            logger.error("Invalid time format: {}", timeStr);
+            return "0 0 12 * * " + days;
+        }
+    }
+
     /**
-     * Pre-check logic - Monday to Friday at 11:30 AM IST.
+     * Pre-check logic - configurable time (default 11:30 AM IST).
      * Reminds admin if attendance email is missing.
      */
-    @Scheduled(cron = "0 30 11 * * MON-FRI", zone = "Asia/Kolkata")
     public void checkImportStatus() {
-        logger.info("=== Checking for attendance email availability (11:30 AM Check) ===");
+        logger.info("=== Checking for attendance email availability (Reminder Check) ===");
 
         String email = systemSettingService.getGmailEmail();
         String password = systemSettingService.getGmailPassword();
@@ -41,13 +101,16 @@ public class AttendanceScheduler {
                     LocalDate.now());
 
             if (!exists) {
-                logger.warn("No attendance email found for today yet. Sending reminder.");
-                logger.warn("No attendance email found for today yet. Sending reminder.");
-                emailNotificationService.sendReminderToAdmin(email);
+                logger.warn("No attendance email found for today yet. Sending reminder based on preferences.");
 
-                // Send WhatsApp Reminder
-                String whatsAppMessage = "*Attendance Reminder*\nAttendance export email not found for today. Please export the WhatsApp chat immediately.";
-                whatsAppNotificationService.sendWhatsAppMessage(whatsAppMessage);
+                if (systemSettingService.isEmailReminderEnabled()) {
+                    emailNotificationService.sendReminderToAdmin(email);
+                }
+
+                if (systemSettingService.isWhatsAppReminderEnabled()) {
+                    String whatsAppMessage = "*Attendance Reminder*\nAttendance export email not found for today. Please export the WhatsApp chat immediately.";
+                    whatsAppNotificationService.sendWhatsAppMessage(whatsAppMessage);
+                }
             } else {
                 logger.info("Attendance email found. Ready for 12:00 PM processing.");
             }
@@ -57,9 +120,8 @@ public class AttendanceScheduler {
     }
 
     /**
-     * Weekday morning processing - Monday to Friday at 12:00 PM IST.
+     * Weekday morning processing - configurable time (default 12:00 PM IST).
      */
-    @Scheduled(cron = "0 0 12 * * MON-FRI", zone = "Asia/Kolkata")
     public void processWeekdays() {
         logger.info("=== Starting scheduled Weekday Morning attendance processing (12 PM) ===");
         runAutomaticProcess();
@@ -68,7 +130,6 @@ public class AttendanceScheduler {
     /**
      * Saturday evening processing - Saturdays at 7:00 PM IST.
      */
-    @Scheduled(cron = "0 0 19 * * SAT", zone = "Asia/Kolkata")
     public void processSaturday() {
         logger.info("=== Starting scheduled Saturday Evening attendance processing (7 PM) ===");
         runAutomaticProcess();
@@ -118,7 +179,6 @@ public class AttendanceScheduler {
     /**
      * Monthly summary generation - runs on the 1st of every month at 6 AM.
      */
-    @Scheduled(cron = "0 0 6 1 * *", zone = "Asia/Kolkata")
     public void generateMonthlySummary() {
         logger.info("=== Generating monthly summary ===");
         LocalDate lastMonth = LocalDate.now().minusMonths(1);
