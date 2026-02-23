@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
@@ -88,12 +89,18 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
 
+        // Check email uniqueness if it's being changed
+        if (!employee.getEmail().equalsIgnoreCase(dto.getEmail()) &&
+                employeeRepository.existsByEmail(dto.getEmail())) {
+            throw new IllegalArgumentException("Email " + dto.getEmail() + " is already in use by another employee");
+        }
+
         employee.setName(dto.getName());
         employee.setEmail(dto.getEmail());
         employee.setPhone(dto.getPhone());
         employee.setWhatsappName(dto.getWhatsappName());
         employee.setEmployeeCode(dto.getEmployeeCode());
-        employee.setIsActive(dto.getIsActive());
+        employee.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : employee.getIsActive());
 
         if (dto.getGroupId() != null) {
             AttendanceGroup group = groupRepository.findById(dto.getGroupId())
@@ -104,13 +111,20 @@ public class EmployeeService {
         }
 
         Employee saved = employeeRepository.save(employee);
+        
+        try {
+            // Re-match unmapped logs if name/phone changed
+            attendanceService.processUnmappedLogsForEmployee(saved);
 
-        // Re-match unmapped logs if name/phone changed
-        attendanceService.processUnmappedLogsForEmployee(saved);
-
-        // Ensure immediate feedback if reactivated
-        if (Boolean.TRUE.equals(saved.getIsActive())) {
-            attendanceService.ensureAttendanceForToday(saved);
+            // Ensure immediate feedback if reactivated
+            if (Boolean.TRUE.equals(saved.getIsActive())) {
+                attendanceService.ensureAttendanceForToday(saved);
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the update transaction for side-tasks
+            // The main update is already done
+            org.slf4j.LoggerFactory.getLogger(EmployeeService.class)
+                .error("Side tasks failed after employee update: {}", e.getMessage());
         }
 
         return toDTO(saved);

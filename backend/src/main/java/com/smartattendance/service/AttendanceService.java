@@ -407,7 +407,13 @@ public class AttendanceService {
                     .status(status)
                     .source("SYSTEM")
                     .build();
-            attendanceRepository.save(attendance);
+            try {
+                attendanceRepository.save(attendance);
+                attendanceRepository.flush();
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                // Ignore: Someone else created it concurrently
+                logger.debug("Attendance record for {} on {} was created concurrently.", employee.getName(), today);
+            }
         }
     }
 
@@ -419,10 +425,23 @@ public class AttendanceService {
     public void processUnmappedLogsForEmployee(Employee employee) {
         logger.info("Starting async background process: Matching unmapped WhatsApp logs for employee: {}",
                 employee.getName());
-        List<WhatsAppLog> unmappedLogs = whatsAppLogRepository.findByMappedFalse();
+
+        // Targeted search instead of findByMappedFalse() to avoid massive table scans
+        List<WhatsAppLog> unmappedLogs = whatsAppLogRepository.findUnmappedPotentialMatches(
+                employee.getName(),
+                employee.getWhatsappName(),
+                normalizePhone(employee.getPhone()));
+
+        if (unmappedLogs.isEmpty()) {
+            return;
+        }
+
         String empNameNorm = normalizeName(employee.getName());
         String empWaNorm = employee.getWhatsappName() != null ? normalizeName(employee.getWhatsappName()) : null;
         String empPhoneNorm = employee.getPhone() != null ? normalizePhone(employee.getPhone()) : null;
+
+        List<Attendance> attendancesToSave = new java.util.ArrayList<>();
+        List<WhatsAppLog> logsToUpdate = new java.util.ArrayList<>();
 
         for (WhatsAppLog log : unmappedLogs) {
             boolean matches = false;
@@ -463,17 +482,16 @@ public class AttendanceService {
                 }
 
                 if (existing == null) {
-                    Attendance attendance = Attendance.builder()
+                    attendancesToSave.add(Attendance.builder()
                             .employee(employee)
                             .date(log.getDate())
                             .inTime(log.getInTime())
                             .outTime(log.getOutTime())
                             .status(logStatus)
                             .source("WHATSAPP")
-                            .build();
-                    attendanceRepository.save(attendance);
+                            .build());
                 } else {
-                    // Update if existing is ABSENT or SYSTEM generated, or we have better data
+                    // Update if existing is ABSENT or SYSTEM generated
                     boolean isPlaceholder = existing.getStatus() == AttendanceStatus.ABSENT
                             || "SYSTEM".equals(existing.getSource());
                     if (isPlaceholder && logStatus != AttendanceStatus.ABSENT) {
@@ -481,13 +499,19 @@ public class AttendanceService {
                         existing.setOutTime(log.getOutTime());
                         existing.setStatus(logStatus);
                         existing.setSource("WHATSAPP");
-                        attendanceRepository.save(existing);
+                        attendancesToSave.add(existing);
                     }
                 }
-
                 log.setMapped(true);
-                whatsAppLogRepository.save(log);
+                logsToUpdate.add(log);
             }
+        }
+
+        if (!attendancesToSave.isEmpty()) {
+            attendanceRepository.saveAll(attendancesToSave);
+        }
+        if (!logsToUpdate.isEmpty()) {
+            whatsAppLogRepository.saveAll(logsToUpdate);
         }
     }
 }
