@@ -1,7 +1,9 @@
 package com.smartattendance.controller;
 
 import com.smartattendance.dto.GmailCredentialsDTO;
+import com.smartattendance.dto.AutomationSettingsDTO;
 import com.smartattendance.dto.WhatsAppCredentialsDTO;
+import com.smartattendance.service.AttendanceScheduler;
 import com.smartattendance.service.EmailNotificationService;
 import com.smartattendance.service.SystemSettingService;
 import com.smartattendance.service.WhatsAppNotificationService;
@@ -21,6 +23,7 @@ public class SystemSettingController {
     private final SystemSettingService systemSettingService;
     private final EmailNotificationService emailNotificationService;
     private final WhatsAppNotificationService whatsAppNotificationService;
+    private final AttendanceScheduler attendanceScheduler;
 
     @PostMapping("/gmail")
     @PreAuthorize("hasRole('ADMIN')")
@@ -71,5 +74,28 @@ public class SystemSettingController {
     public ResponseEntity<Map<String, String>> testWhatsApp() {
         whatsAppNotificationService.sendWhatsAppMessage("Test Notification from Smart Attendance App");
         return ResponseEntity.ok(Map.of("message", "Test WhatsApp notification triggered via CallMeBot"));
+    }
+
+    @GetMapping("/automation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AutomationSettingsDTO> getAutomationSettings() {
+        AutomationSettingsDTO dto = new AutomationSettingsDTO();
+        dto.setEmailReminderEnabled(systemSettingService.isEmailReminderEnabled());
+        dto.setWhatsappReminderEnabled(systemSettingService.isWhatsAppReminderEnabled());
+        dto.setReminderTime(systemSettingService.getSchedulerReminderTime());
+        dto.setProcessingTime(systemSettingService.getSchedulerProcessingTime());
+        return ResponseEntity.ok(dto);
+    }
+
+    @PostMapping("/automation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> saveAutomationSettings(@RequestBody AutomationSettingsDTO dto) {
+        systemSettingService.saveAutomationSettings(
+                dto.isEmailReminderEnabled(),
+                dto.isWhatsappReminderEnabled(),
+                dto.getReminderTime(),
+                dto.getProcessingTime());
+        attendanceScheduler.rescheduleJobs();
+        return ResponseEntity.ok(Map.of("message", "Automation settings saved successfully"));
     }
 }

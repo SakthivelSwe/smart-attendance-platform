@@ -141,4 +141,10 @@ export class ApiService {
     sendTestEmail(email: string): Observable<any> {
         return this.http.post<any>(`${this.api}/settings/test-email`, { email });
     }
+    getAutomationSettings(): Observable<any> {
+        return this.http.get<any>(`${this.api}/settings/automation`);
+    }
+    saveAutomationSettings(data: any): Observable<any> {
+        return this.http.post<any>(`${this.api}/settings/automation`, data);
+    }
 }
