@@ -40,6 +40,12 @@ public class HolidayService {
         return holidayRepository.existsByDate(date) || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
     }
 
+    public java.util.Set<LocalDate> getHolidayDatesForRange(LocalDate start, LocalDate end) {
+        return holidayRepository.findByDateBetween(start, end).stream()
+                .map(Holiday::getDate)
+                .collect(Collectors.toSet());
+    }
+
     @Transactional
     public HolidayDTO createHoliday(HolidayDTO dto) {
         if (holidayRepository.existsByDate(dto.getDate())) {
