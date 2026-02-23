@@ -142,15 +142,12 @@ public class AuthService {
                 .name(request.getName())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.USER)
-                .emailVerified(false)
-                .verificationToken(token)
-                .verificationTokenExpiry(LocalDateTime.now().plusHours(1))
+                .emailVerified(true) // Set to true by default to bypass verification
                 .isActive(true)
                 .build();
 
         userRepository.save(user);
-        logger.info("=== VERIFICATION TOKEN FOR {} is: {} ===", user.getEmail(), token);
-        emailService.sendVerificationEmail(user.getEmail(), token);
+        logger.info("New user registered and auto-verified: {}", user.getEmail());
     }
 
     public void verifyEmail(String token) {
@@ -174,9 +171,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (!user.isEmailVerified()) {
-            throw new IllegalArgumentException("Email not verified. Please verify your email first.");
-        }
+        // Email verification requirement has been removed
 
         String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), user.getId());
 

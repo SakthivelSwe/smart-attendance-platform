@@ -68,10 +68,10 @@ app:
     application-name: Smart Attendance Platform
 
   admin:
-    emails: sakthiveltony@gmail.com
+    emails: ${ADMIN_EMAILS:sakthiveltony@gmail.com}
 
   cors:
-    allowed-origins: https://smart-attendance-automation.netlify.app,https://attendify-2bk.pages.dev,https://smartattendance.pages.dev,https://smartattendance-aat.pages.dev,http://localhost:4200
+    allowed-origins: ${CORS_ORIGINS:https://smart-attendance-automation.netlify.app,https://attendify-2bk.pages.dev,https://smartattendance.pages.dev,https://smartattendance-aat.pages.dev,http://localhost:4200}
 
 logging:
   level:
