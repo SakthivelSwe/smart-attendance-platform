@@ -11,7 +11,6 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -59,7 +58,7 @@ public class EmailNotificationService {
             sender.send(message);
             logger.info("Daily summary email sent to {}", toEmail);
 
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             logger.error("Failed to send email: {}", e.getMessage());
         }
     }
@@ -93,7 +92,7 @@ public class EmailNotificationService {
             sender.send(message);
             logger.info("Reminder email sent to {}", toEmail);
 
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             logger.error("Failed to send reminder email: {}", e.getMessage());
         }
     }
