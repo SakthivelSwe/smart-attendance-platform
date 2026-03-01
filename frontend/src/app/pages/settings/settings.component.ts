@@ -107,14 +107,37 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
 
 
-            <div class="grid grid-cols-2 gap-4">
-              <div class="form-group">
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Reminder Time</label>
-                <input type="time" [(ngModel)]="automationData.reminderTime" class="input-field">
+            <div class="grid grid-cols-2 gap-6">
+              <div class="form-group bg-[var(--bg-secondary)] p-4 rounded-xl border border-primary-500/10 hover:border-primary-500/30 transition-colors">
+                <label class="block text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <span class="material-icons text-primary-500 text-sm">notifications_active</span>
+                  Reminder Time
+                </label>
+                <div class="flex items-center justify-between gap-2 bg-[var(--bg-primary)] p-2 rounded-lg shadow-inner">
+                  <div class="text-xl font-bold text-[var(--text-primary)] flex-1 text-center font-mono tracking-wider">
+                    {{ formatTime(automationData.reminderTime) }}
+                  </div>
+                  <input type="time" [(ngModel)]="automationData.reminderTime" class="opacity-0 absolute w-0 h-0" #reminderTimeInput>
+                  <button (click)="reminderTimeInput.showPicker()" class="p-2 bg-primary-50 dark:bg-primary-900/40 text-primary-600 rounded-md hover:bg-primary-100 transition-colors">
+                    <span class="material-icons text-sm">edit</span>
+                  </button>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Processing Time</label>
-                <input type="time" [(ngModel)]="automationData.processingTime" class="input-field">
+              
+              <div class="form-group bg-[var(--bg-secondary)] p-4 rounded-xl border border-primary-500/10 hover:border-primary-500/30 transition-colors">
+                <label class="block text-sm font-semibold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <span class="material-icons text-primary-500 text-sm">settings_suggest</span>
+                  Processing Time
+                </label>
+                <div class="flex items-center justify-between gap-2 bg-[var(--bg-primary)] p-2 rounded-lg shadow-inner">
+                  <div class="text-xl font-bold text-[var(--text-primary)] flex-1 text-center font-mono tracking-wider">
+                    {{ formatTime(automationData.processingTime) }}
+                  </div>
+                  <input type="time" [(ngModel)]="automationData.processingTime" class="opacity-0 absolute w-0 h-0" #processingTimeInput>
+                  <button (click)="processingTimeInput.showPicker()" class="p-2 bg-primary-50 dark:bg-primary-900/40 text-primary-600 rounded-md hover:bg-primary-100 transition-colors">
+                    <span class="material-icons text-sm">edit</span>
+                  </button>
+                </div>
               </div>
             </div>
 
