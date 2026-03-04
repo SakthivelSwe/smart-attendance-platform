@@ -43,6 +43,7 @@ public class GmailOAuthService {
     private static final String GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
     private static final String GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
     private static final String USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
+    private static final String SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
     // Keys used to persist OAuth2 tokens in system_settings
     static final String REFRESH_TOKEN_KEY = "GMAIL_OAUTH_REFRESH_TOKEN";
@@ -74,7 +75,8 @@ public class GmailOAuthService {
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
-                .queryParam("scope", GMAIL_SEND_SCOPE + " " + GMAIL_READONLY_SCOPE + " " + USERINFO_EMAIL_SCOPE)
+                .queryParam("scope",
+                        GMAIL_SEND_SCOPE + " " + GMAIL_READONLY_SCOPE + " " + USERINFO_EMAIL_SCOPE + " " + SHEETS_SCOPE)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent") // Forces re-consent so we always get a refresh token
                 .toUriString();
@@ -310,27 +312,37 @@ public class GmailOAuthService {
         systemSettingService.clearOAuthTokens();
     }
 
+    /**
+     * Gets the OAuth2 credentials for the connected Google account.
+     * Returns null if not connected or if decryption fails.
+     */
+    public UserCredentials getGoogleCredentials() {
+        String encryptedRefreshToken = systemSettingService.getOAuthRefreshToken();
+        if (encryptedRefreshToken == null) {
+            return null;
+        }
+        String refreshToken = encryptionService.decrypt(encryptedRefreshToken);
+        if (refreshToken == null) {
+            return null;
+        }
+
+        return UserCredentials.newBuilder()
+                .setClientId(clientId)
+                .setClientSecret(clientSecret)
+                .setRefreshToken(refreshToken)
+                .build();
+    }
+
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
 
     private Gmail buildGmailService() throws IOException {
-        String encryptedRefreshToken = systemSettingService.getOAuthRefreshToken();
-        if (encryptedRefreshToken == null) {
+        UserCredentials credentials = getGoogleCredentials();
+        if (credentials == null) {
             throw new IllegalStateException(
-                    "Gmail account is not connected. Please connect a Gmail account in Settings.");
+                    "Gmail account is not connected or token is invalid. Please connect a Gmail account in Settings.");
         }
-        String refreshToken = encryptionService.decrypt(encryptedRefreshToken);
-        if (refreshToken == null) {
-            throw new IllegalStateException(
-                    "Failed to decrypt stored refresh token. Please reconnect your Gmail account.");
-        }
-
-        UserCredentials credentials = UserCredentials.newBuilder()
-                .setClientId(clientId)
-                .setClientSecret(clientSecret)
-                .setRefreshToken(refreshToken)
-                .build();
 
         return new Gmail.Builder(
                 new NetHttpTransport(),
