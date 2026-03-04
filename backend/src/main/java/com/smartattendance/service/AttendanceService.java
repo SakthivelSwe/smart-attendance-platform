@@ -183,10 +183,11 @@ public class AttendanceService {
                 Attendance existing = dailyExisting.get(employee.getId());
                 boolean hasWhatsAppSource = existing != null && "WHATSAPP".equals(existing.getSource());
                 boolean isAbsentStatus = existing != null && existing.getStatus() == AttendanceStatus.ABSENT;
+                boolean isSystemSource = existing != null && "SYSTEM".equals(existing.getSource());
 
                 // Only overwrite if no record exists, or if current record is
-                // auto-generated/Absent
-                if (existing != null && !hasWhatsAppSource && !isAbsentStatus) {
+                // auto-generated (SYSTEM source or ABSENT status)
+                if (existing != null && !hasWhatsAppSource && !isAbsentStatus && !isSystemSource) {
                     continue;
                 }
 
