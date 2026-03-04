@@ -138,6 +138,14 @@ public class AttendanceService {
 
         LocalDate minDate = datesToProcess.get(0);
         LocalDate maxDate = datesToProcess.get(datesToProcess.size() - 1);
+
+        // Fill in missing dates (like Sundays) between min and max date
+        List<LocalDate> allDatesInRange = new java.util.ArrayList<>();
+        for (LocalDate d = minDate; !d.isAfter(maxDate); d = d.plusDays(1)) {
+            allDatesInRange.add(d);
+        }
+        datesToProcess = allDatesInRange;
+
         logger.info("Bulk processing {} dates from {} to {}...", datesToProcess.size(), minDate, maxDate);
 
         // PRE-FETCH everything in bulk
