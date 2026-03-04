@@ -30,13 +30,13 @@ public class MonthlySummaryService {
     private final EmployeeRepository employeeRepository;
 
     public List<MonthlySummaryDTO> getSummaryByMonthAndYear(int month, int year) {
-        return summaryRepository.findByMonthAndYear(month, year).stream()
+        return summaryRepository.findWithEmployeeByMonthAndYear(month, year).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<MonthlySummaryDTO> getSummaryByEmployee(Long employeeId) {
-        return summaryRepository.findByEmployeeId(employeeId).stream()
+        return summaryRepository.findWithEmployeeByEmployeeId(employeeId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -54,17 +54,17 @@ public class MonthlySummaryService {
 
         // 1. Fetch all active employees
         List<Employee> employees = employeeRepository.findByIsActiveTrue();
-        
+
         // 2. Bulk fetch all attendance records for the month
         List<Attendance> allRecords = attendanceRepository.findByDateBetween(startDate, endDate);
-        
+
         // Group attendance by employee ID
         java.util.Map<Long, List<Attendance>> attendanceByEmployee = allRecords.stream()
                 .filter(a -> a.getEmployee() != null)
                 .collect(Collectors.groupingBy(a -> a.getEmployee().getId()));
 
         // 3. Bulk fetch existing summaries to avoid repeated lookups
-        List<MonthlySummary> existingSummaries = summaryRepository.findByMonthAndYear(month, year);
+        List<MonthlySummary> existingSummaries = summaryRepository.findWithEmployeeByMonthAndYear(month, year);
         java.util.Map<Long, MonthlySummary> summaryMap = existingSummaries.stream()
                 .collect(Collectors.toMap(s -> s.getEmployee().getId(), s -> s));
 
