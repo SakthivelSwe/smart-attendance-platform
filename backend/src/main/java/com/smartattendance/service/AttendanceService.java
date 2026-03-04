@@ -180,7 +180,8 @@ public class AttendanceService {
 
         // MAIN PROCESSING LOOP (Zero DB queries inside)
         for (LocalDate date : datesToProcess) {
-            Map<String, WhatsAppParser.AttendanceEntry> dailyParsed = fullAttendanceMap.get(date);
+            Map<String, WhatsAppParser.AttendanceEntry> dailyParsed = fullAttendanceMap.getOrDefault(date,
+                    java.util.Collections.emptyMap());
             Map<Long, Attendance> dailyExisting = existingMap.getOrDefault(date, java.util.Collections.emptyMap());
             java.util.Set<Long> dailyLeaves = leafMap.getOrDefault(date, java.util.Collections.emptySet());
             boolean isHoliday = holidayDates.contains(date) || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
