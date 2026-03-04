@@ -308,6 +308,35 @@ public class GmailOAuthService {
         return systemSettingService.getOAuthConnectedEmail();
     }
 
+    /**
+     * Returns the email address of the connected Gmail OAuth account, or null if
+     * not connected.
+     */
+    public String getConnectedEmail() {
+        return systemSettingService.getOAuthConnectedEmail();
+    }
+
+    /**
+     * Checks whether an attendance email matching subjectPattern exists for the
+     * given date.
+     * Returns false if not connected or if an error occurs.
+     */
+    public boolean hasAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) {
+        try {
+            Gmail gmailService = buildGmailService();
+            String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
+            String dateStr = targetDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            String query = "subject:\"" + cleanSubject + "\" after:" + dateStr;
+            com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
+                    .list("me").setQ(query).setMaxResults(1L).execute();
+            java.util.List<Message> messages = listResponse.getMessages();
+            return messages != null && !messages.isEmpty();
+        } catch (Exception e) {
+            logger.error("Error checking email existence via OAuth2: {}", e.getMessage());
+            return false;
+        }
+    }
+
     public void disconnect() {
         systemSettingService.clearOAuthTokens();
     }
