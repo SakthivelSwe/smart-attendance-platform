@@ -28,6 +28,9 @@ public class AttendanceScheduler {
     private final MonthlySummaryService monthlySummaryService;
     private final ApplicationEventPublisher eventPublisher;
 
+    @org.springframework.beans.factory.annotation.Value("${app.admin.emails:}")
+    private String adminEmails;
+
     private org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler taskScheduler;
 
     private ScheduledFuture<?> reminderFuture;
@@ -58,11 +61,9 @@ public class AttendanceScheduler {
 
         String reminderTime = systemSettingService.getSchedulerReminderTime();
         String processingTime = systemSettingService.getSchedulerProcessingTime();
-
-        String reminderCron = timeToCron(reminderTime, "MON-FRI");
-        String processingCron = timeToCron(processingTime, "MON-FRI");
+        String reminderCron = timeToCron(reminderTime, "*");
+        String processingCron = timeToCron(processingTime, "*");
         java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
-
         logger.info("Scheduling Reminder for: {}", reminderCron);
         reminderFuture = taskScheduler.schedule(this::checkImportStatus,
                 new CronTrigger(reminderCron, zone));
@@ -109,7 +110,13 @@ public class AttendanceScheduler {
                 logger.warn("No attendance email found for today yet. Sending reminder based on preferences.");
 
                 if (systemSettingService.isEmailReminderEnabled()) {
-                    emailNotificationService.sendReminderToAdmin(email);
+                    if (adminEmails != null && !adminEmails.isBlank()) {
+                        for (String adminEmail : adminEmails.split(",")) {
+                            emailNotificationService.sendReminderToAdmin(adminEmail.trim());
+                        }
+                    } else {
+                        emailNotificationService.sendReminderToAdmin(email);
+                    }
                 }
 
                 if (systemSettingService.isWhatsAppReminderEnabled()) {
@@ -170,7 +177,13 @@ public class AttendanceScheduler {
             List<AttendanceDTO> todayAttendance = attendanceService.getAttendanceByDate(today);
             if (!todayAttendance.isEmpty()) {
                 try {
-                    emailNotificationService.sendDailySummaryEmail(todayAttendance, today, email);
+                    if (adminEmails != null && !adminEmails.isBlank()) {
+                        for (String adminEmail : adminEmails.split(",")) {
+                            emailNotificationService.sendDailySummaryEmail(todayAttendance, today, adminEmail.trim());
+                        }
+                    } else {
+                        emailNotificationService.sendDailySummaryEmail(todayAttendance, today, email);
+                    }
                 } catch (Exception ex) {
                     logger.warn("Failed to send daily summary email: {}", ex.getMessage());
                 }
