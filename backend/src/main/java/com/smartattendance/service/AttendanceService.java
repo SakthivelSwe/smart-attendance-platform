@@ -177,6 +177,9 @@ public class AttendanceService {
         List<Attendance> allToSave = new java.util.ArrayList<>();
         List<WhatsAppLog> allLogsToSave = new java.util.ArrayList<>();
         List<Attendance> allSheetUpdates = new java.util.ArrayList<>();
+        // Deduplication: track (employeeId|date) pairs already queued to prevent
+        // duplicate inserts
+        java.util.Set<String> queuedKeys = new java.util.HashSet<>();
 
         // MAIN PROCESSING LOOP (Zero DB queries inside)
         for (LocalDate date : datesToProcess) {
@@ -265,30 +268,35 @@ public class AttendanceService {
                 }
 
                 // Update or Create
+                String queueKey = employee.getId() + "|" + date;
                 if (existing != null) {
                     existing.setInTime(entry != null ? entry.getInTime() : null);
                     existing.setOutTime(entry != null ? entry.getOutTime() : null);
                     existing.setStatus(status);
                     existing.setSource("WHATSAPP");
-                    allToSave.add(existing);
+                    if (queuedKeys.add(queueKey)) {
+                        allToSave.add(existing);
+                    }
 
                     // Trigger sheet update if needed
                     if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
                         allSheetUpdates.add(existing);
                     }
                 } else {
-                    Attendance newRecord = Attendance.builder()
-                            .employee(employee)
-                            .date(date)
-                            .inTime(entry != null ? entry.getInTime() : null)
-                            .outTime(entry != null ? entry.getOutTime() : null)
-                            .status(status)
-                            .source("WHATSAPP")
-                            .build();
-                    allToSave.add(newRecord);
+                    if (queuedKeys.add(queueKey)) {
+                        Attendance newRecord = Attendance.builder()
+                                .employee(employee)
+                                .date(date)
+                                .inTime(entry != null ? entry.getInTime() : null)
+                                .outTime(entry != null ? entry.getOutTime() : null)
+                                .status(status)
+                                .source("WHATSAPP")
+                                .build();
+                        allToSave.add(newRecord);
 
-                    if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
-                        allSheetUpdates.add(newRecord);
+                        if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
+                            allSheetUpdates.add(newRecord);
+                        }
                     }
                 }
             }
@@ -320,8 +328,18 @@ public class AttendanceService {
             // Small chunks of 500 to keep transactions manageable on free tier DB
             for (int i = 0; i < allToSave.size(); i += 500) {
                 int end = Math.min(i + 500, allToSave.size());
-                attendanceRepository.saveAll(allToSave.subList(i, end));
-                attendanceRepository.flush();
+                try {
+                    attendanceRepository.saveAll(allToSave.subList(i, end));
+                    attendanceRepository.flush();
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                    // This should not normally happen because queuedKeys prevents duplicate
+                    // entries.
+                    // If it does occur (concurrent insert race), log and continue so the scheduler
+                    // doesn't abort the entire run.
+                    logger.warn("Bulk save hit a duplicate key constraint on chunk [{}-{}]. " +
+                            "Some records may have been inserted concurrently. Skipping chunk. Error: {}",
+                            i, end, e.getMostSpecificCause().getMessage());
+                }
             }
         }
 

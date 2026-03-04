@@ -28,6 +28,7 @@ public class AttendanceScheduler {
     private final WhatsAppNotificationService whatsAppNotificationService;
     private final MonthlySummaryService monthlySummaryService;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.smartattendance.repository.GroupRepository groupRepository;
 
     @org.springframework.beans.factory.annotation.Value("${app.admin.emails:}")
     private String adminEmails;
@@ -108,19 +109,40 @@ public class AttendanceScheduler {
         }
 
         try {
-            boolean exists;
-            if (oauthConnected) {
-                // Use OAuth2 to check email
-                exists = gmailOAuthService.hasAttendanceEmailForDate("WhatsApp Chat with %", LocalDate.now());
-            } else {
-                exists = gmailService.hasAttendanceEmailForDate(email, password, "WhatsApp Chat with %",
-                        LocalDate.now());
+            List<com.smartattendance.entity.AttendanceGroup> groups = groupRepository.findByIsActiveTrue();
+            if (groups.isEmpty()) {
+                logger.warn("No active attendance groups found. Reminder check skipped.");
+                return;
+            }
+
+            boolean anyMissing = false;
+            for (com.smartattendance.entity.AttendanceGroup group : groups) {
+                String subjectPattern = group.getEmailSubjectPattern();
+                if (subjectPattern == null || subjectPattern.isBlank()) {
+                    subjectPattern = "WhatsApp Chat";
+                }
+
+                boolean exists;
+                if (oauthConnected) {
+                    // Use OAuth2 to check email
+                    exists = gmailOAuthService.hasAttendanceEmailForDate(subjectPattern, LocalDate.now());
+                } else {
+                    exists = gmailService.hasAttendanceEmailForDate(email, password, subjectPattern, LocalDate.now());
+                }
+
+                if (!exists) {
+                    logger.warn("No attendance email found for group '{}' (pattern: '{}') today.", group.getName(),
+                            subjectPattern);
+                    anyMissing = true;
+                } else {
+                    logger.info("Attendance email found for group '{}'.", group.getName());
+                }
             }
 
             String notificationEmail = (email != null) ? email : gmailOAuthService.getConnectedEmail();
 
-            if (!exists) {
-                logger.warn("No attendance email found for today yet. Sending reminder based on preferences.");
+            if (anyMissing) {
+                logger.warn("One or more attendance emails missing for today. Sending reminder based on preferences.");
 
                 if (systemSettingService.isEmailReminderEnabled()) {
                     if (adminEmails != null && !adminEmails.isBlank()) {
@@ -133,11 +155,11 @@ public class AttendanceScheduler {
                 }
 
                 if (systemSettingService.isWhatsAppReminderEnabled()) {
-                    String whatsAppMessage = "*Attendance Reminder*\nAttendance export email not found for today. Please export the WhatsApp chat immediately.";
+                    String whatsAppMessage = "*Attendance Reminder*\nOne or more attendance export emails not found for today. Please export the WhatsApp chat(s) immediately.";
                     whatsAppNotificationService.sendWhatsAppMessage(whatsAppMessage);
                 }
             } else {
-                logger.info("Attendance email found. Ready for processing.");
+                logger.info("All attendance emails found. Ready for processing.");
             }
         } catch (Exception e) {
             logger.error("Error checking import status: {}", e.getMessage());
@@ -173,24 +195,43 @@ public class AttendanceScheduler {
         }
 
         try {
-            logger.info("Automatically fetching WhatsApp attendance for {}", today);
-            String subjectPattern = "WhatsApp Chat with %";
-            String chatText;
+            List<com.smartattendance.entity.AttendanceGroup> groups = groupRepository.findByIsActiveTrue();
+            if (groups.isEmpty()) {
+                logger.warn("No active attendance groups found to process.");
+                return;
+            }
 
-            if (oauthConnected) {
-                chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today);
-            } else {
-                chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
+            logger.info("Automatically fetching WhatsApp attendance for {} groups on {}", groups.size(), today);
+
+            for (com.smartattendance.entity.AttendanceGroup group : groups) {
+                String subjectPattern = group.getEmailSubjectPattern();
+                if (subjectPattern == null || subjectPattern.isBlank()) {
+                    subjectPattern = "WhatsApp Chat";
+                }
+
+                String chatText = null;
+                try {
+                    if (oauthConnected) {
+                        chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today);
+                    } else {
+                        chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
+                    }
+                } catch (Exception ex) {
+                    logger.error("Failed to fetch email for group '{}': {}", group.getName(), ex.getMessage());
+                }
+
+                if (chatText != null && !chatText.isBlank()) {
+                    // Pass true to ensure that we process the full chat for that export, similar to
+                    // UI manual fetch
+                    attendanceService.processWhatsAppAttendance(chatText, today, true);
+                    logger.info("Automatically processed attendance from email for group '{}'", group.getName());
+                } else {
+                    logger.info("No attendance email found for group '{}' using pattern '{}'", group.getName(),
+                            subjectPattern);
+                }
             }
 
             String notificationEmail = (email != null) ? email : gmailOAuthService.getConnectedEmail();
-
-            if (chatText != null && !chatText.isBlank()) {
-                attendanceService.processWhatsAppAttendance(chatText, today, false);
-                logger.info("Automatically processed attendance from email for {}", today);
-            } else {
-                logger.info("No attendance email found for {}", today);
-            }
 
             // Send daily summary email to admin
             List<AttendanceDTO> todayAttendance = attendanceService.getAttendanceByDate(today);
