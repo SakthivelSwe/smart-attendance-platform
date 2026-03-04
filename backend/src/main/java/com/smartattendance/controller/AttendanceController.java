@@ -8,6 +8,8 @@ import com.smartattendance.repository.EmployeeRepository;
 import com.smartattendance.repository.GroupRepository;
 import com.smartattendance.service.AttendanceService;
 import com.smartattendance.service.GmailService;
+import com.smartattendance.service.GmailOAuthService;
+import com.smartattendance.service.SystemSettingService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,8 @@ public class AttendanceController {
     private final GmailService gmailService;
     private final GroupRepository groupRepository;
     private final EmployeeRepository employeeRepository;
-    private final com.smartattendance.service.SystemSettingService systemSettingService;
+    private final SystemSettingService systemSettingService;
+    private final GmailOAuthService gmailOAuthService;
 
     @GetMapping("/date/{date}")
     public ResponseEntity<List<AttendanceDTO>> getByDate(
@@ -108,11 +111,17 @@ public class AttendanceController {
             }
         }
 
-        // Validate credentials from admin
-        if (gmailEmail == null || gmailEmail.isBlank() || gmailPassword == null || gmailPassword.isBlank()) {
-            response.put("success", false);
-            response.put("message", "Gmail email and App Password are required. Please enter your credentials.");
-            return ResponseEntity.badRequest().body(response);
+        // Provide flexibility: Either OAuth2 is connected OR App Password is provided
+        boolean isOAuthConnected = gmailOAuthService.isConnected();
+
+        if (!isOAuthConnected) {
+            // Need App password credentials
+            if (gmailEmail == null || gmailEmail.isBlank() || gmailPassword == null || gmailPassword.isBlank()) {
+                response.put("success", false);
+                response.put("message",
+                        "Gmail email and App Password are required. Please enter your credentials or connect via Google OAuth in Settings.");
+                return ResponseEntity.badRequest().body(response);
+            }
         }
 
         // If no subject pattern provided, use the group's pattern
@@ -128,15 +137,19 @@ public class AttendanceController {
             subjectPattern = "WhatsApp Chat";
         }
 
-        logger.info("Fetching email with pattern '{}' for date {} using {}", subjectPattern, date, gmailEmail);
+        logger.info("Fetching email with pattern '{}' for date {}. OAuth Connected: {}", subjectPattern, date,
+                isOAuthConnected);
 
-        // Fetch chat text using admin-provided credentials
         String chatText = null;
         try {
-            // Remove spaces from app password just in case user pasted 'aaaa bbbb cccc
-            // dddd'
-            String cleanPassword = gmailPassword.replace(" ", "").trim();
-            chatText = gmailService.fetchAttendanceEmailForDate(gmailEmail, cleanPassword, subjectPattern, date);
+            if (isOAuthConnected) {
+                chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, date);
+            } else {
+                // Remove spaces from app password just in case user pasted 'aaaa bbbb cccc
+                // dddd'
+                String cleanPassword = gmailPassword.replace(" ", "").trim();
+                chatText = gmailService.fetchAttendanceEmailForDate(gmailEmail, cleanPassword, subjectPattern, date);
+            }
         } catch (jakarta.mail.AuthenticationFailedException authEx) {
             response.put("success", false);
             response.put("message", "Authentication Failed: Gmail rejected the login. Please check your App Password.");
@@ -187,15 +200,24 @@ public class AttendanceController {
             }
         }
 
-        if (gmailEmail == null || gmailEmail.isBlank() || gmailPassword == null || gmailPassword.isBlank()) {
+        boolean isOAuthConnected = gmailOAuthService.isConnected();
+
+        if (!isOAuthConnected
+                && (gmailEmail == null || gmailEmail.isBlank() || gmailPassword == null || gmailPassword.isBlank())) {
             status.put("configured", false);
-            status.put("message", "Please enter your Gmail email and App Password.");
+            status.put("message",
+                    "Please enter your Gmail email and App Password, or connect via Google OAuth in Settings.");
             return ResponseEntity.ok(status);
         }
 
         try {
-            List<Map<String, String>> recentEmails = gmailService.listRecentEmails(
-                    gmailEmail, gmailPassword, subjectPattern, 5);
+            List<Map<String, String>> recentEmails;
+            if (isOAuthConnected) {
+                recentEmails = gmailOAuthService.listRecentEmails(subjectPattern, 5);
+            } else {
+                recentEmails = gmailService.listRecentEmails(gmailEmail, gmailPassword, subjectPattern, 5);
+            }
+
             status.put("configured", true);
             status.put("connected", true);
             status.put("recentEmails", recentEmails);
