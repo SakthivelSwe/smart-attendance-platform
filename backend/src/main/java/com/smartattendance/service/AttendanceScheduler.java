@@ -1,9 +1,11 @@
 package com.smartattendance.service;
 
 import com.smartattendance.dto.AttendanceDTO;
+import com.smartattendance.event.DailyAttendanceProcessedEvent;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
@@ -24,6 +26,7 @@ public class AttendanceScheduler {
     private final GmailService gmailService;
     private final WhatsAppNotificationService whatsAppNotificationService;
     private final MonthlySummaryService monthlySummaryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler taskScheduler;
 
@@ -58,20 +61,21 @@ public class AttendanceScheduler {
 
         String reminderCron = timeToCron(reminderTime, "MON-FRI");
         String processingCron = timeToCron(processingTime, "MON-FRI");
+        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
 
         logger.info("Scheduling Reminder for: {}", reminderCron);
         reminderFuture = taskScheduler.schedule(this::checkImportStatus,
-                new CronTrigger(reminderCron, java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+                new CronTrigger(reminderCron, zone));
 
         logger.info("Scheduling Weekday Processing for: {}", processingCron);
         processingFuture = taskScheduler.schedule(this::processWeekdays,
-                new CronTrigger(processingCron, java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+                new CronTrigger(processingCron, zone));
 
         saturdayFuture = taskScheduler.schedule(this::processSaturday,
-                new CronTrigger("0 0 19 * * SAT", java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+                new CronTrigger("0 0 19 * * SAT", zone));
 
         monthlyFuture = taskScheduler.schedule(this::generateMonthlySummary,
-                new CronTrigger("0 0 6 1 * *", java.util.TimeZone.getTimeZone("Asia/Kolkata")));
+                new CronTrigger("0 0 6 1 * *", zone));
     }
 
     private String timeToCron(String timeStr, String days) {
@@ -162,7 +166,7 @@ public class AttendanceScheduler {
                 logger.info("No attendance email found for {}", today);
             }
 
-            // Send daily summary email
+            // Send daily summary email to admin
             List<AttendanceDTO> todayAttendance = attendanceService.getAttendanceByDate(today);
             if (!todayAttendance.isEmpty()) {
                 try {
@@ -170,6 +174,10 @@ public class AttendanceScheduler {
                 } catch (Exception ex) {
                     logger.warn("Failed to send daily summary email: {}", ex.getMessage());
                 }
+
+                // Publish event to trigger team-specific notifications
+                eventPublisher.publishEvent(
+                        new DailyAttendanceProcessedEvent(this, today, todayAttendance.size()));
             }
 
         } catch (Exception e) {

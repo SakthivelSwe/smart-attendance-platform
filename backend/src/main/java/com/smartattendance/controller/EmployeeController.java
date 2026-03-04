@@ -2,12 +2,14 @@ package com.smartattendance.controller;
 
 import com.smartattendance.dto.EmployeeDTO;
 import com.smartattendance.service.EmployeeService;
+import com.smartattendance.service.EmployeeBulkService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,6 +19,13 @@ import java.util.List;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final EmployeeBulkService employeeBulkService;
+
+    @PostMapping("/bulk-import")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> importEmployees(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(employeeBulkService.importEmployeesCsv(file));
+    }
 
     @GetMapping
     public ResponseEntity<List<EmployeeDTO>> getAllEmployees() {
@@ -36,6 +45,11 @@ public class EmployeeController {
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<EmployeeDTO>> getEmployeesByGroup(@PathVariable("groupId") Long groupId) {
         return ResponseEntity.ok(employeeService.getEmployeesByGroup(groupId));
+    }
+
+    @GetMapping("/team/{teamId}")
+    public ResponseEntity<List<EmployeeDTO>> getEmployeesByTeam(@PathVariable("teamId") Long teamId) {
+        return ResponseEntity.ok(employeeService.getEmployeesByTeam(teamId));
     }
 
     @PostMapping

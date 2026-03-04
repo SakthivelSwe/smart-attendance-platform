@@ -25,6 +25,9 @@ public class EmployeeDTO {
     private String employeeCode;
     private Long groupId;
     private String groupName;
+    private Long teamId;
+    private String teamName;
+    private String designation;
 
     @JsonProperty("isActive")
     private Boolean isActive;

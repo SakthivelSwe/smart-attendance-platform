@@ -1,5 +1,6 @@
 package com.smartattendance.controller;
 
+import com.smartattendance.annotation.Audit;
 import com.smartattendance.dto.AuthRequest;
 import com.smartattendance.dto.AuthResponse;
 import com.smartattendance.entity.User;
@@ -35,24 +36,28 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Audit(action = "USER_REGISTER")
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody com.smartattendance.dto.RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.ok("Verification email sent. Please check your inbox.");
     }
 
+    @Audit(action = "USER_VERIFY_EMAIL")
     @GetMapping("/verify")
     public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
         authService.verifyEmail(token);
         return ResponseEntity.ok("Email verified successfully. You can now login.");
     }
 
+    @Audit(action = "USER_LOGIN")
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody com.smartattendance.dto.LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
+    @Audit(action = "USER_FORGOT_PASSWORD")
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody com.smartattendance.dto.ForgotPasswordRequest request) {
         authService.forgotPassword(request);

@@ -1,7 +1,7 @@
 package com.smartattendance.controller;
 
 import com.smartattendance.dto.LeaveDTO;
-import com.smartattendance.entity.User;
+
 import com.smartattendance.service.LeaveService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,13 +22,13 @@ public class LeaveController {
     private final LeaveService leaveService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
     public ResponseEntity<List<LeaveDTO>> getAllLeaves() {
         return ResponseEntity.ok(leaveService.getAllLeaves());
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
     public ResponseEntity<List<LeaveDTO>> getPendingLeaves() {
         return ResponseEntity.ok(leaveService.getPendingLeaves());
     }
@@ -43,25 +43,52 @@ public class LeaveController {
         return ResponseEntity.status(HttpStatus.CREATED).body(leaveService.applyLeave(dto));
     }
 
-    @PutMapping("/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<LeaveDTO> approveLeave(
+    @PutMapping("/{id}/tl-approve")
+    @PreAuthorize("hasAnyRole('MANAGER', 'TEAM_LEAD')")
+    public ResponseEntity<LeaveDTO> approveByTeamLead(
             @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, String> body,
             Authentication authentication) {
-        User admin = (User) authentication.getPrincipal();
         String remarks = body != null ? body.get("remarks") : null;
-        return ResponseEntity.ok(leaveService.approveLeave(id, admin.getId(), remarks));
+        return ResponseEntity.ok(leaveService.approveByTeamLead(id, authentication.getName(), remarks));
+    }
+
+    @PutMapping("/{id}/manager-approve")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<LeaveDTO> approveByManager(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication) {
+        String remarks = body != null ? body.get("remarks") : null;
+        return ResponseEntity.ok(leaveService.approveByManager(id, authentication.getName(), remarks));
+    }
+
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<LeaveDTO> approveByAdmin(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication) {
+        String remarks = body != null ? body.get("remarks") : null;
+        return ResponseEntity.ok(leaveService.approveByManager(id, authentication.getName(), remarks));
     }
 
     @PutMapping("/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
     public ResponseEntity<LeaveDTO> rejectLeave(
             @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, String> body,
             Authentication authentication) {
-        User admin = (User) authentication.getPrincipal();
         String remarks = body != null ? body.get("remarks") : null;
-        return ResponseEntity.ok(leaveService.rejectLeave(id, admin.getId(), remarks));
+        return ResponseEntity.ok(leaveService.rejectLeave(id, authentication.getName(), remarks));
+    }
+
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<LeaveDTO> cancelLeave(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication) {
+        String remarks = body != null ? body.get("remarks") : null;
+        return ResponseEntity.ok(leaveService.cancelLeave(id, authentication.getName(), remarks));
     }
 }

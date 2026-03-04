@@ -3,9 +3,11 @@ package com.smartattendance.service;
 import com.smartattendance.dto.EmployeeDTO;
 import com.smartattendance.entity.AttendanceGroup;
 import com.smartattendance.entity.Employee;
+import com.smartattendance.entity.Team;
 import com.smartattendance.exception.ResourceNotFoundException;
 import com.smartattendance.repository.EmployeeRepository;
 import com.smartattendance.repository.GroupRepository;
+import com.smartattendance.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -22,6 +24,7 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final GroupRepository groupRepository;
+    private final TeamRepository teamRepository;
     private final AttendanceService attendanceService;
 
     @Cacheable(value = "employees")
@@ -50,6 +53,12 @@ public class EmployeeService {
                 .collect(Collectors.toList());
     }
 
+    public List<EmployeeDTO> getEmployeesByTeam(Long teamId) {
+        return employeeRepository.findByTeamIdWithDetails(teamId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     @CacheEvict(value = { "employees", "activeEmployees", "dashboardStats" }, allEntries = true)
     public EmployeeDTO createEmployee(EmployeeDTO dto) {
         if (employeeRepository.existsByEmail(dto.getEmail())) {
@@ -62,6 +71,7 @@ public class EmployeeService {
                 .phone(dto.getPhone())
                 .whatsappName(dto.getWhatsappName())
                 .employeeCode(dto.getEmployeeCode())
+                .designation(dto.getDesignation())
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
                 .build();
 
@@ -69,6 +79,12 @@ public class EmployeeService {
             AttendanceGroup group = groupRepository.findById(dto.getGroupId())
                     .orElseThrow(() -> new ResourceNotFoundException("Group", "id", dto.getGroupId()));
             employee.setGroup(group);
+        }
+
+        if (dto.getTeamId() != null) {
+            Team team = teamRepository.findById(dto.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team", "id", dto.getTeamId()));
+            employee.setTeam(team);
         }
 
         Employee saved = employeeRepository.save(employee);
@@ -100,6 +116,7 @@ public class EmployeeService {
         employee.setPhone(dto.getPhone());
         employee.setWhatsappName(dto.getWhatsappName());
         employee.setEmployeeCode(dto.getEmployeeCode());
+        employee.setDesignation(dto.getDesignation());
         employee.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : employee.getIsActive());
 
         if (dto.getGroupId() != null) {
@@ -110,8 +127,16 @@ public class EmployeeService {
             employee.setGroup(null);
         }
 
+        if (dto.getTeamId() != null) {
+            Team team = teamRepository.findById(dto.getTeamId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Team", "id", dto.getTeamId()));
+            employee.setTeam(team);
+        } else {
+            employee.setTeam(null);
+        }
+
         Employee saved = employeeRepository.save(employee);
-        
+
         try {
             // Re-match unmapped logs if name/phone changed
             attendanceService.processUnmappedLogsForEmployee(saved);
@@ -124,7 +149,7 @@ public class EmployeeService {
             // Log error but don't fail the update transaction for side-tasks
             // The main update is already done
             org.slf4j.LoggerFactory.getLogger(EmployeeService.class)
-                .error("Side tasks failed after employee update: {}", e.getMessage());
+                    .error("Side tasks failed after employee update: {}", e.getMessage());
         }
 
         return toDTO(saved);
@@ -149,6 +174,9 @@ public class EmployeeService {
                 .employeeCode(employee.getEmployeeCode())
                 .groupId(employee.getGroup() != null ? employee.getGroup().getId() : null)
                 .groupName(employee.getGroup() != null ? employee.getGroup().getName() : null)
+                .teamId(employee.getTeam() != null ? employee.getTeam().getId() : null)
+                .teamName(employee.getTeam() != null ? employee.getTeam().getName() : null)
+                .designation(employee.getDesignation())
                 .isActive(employee.getIsActive())
                 .build();
     }

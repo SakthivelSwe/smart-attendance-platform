@@ -228,3 +228,20 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-stone-300 dark:bg-stone-700 bg-clip-content hover:bg-stone-400 dark:hover:bg-stone-600;
 }
+
+/* Dark mode native select dropdown override */
+.dark select {
+  color-scheme: dark;
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+.dark select option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+/* Light mode select */
+select {
+  color-scheme: light;
+}

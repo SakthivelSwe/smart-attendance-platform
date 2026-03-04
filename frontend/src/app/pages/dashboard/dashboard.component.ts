@@ -1,7 +1,9 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { DashboardStats } from '../../core/models/interfaces';
+import { AuthService } from '../../core/services/auth.service';
+import { DashboardStats, Team } from '../../core/models/interfaces';
 import { NgApexchartsModule, ChartComponent, ApexNonAxisChartSeries, ApexChart, ApexResponsive, ApexTheme, ApexLegend, ApexStroke, ApexTooltip, ApexPlotOptions, ApexDataLabels } from 'ng-apexcharts';
 
 export type ChartOptions = {
@@ -21,12 +23,48 @@ export type ChartOptions = {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, NgApexchartsModule],
+  imports: [CommonModule, FormsModule, NgApexchartsModule],
   template: `
     <div>
-      <div class="mb-8">
-        <h1 class="page-header">Dashboard</h1>
-        <p class="page-subtitle">Overview of today's attendance and key metrics</p>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 class="page-header">Dashboard</h1>
+          <p class="page-subtitle">{{ getDashboardSubtitle() }}</p>
+        </div>
+
+        <!-- Team selector for ADMIN / MANAGER / TEAM_LEAD -->
+        <div *ngIf="teams.length > 0" class="flex items-center gap-3">
+          <select [(ngModel)]="selectedTeamId" (ngModelChange)="onTeamChange($event)"
+                  class="text-sm px-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all font-medium min-w-[180px]">
+            <option [ngValue]="null">All Teams (Org-wide)</option>
+            <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Check-in Card for ALL users -->
+      <div class="mb-6 bg-gradient-to-r from-primary-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-primary-500/20 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4"></div>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+          <div>
+            <h3 class="text-lg font-bold mb-1">Quick Check-in</h3>
+            <p class="text-sm text-white/80" *ngIf="!checkedIn">Mark your attendance for today</p>
+            <p class="text-sm text-emerald-200 flex items-center gap-1" *ngIf="checkedIn">
+              <span class="material-icons text-sm">check_circle</span>
+              Checked in as {{ checkInStatus }}
+            </p>
+          </div>
+          <div class="flex gap-2" *ngIf="!checkedIn">
+            <button (click)="doCheckIn('WFO')" 
+                    class="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-sm font-semibold transition-all hover:scale-105 backdrop-blur-sm border border-white/10">
+              🏢 WFO
+            </button>
+            <button (click)="doCheckIn('WFH')" 
+                    class="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-sm font-semibold transition-all hover:scale-105 backdrop-blur-sm border border-white/10">
+              🏠 WFH
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- AI Insight Banner -->
@@ -245,10 +283,30 @@ export class DashboardComponent implements OnInit {
     return Math.round((this.stats.presentToday / this.stats.totalEmployees) * 100);
   }
 
-  constructor(private api: ApiService) { }
+  constructor(private api: ApiService, public authService: AuthService) { }
+
+  teams: Team[] = [];
+  selectedTeamId: number | null = null;
+  checkedIn = false;
+  checkInStatus = '';
+  checkInLoading = false;
 
   ngOnInit() {
-    this.api.getDashboardStats().subscribe({
+    this.loadStats();
+    this.loadInsight();
+
+    // Load teams for ADMIN/MANAGER/TEAM_LEAD
+    if (this.authService.hasMinRole('TEAM_LEAD')) {
+      this.api.getTeams().subscribe(t => this.teams = t);
+    }
+  }
+
+  loadStats() {
+    const obs = this.selectedTeamId
+      ? this.api.getTeamDashboardStats(this.selectedTeamId)
+      : this.api.getDashboardStats();
+
+    obs.subscribe({
       next: (data) => {
         this.stats = data;
         this.initChart();
@@ -258,7 +316,32 @@ export class DashboardComponent implements OnInit {
         this.initChart();
       }
     });
-    this.loadInsight();
+  }
+
+  onTeamChange(teamId: number | null) {
+    this.selectedTeamId = teamId;
+    this.loadStats();
+  }
+
+  getDashboardSubtitle(): string {
+    if (this.selectedTeamId) {
+      const team = this.teams.find(t => t.id === this.selectedTeamId);
+      return team ? `Team: ${team.name} — Today's metrics` : 'Team metrics';
+    }
+    return 'Overview of today\'s attendance and key metrics';
+  }
+
+  doCheckIn(status: string) {
+    this.checkInLoading = true;
+    this.api.checkIn(status).subscribe({
+      next: () => {
+        this.checkedIn = true;
+        this.checkInStatus = status;
+        this.checkInLoading = false;
+        this.loadStats(); // Refresh stats after check-in
+      },
+      error: () => this.checkInLoading = false
+    });
   }
 
   loadInsight() {

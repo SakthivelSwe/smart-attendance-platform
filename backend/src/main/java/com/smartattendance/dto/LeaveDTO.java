@@ -31,4 +31,6 @@ public class LeaveDTO {
     private Long approvedBy;
     private String approvedByName;
     private String adminRemarks;
+
+    private java.util.List<LeaveApprovalChainDTO> approvalChain;
 }

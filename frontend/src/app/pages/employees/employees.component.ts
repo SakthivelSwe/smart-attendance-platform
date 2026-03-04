@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Employee, Group } from '../../core/models/interfaces';
+import { Employee, Group, Team } from '../../core/models/interfaces';
 
 @Component({
   selector: 'app-employees',
@@ -16,14 +16,21 @@ import { Employee, Group } from '../../core/models/interfaces';
           <h1 class="page-header">Employees</h1>
           <p class="page-subtitle">Manage employee records and WhatsApp name mappings</p>
         </div>
-        <button *ngIf="authService.isAdmin" (click)="openModal()" class="btn-primary">
-          <span class="flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Add Employee
-          </span>
-        </button>
+        <div class="flex items-center gap-3" *ngIf="authService.isAdmin">
+          <input type="file" #fileInput (change)="onFileSelected($event)" accept=".csv" class="hidden">
+          <button (click)="fileInput.click()" class="btn-secondary flex items-center gap-2">
+            <span class="material-icons text-[18px]">publish</span>
+            Import CSV
+          </button>
+          <button (click)="openModal()" class="btn-primary">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add Employee
+            </span>
+          </button>
+        </div>
       </div>
 
       <!-- Search & Filters -->
@@ -109,6 +116,16 @@ import { Employee, Group } from '../../core/models/interfaces';
                <span class="material-icons text-base text-amber-500">group</span>
               <span class="truncate">{{ emp.groupName }}</span>
             </div>
+
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.teamName">
+               <span class="material-icons text-base text-indigo-500">business</span>
+              <span class="truncate">{{ emp.teamName }}</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.designation">
+               <span class="material-icons text-base text-purple-500">badge</span>
+              <span class="truncate">{{ emp.designation }}</span>
+            </div>
           </div>
 
           <!-- Actions (Icon only) -->
@@ -191,6 +208,19 @@ import { Employee, Group } from '../../core/models/interfaces';
                 <option *ngFor="let g of groups" [ngValue]="g.id">{{ g.name }}</option>
               </select>
             </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team</label>
+                <select [(ngModel)]="form.teamId" class="input-field">
+                  <option [ngValue]="null">No Team</option>
+                  <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Designation</label>
+                <input type="text" [(ngModel)]="form.designation" class="input-field" placeholder="Software Engineer"/>
+              </div>
+            </div>
           </div>
           <div class="flex justify-end gap-3 mt-6">
             <button (click)="showModal = false" class="btn-secondary">Cancel</button>
@@ -204,6 +234,7 @@ import { Employee, Group } from '../../core/models/interfaces';
 export class EmployeesComponent implements OnInit {
   employees: Employee[] = [];
   groups: Group[] = [];
+  teams: Team[] = [];
   isLoading = true;
   searchTerm = '';
   showModal = false;
@@ -220,6 +251,7 @@ export class EmployeesComponent implements OnInit {
   ngOnInit() {
     this.loadEmployees();
     this.api.getGroups().subscribe(g => this.groups = g);
+    this.api.getActiveTeams().subscribe(t => this.teams = t);
   }
 
   loadEmployees() {
@@ -298,5 +330,21 @@ export class EmployeesComponent implements OnInit {
     if (confirm('Are you sure you want to deactivate this employee?')) {
       this.api.deleteEmployee(id).subscribe(() => this.loadEmployees());
     }
+  }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      if (confirm(`Import employees from ${file.name}?`)) {
+        this.api.importEmployees(file).subscribe({
+          next: (res) => {
+            alert(res);
+            this.loadEmployees();
+          },
+          error: (err) => alert('Import failed: ' + err.message)
+        });
+      }
+    }
+    event.target.value = null; // reset
   }
 }
