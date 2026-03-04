@@ -56,13 +56,20 @@ public class SystemSettingController {
         if (testEmail == null || testEmail.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
         }
-        // Check if mail is configured at all
-        String configuredEmail = systemSettingService.getGmailEmail();
-        String configuredPassword = systemSettingService.getGmailPassword();
-        if (configuredEmail == null || configuredPassword == null) {
+        // Check if mail is configured at all (either App Password or OAuth2)
+        boolean hasAppPassword = systemSettingService.getGmailEmail() != null
+                && systemSettingService.getGmailPassword() != null;
+        boolean hasOAuth2 = false;
+        try {
+            hasOAuth2 = systemSettingService.getOAuthConnectedEmail() != null
+                    && systemSettingService.getOAuthRefreshToken() != null;
+        } catch (Exception e) {
+        } // In case getting it throws
+
+        if (!hasAppPassword && !hasOAuth2) {
             return ResponseEntity.status(500)
                     .body(Map.of("error",
-                            "Gmail credentials not configured or corrupted. Please click 'Change Credentials' and re-save your App Password."));
+                            "Failed: Gmail credentials not configured or corrupted. Please click 'Change Credentials' and re-save your App Password, or connect via Google OAuth2."));
         }
         try {
             emailNotificationService.sendReminderToAdmin(testEmail);
