@@ -25,11 +25,10 @@ public class AuditAspect {
 
     private final AuditLogRepository auditLogRepository;
 
-    @AfterReturning(pointcut = "@annotation(com.smartattendance.annotation.Audit)", returning = "result")
-    public void logAuditActivity(JoinPoint joinPoint, Object result) {
+    @AfterReturning(pointcut = "@annotation(auditAnnotation)", returning = "result")
+    public void logAuditActivity(JoinPoint joinPoint, Object result, Audit auditAnnotation) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
-        Audit auditAnnotation = method.getAnnotation(Audit.class);
 
         String action = auditAnnotation.action();
         String username = getCurrentUsername();
