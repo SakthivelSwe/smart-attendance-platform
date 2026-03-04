@@ -175,7 +175,6 @@ public class AttendanceController {
         response.put("success", true);
         response.put("message", "Successfully processed " + result.size() + " attendance records from email.");
         response.put("attendance", result);
-        response.put("chatTextPreview", chatText.length() > 500 ? chatText.substring(0, 500) + "..." : chatText);
         return ResponseEntity.ok(response);
     }
 
