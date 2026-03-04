@@ -24,6 +24,7 @@ public class AttendanceScheduler {
     private final EmailNotificationService emailNotificationService;
     private final SystemSettingService systemSettingService;
     private final GmailService gmailService;
+    private final GmailOAuthService gmailOAuthService;
     private final WhatsAppNotificationService whatsAppNotificationService;
     private final MonthlySummaryService monthlySummaryService;
     private final ApplicationEventPublisher eventPublisher;
@@ -96,15 +97,27 @@ public class AttendanceScheduler {
     public void checkImportStatus() {
         logger.info("=== Checking for attendance email availability (Reminder Check) ===");
 
+        boolean oauthConnected = gmailOAuthService.isConnected();
         String email = systemSettingService.getGmailEmail();
         String password = systemSettingService.getGmailPassword();
 
-        if (email == null || password == null)
+        // Need either OAuth or App Password to check
+        if (!oauthConnected && (email == null || password == null)) {
+            logger.warn("Reminder check skipped: No Gmail credentials (OAuth or App Password) configured.");
             return;
+        }
 
         try {
-            boolean exists = gmailService.hasAttendanceEmailForDate(email, password, "WhatsApp Chat with %",
-                    LocalDate.now());
+            boolean exists;
+            if (oauthConnected) {
+                // Use OAuth2 to check email
+                exists = gmailOAuthService.hasAttendanceEmailForDate("WhatsApp Chat with %", LocalDate.now());
+            } else {
+                exists = gmailService.hasAttendanceEmailForDate(email, password, "WhatsApp Chat with %",
+                        LocalDate.now());
+            }
+
+            String notificationEmail = (email != null) ? email : gmailOAuthService.getConnectedEmail();
 
             if (!exists) {
                 logger.warn("No attendance email found for today yet. Sending reminder based on preferences.");
@@ -115,7 +128,7 @@ public class AttendanceScheduler {
                             emailNotificationService.sendReminderToAdmin(adminEmail.trim());
                         }
                     } else {
-                        emailNotificationService.sendReminderToAdmin(email);
+                        emailNotificationService.sendReminderToAdmin(notificationEmail);
                     }
                 }
 
@@ -124,7 +137,7 @@ public class AttendanceScheduler {
                     whatsAppNotificationService.sendWhatsAppMessage(whatsAppMessage);
                 }
             } else {
-                logger.info("Attendance email found. Ready for 12:00 PM processing.");
+                logger.info("Attendance email found. Ready for processing.");
             }
         } catch (Exception e) {
             logger.error("Error checking import status: {}", e.getMessage());
@@ -149,24 +162,30 @@ public class AttendanceScheduler {
 
     private void runAutomaticProcess() {
         LocalDate today = LocalDate.now();
+
+        boolean oauthConnected = gmailOAuthService.isConnected();
         String email = systemSettingService.getGmailEmail();
         String password = systemSettingService.getGmailPassword();
 
-        if (email == null || password == null) {
+        if (!oauthConnected && (email == null || password == null)) {
             logger.warn("Automatic processing skipped: Gmail credentials not configured in System Settings.");
             return;
         }
 
         try {
             logger.info("Automatically fetching WhatsApp attendance for {}", today);
-            // Default subject pattern for WhatsApp exports
             String subjectPattern = "WhatsApp Chat with %";
+            String chatText;
 
-            String chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
+            if (oauthConnected) {
+                chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today);
+            } else {
+                chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
+            }
+
+            String notificationEmail = (email != null) ? email : gmailOAuthService.getConnectedEmail();
 
             if (chatText != null && !chatText.isBlank()) {
-                // For automatic daily processing, we only need the latest few days (performance
-                // optimization)
                 attendanceService.processWhatsAppAttendance(chatText, today, false);
                 logger.info("Automatically processed attendance from email for {}", today);
             } else {
@@ -182,7 +201,7 @@ public class AttendanceScheduler {
                             emailNotificationService.sendDailySummaryEmail(todayAttendance, today, adminEmail.trim());
                         }
                     } else {
-                        emailNotificationService.sendDailySummaryEmail(todayAttendance, today, email);
+                        emailNotificationService.sendDailySummaryEmail(todayAttendance, today, notificationEmail);
                     }
                 } catch (Exception ex) {
                     logger.warn("Failed to send daily summary email: {}", ex.getMessage());

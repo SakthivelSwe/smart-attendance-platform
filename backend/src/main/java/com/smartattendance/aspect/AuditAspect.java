@@ -9,6 +9,8 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -23,43 +25,52 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class AuditAspect {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuditAspect.class);
+
     private final AuditLogRepository auditLogRepository;
 
-    @AfterReturning(pointcut = "@annotation(com.smartattendance.annotation.Audit)", returning = "result")
-    public void logAuditActivity(JoinPoint joinPoint, Object result) {
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
-        Audit auditAnnotation = method.getAnnotation(Audit.class);
+    @AfterReturning(pointcut = "@annotation(auditAnnotation)", returning = "result")
+    public void logAuditActivity(JoinPoint joinPoint, Object result, Audit auditAnnotation) {
+        // Wrap in try-catch: audit logging must NEVER crash the actual business
+        // operation
+        try {
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Method method = signature.getMethod();
 
-        String action = auditAnnotation.action();
-        String username = getCurrentUsername();
-        String ipAddress = getClientIp();
+            String action = auditAnnotation.action();
+            String username = getCurrentUsername();
+            String ipAddress = getClientIp();
 
-        // Extract arguments for details (be cautious with PII or large objects)
-        String details = "Method execution: " + method.getName();
-        if (joinPoint.getArgs().length > 0) {
-            String argsStr = Arrays.toString(joinPoint.getArgs());
-            // truncate if too long
-            if (argsStr.length() > 200) {
-                argsStr = argsStr.substring(0, 197) + "...";
+            String details = "Method execution: " + method.getName();
+            if (joinPoint.getArgs().length > 0) {
+                String argsStr = Arrays.toString(joinPoint.getArgs());
+                if (argsStr.length() > 200) {
+                    argsStr = argsStr.substring(0, 197) + "...";
+                }
+                details += " | Args: " + argsStr;
             }
-            details += " | Args: " + argsStr;
+
+            // Use setter-based construction to avoid Lombok builder dependency
+            AuditLog auditLog = new AuditLog();
+            auditLog.setActionType(action);
+            auditLog.setUsername(username);
+            auditLog.setIpAddress(ipAddress);
+            auditLog.setDetails(details);
+
+            auditLogRepository.save(auditLog);
+        } catch (Exception e) {
+            logger.warn("Failed to save audit log (non-fatal): {}", e.getMessage());
         }
-
-        AuditLog auditLog = AuditLog.builder()
-                .actionType(action)
-                .username(username)
-                .ipAddress(ipAddress)
-                .details(details)
-                .build();
-
-        auditLogRepository.save(auditLog);
     }
 
     private String getCurrentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            return auth.getName();
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+                return auth.getName();
+            }
+        } catch (Exception e) {
+            // ignore
         }
         return "SYSTEM";
     }
