@@ -57,7 +57,6 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
         </svg>
         <div>
           <p class="font-medium">{{ emailMessage }}</p>
-          <p *ngIf="emailPreview" class="mt-2 text-xs opacity-75 font-mono whitespace-pre-wrap max-h-24 overflow-y-auto">{{ emailPreview }}</p>
         </div>
         <button (click)="emailMessage = ''" class="ml-auto opacity-50 hover:opacity-100">✕</button>
       </div>
@@ -416,9 +415,6 @@ export class AttendanceComponent implements OnInit {
         if (response.success && response.attendance) {
           this.attendance = response.attendance;
           this.selectedDate = this.emailDate;
-        }
-        if (response.chatTextPreview) {
-          this.emailPreview = response.chatTextPreview;
         }
       },
       error: (err) => {
