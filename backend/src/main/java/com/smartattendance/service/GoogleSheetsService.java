@@ -41,6 +41,9 @@ public class GoogleSheetsService {
     @Value("${app.gmail.application-name:Smart Attendance}")
     private String applicationName;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private GmailOAuthService gmailOAuthService;
+
     private Sheets sheetsService;
     private boolean initializationFailed = false;
     private String lastInitError = null;
@@ -49,7 +52,7 @@ public class GoogleSheetsService {
     public void init() {
         try {
             logger.info("Initializing Google Sheets Service...");
-            
+
             if (sheetsService != null) {
                 logger.info("Google Sheets Service already initialized.");
                 return;
@@ -98,10 +101,30 @@ public class GoogleSheetsService {
         if (sheetsService == null && !initializationFailed) {
             init();
         }
-        
-        if (sheetsService == null) {
-            throw new RuntimeException("Google Sheets Service is not initialized. Last error: " + lastInitError);
+
+        if (sheetsService == null && (gmailOAuthService == null || gmailOAuthService.getGoogleCredentials() == null)) {
+            throw new RuntimeException("Google Sheets Service is not initialized and no OAuth credentials found.");
         }
+    }
+
+    /**
+     * Gets the active Sheets service, prioritizing OAuth credentials
+     * over the default service account so that edits appear from the admin.
+     */
+    private Sheets getSheetsService() throws GeneralSecurityException, IOException {
+        if (gmailOAuthService != null) {
+            com.google.auth.oauth2.UserCredentials userCreds = gmailOAuthService.getGoogleCredentials();
+            if (userCreds != null) {
+                // Important: must recreate builder to use the latest token
+                return new Sheets.Builder(
+                        GoogleNetHttpTransport.newTrustedTransport(),
+                        JSON_FACTORY,
+                        new HttpCredentialsAdapter(userCreds))
+                        .setApplicationName(applicationName)
+                        .build();
+            }
+        }
+        return this.sheetsService;
     }
 
     /**
@@ -115,12 +138,13 @@ public class GoogleSheetsService {
 
         try {
             ensureInitialized();
+            Sheets activeSheetsService = getSheetsService();
             Employee employee = record.getEmployee();
             LocalDate date = record.getDate();
             String valueToWrite = formatStatusValue(record);
 
             // 1. Get sheet tabs
-            com.google.api.services.sheets.v4.model.Spreadsheet spreadsheet = sheetsService.spreadsheets()
+            com.google.api.services.sheets.v4.model.Spreadsheet spreadsheet = activeSheetsService.spreadsheets()
                     .get(spreadsheetId).execute();
             List<com.google.api.services.sheets.v4.model.Sheet> sheetList = spreadsheet.getSheets();
             if (sheetList == null || sheetList.isEmpty()) {
@@ -159,7 +183,7 @@ public class GoogleSheetsService {
             String sheetRange = "'" + sheetName.replace("'", "''") + "'";
 
             // 2. Fetch the entire sheet with UNFORMATTED_VALUE to easily parse dates
-            ValueRange response = sheetsService.spreadsheets().values()
+            ValueRange response = activeSheetsService.spreadsheets().values()
                     .get(spreadsheetId, sheetRange)
                     .setValueRenderOption("UNFORMATTED_VALUE")
                     .execute();
@@ -290,7 +314,7 @@ public class GoogleSheetsService {
 
             while (attempt < maxRetries && !success) {
                 try {
-                    sheetsService.spreadsheets().values()
+                    activeSheetsService.spreadsheets().values()
                             .update(spreadsheetId, targetRange, body)
                             .setValueInputOption("USER_ENTERED")
                             .execute();
@@ -351,11 +375,12 @@ public class GoogleSheetsService {
 
         try {
             ensureInitialized();
+            Sheets activeSheetsService = getSheetsService();
             // Use the date of the first record to find the sheet tab
             LocalDate date = records.get(0).getDate();
 
             // 1. Get sheet tabs
-            com.google.api.services.sheets.v4.model.Spreadsheet spreadsheet = sheetsService.spreadsheets()
+            com.google.api.services.sheets.v4.model.Spreadsheet spreadsheet = activeSheetsService.spreadsheets()
                     .get(spreadsheetId).execute();
             List<com.google.api.services.sheets.v4.model.Sheet> sheetList = spreadsheet.getSheets();
             if (sheetList == null || sheetList.isEmpty()) {
@@ -393,7 +418,7 @@ public class GoogleSheetsService {
             String sheetRange = "'" + sheetName.replace("'", "''") + "'";
 
             // 3. Fetch the entire sheet with UNFORMATTED_VALUE to easily parse dates
-            ValueRange response = sheetsService.spreadsheets().values()
+            ValueRange response = activeSheetsService.spreadsheets().values()
                     .get(spreadsheetId, sheetRange)
                     .setValueRenderOption("UNFORMATTED_VALUE")
                     .execute();
@@ -541,7 +566,7 @@ public class GoogleSheetsService {
 
             while (attempt < maxRetries && !success) {
                 try {
-                    sheetsService.spreadsheets().values()
+                    activeSheetsService.spreadsheets().values()
                             .batchUpdate(spreadsheetId, batchRequest)
                             .execute();
                     success = true;
