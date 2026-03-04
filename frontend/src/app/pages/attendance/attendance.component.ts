@@ -162,48 +162,100 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
               Fetch from Gmail
             </span>
           </h3>
-          <p class="text-sm text-[var(--text-secondary)] mb-5">Enter your Gmail credentials to read WhatsApp chat export from inbox</p>
 
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail Email</label>
-              <input type="email" [(ngModel)]="gmailEmail" class="input-field" placeholder="your.email@gmail.com">
+          <!-- OAuth2 connected — simplified view -->
+          <div *ngIf="oauthConnected">
+            <div class="my-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-2">
+              <span class="material-icons text-emerald-500 text-base">check_circle</span>
+              <div>
+                <p class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Connected via Google OAuth2</p>
+                <p class="text-xs text-emerald-600 dark:text-emerald-500">{{ gmailEmail }}</p>
+              </div>
+              <span class="ml-auto text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">No password needed</span>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail App Password</label>
-              <input type="password" [(ngModel)]="gmailPassword" class="input-field" placeholder="Enter 16-char App Password">
-              <p class="text-xs text-[var(--text-secondary)] mt-1">Generate at myaccount.google.com/apppasswords</p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date</label>
+                <input type="date" [(ngModel)]="emailDate" class="input-field">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Subject Pattern</label>
+                <input type="text" [(ngModel)]="emailSubjectPattern" class="input-field" placeholder="e.g., WhatsApp Chat with Java Team">
+                <p class="text-xs text-[var(--text-secondary)] mt-1">Matches emails with subjects containing this text</p>
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date</label>
-              <input type="date" [(ngModel)]="emailDate" class="input-field">
+
+            <div *ngIf="emailFetching" class="mt-4 flex items-center gap-3 text-sm text-primary-500">
+              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Fetching email via Gmail API...
             </div>
-            <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Subject Pattern</label>
-              <input type="text" [(ngModel)]="emailSubjectPattern" class="input-field" placeholder="e.g., WhatsApp Chat with Java Team">
-              <p class="text-xs text-[var(--text-secondary)] mt-1">Matches emails with subjects containing this text</p>
+
+            <div class="flex justify-end gap-3 mt-6">
+              <button (click)="showEmailModal = false" class="btn-secondary">Cancel</button>
+              <button (click)="fetchFromEmail()" class="btn-primary" [disabled]="emailFetching">
+                <span class="flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                  </svg>
+                  {{ emailFetching ? 'Fetching...' : 'Fetch & Process' }}
+                </span>
+              </button>
             </div>
           </div>
 
-          <div *ngIf="emailFetching" class="mt-4 flex items-center gap-3 text-sm text-primary-500">
-            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            Connecting to Gmail and fetching email...
+          <!-- App Password fallback — when OAuth2 not connected -->
+          <div *ngIf="!oauthConnected">
+            <p class="text-sm text-[var(--text-secondary)] mb-5">Enter your Gmail credentials to read WhatsApp chat export from inbox</p>
+            <div class="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-700 dark:text-amber-400">
+              💡 Tip: Connect Gmail via OAuth2 in <b>Settings</b> to skip entering credentials here every time.
+            </div>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail Email</label>
+                <input type="email" [(ngModel)]="gmailEmail" class="input-field" placeholder="your.email@gmail.com">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail App Password</label>
+                <input type="password" [(ngModel)]="gmailPassword" class="input-field" placeholder="Enter 16-char App Password">
+                <p class="text-xs text-[var(--text-secondary)] mt-1">Generate at myaccount.google.com/apppasswords</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date</label>
+                <input type="date" [(ngModel)]="emailDate" class="input-field">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Subject Pattern</label>
+                <input type="text" [(ngModel)]="emailSubjectPattern" class="input-field" placeholder="e.g., WhatsApp Chat with Java Team">
+                <p class="text-xs text-[var(--text-secondary)] mt-1">Matches emails with subjects containing this text</p>
+              </div>
+            </div>
+
+            <div *ngIf="emailFetching" class="mt-4 flex items-center gap-3 text-sm text-primary-500">
+              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Connecting to Gmail and fetching email...
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+              <button (click)="showEmailModal = false" class="btn-secondary">Cancel</button>
+              <button (click)="fetchFromEmail()" class="btn-primary" [disabled]="emailFetching || !gmailEmail || !gmailPassword">
+                <span class="flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                  </svg>
+                  {{ emailFetching ? 'Fetching...' : 'Fetch & Process' }}
+                </span>
+              </button>
+            </div>
           </div>
 
-          <div class="flex justify-end gap-3 mt-6">
-            <button (click)="showEmailModal = false" class="btn-secondary">Cancel</button>
-            <button (click)="fetchFromEmail()" class="btn-primary" [disabled]="emailFetching || !gmailEmail || !gmailPassword">
-              <span class="flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                {{ emailFetching ? 'Fetching...' : 'Fetch & Process' }}
-              </span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -254,6 +306,7 @@ export class AttendanceComponent implements OnInit {
   emailPreview = '';
   emailFetching = false;
   automationConfigured = false;
+  oauthConnected = false;
 
   filters = [
     { label: 'All', value: 'ALL' },
@@ -274,13 +327,31 @@ export class AttendanceComponent implements OnInit {
   }
 
   checkAutomationStatus() {
-    this.api.getGmailStatus().subscribe({
+    // Check OAuth2 first (preferred)
+    this.api.getGmailOAuthStatus().subscribe({
       next: (status) => {
-        this.automationConfigured = status.configured;
-        if (status.configured) {
+        if (status?.connected) {
+          this.oauthConnected = true;
+          this.automationConfigured = true;
           this.gmailEmail = status.email;
-          this.gmailPassword = '***SAVED_IN_DB***';
+        } else {
+          // Fall back to checking App Password credentials
+          this.api.getGmailStatus().subscribe({
+            next: (s) => {
+              this.automationConfigured = s.configured;
+              if (s.configured) this.gmailEmail = s.email;
+            }
+          });
         }
+      },
+      error: () => {
+        // Fall back to App Password status
+        this.api.getGmailStatus().subscribe({
+          next: (s) => {
+            this.automationConfigured = s.configured;
+            if (s.configured) this.gmailEmail = s.email;
+          }
+        });
       }
     });
   }

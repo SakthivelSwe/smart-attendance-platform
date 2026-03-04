@@ -51,4 +51,19 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
                         @Param("year") int year);
 
         boolean existsByEmployeeIdAndDate(Long employeeId, LocalDate date);
+
+        // Team-filtered queries
+        @Query("SELECT a FROM Attendance a JOIN FETCH a.employee e LEFT JOIN FETCH e.group " +
+                        "LEFT JOIN FETCH e.team WHERE a.date = :date AND e.team.id = :teamId")
+        List<Attendance> findWithEmployeeByDateAndTeam(@Param("date") LocalDate date,
+                        @Param("teamId") Long teamId);
+
+        @Query("SELECT COUNT(a) FROM Attendance a WHERE a.date = :date AND a.status = :status " +
+                        "AND a.employee.team.id = :teamId")
+        long countByDateAndStatusAndTeam(@Param("date") LocalDate date,
+                        @Param("status") AttendanceStatus status,
+                        @Param("teamId") Long teamId);
+
+        @Query("SELECT COUNT(a) FROM Attendance a WHERE a.date = :date AND a.employee.team.id = :teamId")
+        long countByDateAndTeam(@Param("date") LocalDate date, @Param("teamId") Long teamId);
 }

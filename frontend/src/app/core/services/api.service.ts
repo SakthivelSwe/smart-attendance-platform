@@ -3,7 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
     Employee, Attendance, LeaveRequest, Holiday,
-    Group, MonthlySummary, DashboardStats
+    Group, MonthlySummary, DashboardStats, Team, UserInfo, UserRole, NotificationPreference,
+    LeaveBalance
 } from '../models/interfaces';
 import { environment } from '../../../environments/environment';
 
@@ -83,11 +84,26 @@ export class ApiService {
     applyLeave(leave: Partial<LeaveRequest>): Observable<LeaveRequest> {
         return this.http.post<LeaveRequest>(`${this.api}/leaves`, leave);
     }
-    approveLeave(id: number, remarks?: string): Observable<LeaveRequest> {
-        return this.http.put<LeaveRequest>(`${this.api}/leaves/${id}/approve`, { remarks });
+    approveLeaveByTL(id: number, remarks?: string): Observable<LeaveRequest> {
+        return this.http.put<LeaveRequest>(`${this.api}/leaves/${id}/tl-approve`, { remarks });
+    }
+    approveLeaveByManager(id: number, remarks?: string): Observable<LeaveRequest> {
+        return this.http.put<LeaveRequest>(`${this.api}/leaves/${id}/manager-approve`, { remarks });
     }
     rejectLeave(id: number, remarks?: string): Observable<LeaveRequest> {
         return this.http.put<LeaveRequest>(`${this.api}/leaves/${id}/reject`, { remarks });
+    }
+    cancelLeave(id: number, remarks?: string): Observable<LeaveRequest> {
+        return this.http.put<LeaveRequest>(`${this.api}/leaves/${id}/cancel`, { remarks });
+    }
+
+    // Leave Balances
+    getLeaveBalances(employeeId: number, year?: number): Observable<LeaveBalance[]> {
+        let params = new HttpParams();
+        if (year) {
+            params = params.set('year', year.toString());
+        }
+        return this.http.get<LeaveBalance[]>(`${this.api}/leaves/balances/${employeeId}`, { params });
     }
 
     // Holidays
@@ -146,5 +162,129 @@ export class ApiService {
     }
     saveAutomationSettings(data: any): Observable<any> {
         return this.http.post<any>(`${this.api}/settings/automation`, data);
+    }
+
+    // Gmail OAuth2
+    getGmailOAuthStatus(): Observable<any> {
+        return this.http.get<any>(`${this.api}/settings/gmail/oauth/status`);
+    }
+    getGmailOAuthAuthUrl(): Observable<{ authUrl: string }> {
+        return this.http.get<{ authUrl: string }>(`${this.api}/settings/gmail/oauth/authorize`);
+    }
+    disconnectGmailOAuth(): Observable<any> {
+        return this.http.delete<any>(`${this.api}/settings/gmail/oauth`);
+    }
+
+
+    // Teams
+    getTeams(): Observable<Team[]> {
+        return this.http.get<Team[]>(`${this.api}/teams`);
+    }
+    getActiveTeams(): Observable<Team[]> {
+        return this.http.get<Team[]>(`${this.api}/teams/active`);
+    }
+    getTeam(id: number): Observable<Team> {
+        return this.http.get<Team>(`${this.api}/teams/${id}`);
+    }
+    createTeam(team: Partial<Team>): Observable<Team> {
+        return this.http.post<Team>(`${this.api}/teams`, team);
+    }
+    updateTeam(id: number, team: Partial<Team>): Observable<Team> {
+        return this.http.put<Team>(`${this.api}/teams/${id}`, team);
+    }
+    deleteTeam(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.api}/teams/${id}`);
+    }
+    getEmployeesByTeam(teamId: number): Observable<Employee[]> {
+        return this.http.get<Employee[]>(`${this.api}/employees/team/${teamId}`);
+    }
+
+    // User Management (Admin)
+    getUsers(): Observable<UserInfo[]> {
+        return this.http.get<UserInfo[]>(`${this.api}/admin/users`);
+    }
+    getUsersByRole(role: UserRole): Observable<UserInfo[]> {
+        return this.http.get<UserInfo[]>(`${this.api}/admin/users/role/${role}`);
+    }
+    updateUserRole(userId: number, role: UserRole): Observable<UserInfo> {
+        return this.http.put<UserInfo>(`${this.api}/admin/users/${userId}/role`, { role });
+    }
+    updateUserStatus(userId: number, isActive: boolean): Observable<UserInfo> {
+        return this.http.put<UserInfo>(`${this.api}/admin/users/${userId}/status`, { isActive });
+    }
+
+    // Dashboard (extended)
+    getTeamDashboardStats(teamId: number): Observable<DashboardStats> {
+        return this.http.get<DashboardStats>(`${this.api}/dashboard/team/${teamId}`);
+    }
+    getMyDashboardStats(): Observable<DashboardStats> {
+        return this.http.get<DashboardStats>(`${this.api}/dashboard/me`);
+    }
+
+    // Attendance (extended)
+    getAttendanceByTeam(teamId: number, date: string): Observable<Attendance[]> {
+        return this.http.get<Attendance[]>(`${this.api}/attendance/team/${teamId}/date/${date}`);
+    }
+    checkIn(status: string, remarks?: string): Observable<Attendance> {
+        return this.http.post<Attendance>(`${this.api}/attendance/check-in`, { status, remarks });
+    }
+
+    // Profile
+    getProfile(userId: number): Observable<any> {
+        return this.http.get<any>(`${this.api}/profile/${userId}`);
+    }
+    updateProfile(userId: number, data: any): Observable<any> {
+        return this.http.put<any>(`${this.api}/profile/${userId}`, data);
+    }
+
+    // Notifications
+    getNotificationPreferences(userId: number): Observable<NotificationPreference> {
+        return this.http.get<NotificationPreference>(`${this.api}/notification-preferences/${userId}`);
+    }
+    updateNotificationPreferences(userId: number, data: Partial<NotificationPreference>): Observable<NotificationPreference> {
+        return this.http.put<NotificationPreference>(`${this.api}/notification-preferences/${userId}`, data);
+    }
+
+    // Reports & Analytics (Phase 5)
+    getTeamComparison(startDate: string, endDate: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.api}/reports/team-comparison`, { params: { startDate, endDate } });
+    }
+    getEmployeeReportCards(startDate: string, endDate: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.api}/reports/employee-cards`, { params: { startDate, endDate } });
+    }
+    getWorkTrends(startDate: string, endDate: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.api}/reports/work-trends`, { params: { startDate, endDate } });
+    }
+    exportEmployeeCards(startDate: string, endDate: string, format: 'excel' | 'csv'): Observable<Blob> {
+        return this.http.get(`${this.api}/reports/export/employee-cards`, {
+            params: { startDate, endDate, format },
+            responseType: 'blob'
+        });
+    }
+    exportTeamComparison(startDate: string, endDate: string): Observable<Blob> {
+        return this.http.get(`${this.api}/reports/export/team-comparison`, {
+            params: { startDate, endDate },
+            responseType: 'blob'
+        });
+    }
+
+    // Bulk Import
+    importEmployees(file: File): Observable<string> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post(`${this.api}/employees/bulk-import`, formData, { responseType: 'text' });
+    }
+
+    // Phase 6
+    getAuditLogs(page: number, size: number): Observable<any> {
+        return this.http.get(`${this.api}/admin/audit-logs`, { params: { page, size } });
+    }
+
+    triggerReminderCheck(): Observable<any> {
+        return this.http.post(`${this.api}/settings/automation/trigger-reminder`, {});
+    }
+
+    triggerForcedReminder(): Observable<any> {
+        return this.http.post(`${this.api}/settings/automation/force-reminder`, {});
     }
 }

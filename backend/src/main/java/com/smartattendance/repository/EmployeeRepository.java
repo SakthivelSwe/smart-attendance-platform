@@ -40,4 +40,12 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByUserId(Long userId);
 
     boolean existsByEmail(String email);
+
+    long countByTeamId(Long teamId);
+
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group LEFT JOIN FETCH e.team WHERE e.team.id = :teamId")
+    List<Employee> findByTeamIdWithDetails(@Param("teamId") Long teamId);
+
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.group LEFT JOIN FETCH e.team WHERE e.team.id = :teamId AND e.isActive = true")
+    List<Employee> findActiveByTeamIdWithDetails(@Param("teamId") Long teamId);
 }

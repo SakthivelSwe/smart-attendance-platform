@@ -1,10 +1,41 @@
+export type UserRole = 'ADMIN' | 'MANAGER' | 'TEAM_LEAD' | 'USER';
+
 export interface User {
     userId: number;
     email: string;
     name: string;
     avatarUrl: string;
-    role: 'ADMIN' | 'USER';
+    role: UserRole;
     token?: string;
+}
+
+export interface UserInfo {
+    id: number;
+    email: string;
+    name: string;
+    avatarUrl: string;
+    role: UserRole;
+    isActive: boolean;
+    emailVerified: boolean;
+    teamId?: number;
+    teamName?: string;
+}
+
+export interface Team {
+    id: number;
+    name: string;
+    teamCode: string;
+    description: string;
+    teamLeadId: number;
+    teamLeadName: string;
+    teamLeadEmail: string;
+    managerId: number;
+    managerName: string;
+    managerEmail: string;
+    emailAlias: string;
+    isActive: boolean;
+    employeeCount: number;
+    groupId?: number;
 }
 
 export interface Employee {
@@ -16,6 +47,9 @@ export interface Employee {
     employeeCode: string;
     groupId: number;
     groupName: string;
+    teamId: number;
+    teamName: string;
+    designation: string;
     isActive: boolean;
 }
 
@@ -33,6 +67,17 @@ export interface Attendance {
     groupName: string;
 }
 
+export interface LeaveApprovalChain {
+    id: number;
+    leaveId: number;
+    approverId: number;
+    approverName: string;
+    approverRole: string;
+    action: string;
+    remarks: string;
+    createdAt: string;
+}
+
 export interface LeaveRequest {
     id: number;
     employeeId: number;
@@ -41,10 +86,21 @@ export interface LeaveRequest {
     endDate: string;
     reason: string;
     leaveType: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    status: 'PENDING' | 'TL_APPROVED' | 'MGR_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
     approvedBy: number;
     approvedByName: string;
     adminRemarks: string;
+    approvalChain?: LeaveApprovalChain[];
+}
+
+export interface LeaveBalance {
+    id: number;
+    employeeId: number;
+    year: number;
+    leaveType: string;
+    totalDays: number;
+    usedDays: number;
+    remainingDays: number;
 }
 
 export interface Holiday {
@@ -94,4 +150,56 @@ export interface DashboardStats {
     absentToday: number;
     pendingLeaves: number;
     upcomingHolidays: number;
+}
+
+export interface NotificationPreference {
+    id: number;
+    teamDailySummary: boolean;
+    absenceAlert: boolean;
+    managerDailySummary: boolean;
+    lowAttendanceAlert: boolean;
+    lowAttendanceThreshold: number;
+    leaveRequestAlert: boolean;
+    leaveStatusAlert: boolean;
+    emailEnabled: boolean;
+    whatsappEnabled: boolean;
+}
+
+export interface TeamComparison {
+    teamId: number;
+    teamName: string;
+    totalEmployees: number;
+    totalPresent: number;
+    totalAbsent: number;
+    totalOnLeave: number;
+    attendanceRate: number;
+}
+
+export interface EmployeeReportCard {
+    employeeId: number;
+    employeeName: string;
+    employeeCode: string;
+    teamName: string;
+    totalWorkingDays: number;
+    totalPresent: number;
+    totalAbsent: number;
+    totalOnLeave: number;
+    wfhDays: number;
+    attendanceRate: number;
+}
+
+export interface WorkTrend {
+    date: string;
+    wfoCount: number;
+    wfhCount: number;
+    leaveCount: number;
+}
+
+export interface AuditLog {
+    id: number;
+    username: string;
+    actionType: string;
+    details: string;
+    ipAddress: string;
+    timestamp: string;
 }

@@ -1,0 +1,120 @@
+<div class="space-y-6 animate-fade-in pb-10">
+  <!-- Header & Filters -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="page-header text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-600">Company Reports</h1>
+      <p class="page-subtitle text-surface-500">Analyze organization-wide attendance & work trends</p>
+    </div>
+
+    <!-- Date Pickers -->
+    <div class="flex items-center gap-3 bg-white dark:bg-surface-800 p-2 rounded-xl shadow-sm border border-surface-200 dark:border-surface-700">
+      <div class="flex flex-col relative w-36">
+        <label class="text-[10px] font-bold text-surface-500 uppercase tracking-wider absolute -top-5 left-1">Start Date</label>
+        <input type="date" [(ngModel)]="startDate" (change)="loadData()" 
+               class="bg-transparent text-sm font-medium outline-none text-surface-700 dark:text-surface-200 cursor-pointer">
+      </div>
+      <div class="h-6 w-px bg-surface-200 dark:bg-surface-700"></div>
+      <div class="flex flex-col relative w-36">
+        <label class="text-[10px] font-bold text-surface-500 uppercase tracking-wider absolute -top-5 left-1">End Date</label>
+        <input type="date" [(ngModel)]="endDate" (change)="loadData()" 
+               class="bg-transparent text-sm font-medium outline-none text-surface-700 dark:text-surface-200 cursor-pointer">
+      </div>
+    </div>
+  </div>
+
+  <!-- Work Trend Chart -->
+  <div class="bg-white dark:bg-surface-800 rounded-3xl p-6 shadow-sm border border-[var(--border-color)]">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
+        <span class="material-icons text-primary-500">trending_up</span> 
+        Work Location Trends
+      </h2>
+      <div class="flex gap-4 text-sm font-medium">
+        <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#4f46e5]"></div> WFO</div>
+        <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#10b981]"></div> WFH</div>
+        <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#f59e0b]"></div> Leaves</div>
+      </div>
+    </div>
+    
+    <div *ngIf="trendChartOptions" class="h-[350px] w-full">
+      <apx-chart
+        [series]="trendChartOptions.series"
+        [chart]="trendChartOptions.chart"
+        [xaxis]="trendChartOptions.xaxis"
+        [yaxis]="trendChartOptions.yaxis"
+        [stroke]="trendChartOptions.stroke"
+        [tooltip]="trendChartOptions.tooltip"
+        [dataLabels]="trendChartOptions.dataLabels"
+        [colors]="trendChartOptions.colors"
+        [legend]="trendChartOptions.legend"
+        [fill]="trendChartOptions.fill"
+      ></apx-chart>
+    </div>
+    
+    <div *ngIf="!trendChartOptions && workTrends.length === 0" class="h-[350px] flex items-center justify-center text-surface-400">
+      <p>No trend data available for this range</p>
+    </div>
+  </div>
+
+  <!-- Team Comparison Table -->
+  <div class="bg-white dark:bg-surface-800 rounded-3xl shadow-sm border border-[var(--border-color)] overflow-hidden">
+    <div class="px-6 py-5 border-b border-[var(--border-color)] flex items-center justify-between">
+      <h2 class="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
+        <span class="material-icons text-indigo-500">groups</span> 
+        Team Comparisons
+      </h2>
+      
+      <button (click)="exportTeamComparisonPDF()" class="btn-secondary text-sm flex items-center gap-2 hover:border-red-500 hover:text-red-500 transition-colors">
+        <span class="material-icons text-[18px]">picture_as_pdf</span>
+        Export PDF
+      </button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-surface-50 dark:bg-surface-800/50 border-b border-[var(--border-color)] text-xs font-semibold text-surface-500 uppercase tracking-wider">
+            <th class="py-4 px-6 font-semibold">Team Name</th>
+            <th class="py-4 px-6 font-semibold text-center">Total Employees</th>
+            <th class="py-4 px-6 font-semibold text-center text-emerald-600 dark:text-emerald-400">Present (inc. WFH)</th>
+            <th class="py-4 px-6 font-semibold text-center text-red-600 dark:text-red-400">Absent</th>
+            <th class="py-4 px-6 font-semibold text-center text-amber-600 dark:text-amber-400">On Leave</th>
+            <th class="py-4 px-6 font-semibold text-center">Attendance Rate</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border-color)] text-sm font-medium text-[var(--text-secondary)]">
+          <tr *ngFor="let t of teamComparisons" class="hover:bg-surface-50/50 dark:hover:bg-surface-700/50 transition-colors">
+            <td class="py-4 px-6">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center font-bold">
+                  {{ t.teamName.charAt(0) }}
+                </div>
+                <span class="text-surface-900 dark:text-surface-100 font-semibold">{{ t.teamName }}</span>
+              </div>
+            </td>
+            <td class="py-3 px-6 text-center">{{ t.totalEmployees }}</td>
+            <td class="py-3 px-6 text-center text-emerald-600 font-semibold">{{ t.totalPresent }}</td>
+            <td class="py-3 px-6 text-center text-red-500 font-semibold">{{ t.totalAbsent }}</td>
+            <td class="py-3 px-6 text-center text-amber-500 font-semibold">{{ t.totalOnLeave }}</td>
+            <td class="py-3 px-6 text-center">
+              <div class="inline-flex items-center gap-2">
+                <span class="font-bold text-surface-900 dark:text-white">{{ t.attendanceRate }}%</span>
+                <!-- mini bar graph visualization -->
+                <div class="w-16 h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden flex">
+                  <div class="h-full bg-emerald-500" [style.width]="t.attendanceRate + '%'"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          
+          <tr *ngIf="teamComparisons.length === 0">
+            <td colspan="6" class="py-12 text-center text-surface-500">
+              <span class="material-icons block text-4xl mb-2 opacity-50">analytics</span>
+              No team data found for selected period
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

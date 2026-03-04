@@ -50,6 +50,9 @@ spring:
 
 # App Config
 app:
+  backend:
+    url: ${BACKEND_URL:https://smart-attendance-backend-jd3k.onrender.com}
+
   frontend:
     url: ${FRONTEND_URL:https://smart-attendance-automation.netlify.app}
 

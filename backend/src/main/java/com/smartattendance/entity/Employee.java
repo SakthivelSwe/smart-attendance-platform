@@ -43,6 +43,12 @@ public class Employee {
     private AttendanceGroup group;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    private String designation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user; // Linked user account (if any)
 

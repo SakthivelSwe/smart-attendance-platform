@@ -6,13 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Base64;
-
 @Service
 @RequiredArgsConstructor
 public class SystemSettingService {
 
     private final SystemSettingRepository repository;
+    private final EncryptionService encryptionService;
     private static final String GMAIL_EMAIL_KEY = "GMAIL_EMAIL";
     private static final String GMAIL_PASSWORD_KEY = "GMAIL_PASSWORD";
     private static final String ADMIN_WHATSAPP_PHONE_KEY = "ADMIN_WHATSAPP_PHONE";
@@ -21,6 +20,9 @@ public class SystemSettingService {
     private static final String WHATSAPP_REMINDER_ENABLED_KEY = "WHATSAPP_REMINDER_ENABLED";
     private static final String SCHEDULER_REMINDER_TIME_KEY = "SCHEDULER_REMINDER_TIME";
     private static final String SCHEDULER_PROCESSING_TIME_KEY = "SCHEDULER_PROCESSING_TIME";
+    // Gmail OAuth2 tokens
+    private static final String GMAIL_OAUTH_REFRESH_TOKEN_KEY = "GMAIL_OAUTH_REFRESH_TOKEN";
+    private static final String GMAIL_OAUTH_EMAIL_KEY = "GMAIL_OAUTH_EMAIL";
 
     public String getGmailEmail() {
         return repository.findBySettingKey(GMAIL_EMAIL_KEY)
@@ -78,6 +80,40 @@ public class SystemSettingService {
     }
 
     @Transactional
+    public void clearGmailCredentials() {
+        repository.findBySettingKey(GMAIL_EMAIL_KEY).ifPresent(repository::delete);
+        repository.findBySettingKey(GMAIL_PASSWORD_KEY).ifPresent(repository::delete);
+    }
+
+    // ----------------------------------------------------------------
+    // Gmail OAuth2 token management
+    // ----------------------------------------------------------------
+
+    @Transactional
+    public void saveOAuthTokens(String email, String encryptedRefreshToken) {
+        saveSetting(GMAIL_OAUTH_EMAIL_KEY, email, "Gmail OAuth2 connected account email");
+        saveSetting(GMAIL_OAUTH_REFRESH_TOKEN_KEY, encryptedRefreshToken, "Encrypted Gmail OAuth2 Refresh Token");
+    }
+
+    public String getOAuthRefreshToken() {
+        return repository.findBySettingKey(GMAIL_OAUTH_REFRESH_TOKEN_KEY)
+                .map(SystemSetting::getSettingValue)
+                .orElse(null);
+    }
+
+    public String getOAuthConnectedEmail() {
+        return repository.findBySettingKey(GMAIL_OAUTH_EMAIL_KEY)
+                .map(SystemSetting::getSettingValue)
+                .orElse(null);
+    }
+
+    @Transactional
+    public void clearOAuthTokens() {
+        repository.findBySettingKey(GMAIL_OAUTH_EMAIL_KEY).ifPresent(repository::delete);
+        repository.findBySettingKey(GMAIL_OAUTH_REFRESH_TOKEN_KEY).ifPresent(repository::delete);
+    }
+
+    @Transactional
     public void saveWhatsAppCredentials(String phone, String apiKey) {
         saveSetting(ADMIN_WHATSAPP_PHONE_KEY, phone, "Admin WhatsApp Phone Number");
         saveSetting(WHATSAPP_API_KEY_KEY, apiKey, "WhatsApp API Key (e.g. CallMeBot)");
@@ -100,16 +136,11 @@ public class SystemSettingService {
         repository.save(setting);
     }
 
-    // Simple obfuscation/encryption for the app password
     private String encrypt(String value) {
-        if (value == null)
-            return null;
-        return Base64.getEncoder().encodeToString(value.getBytes());
+        return encryptionService.encrypt(value);
     }
 
     private String decrypt(String value) {
-        if (value == null)
-            return null;
-        return new String(Base64.getDecoder().decode(value));
+        return encryptionService.decrypt(value);
     }
 }

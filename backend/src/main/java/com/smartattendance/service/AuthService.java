@@ -43,6 +43,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final LoginAttemptService loginAttemptService;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
@@ -135,8 +136,6 @@ public class AuthService {
             throw new IllegalArgumentException("Email already registered");
         }
 
-        String token = UUID.randomUUID().toString();
-
         User user = User.builder()
                 .email(request.getEmail())
                 .name(request.getName())
@@ -165,13 +164,22 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        if (loginAttemptService.isBlocked(request.getEmail())) {
+            throw new RuntimeException(
+                    "Account is temporarily blocked due to multiple failed login attempts. Try again later.");
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+            loginAttemptService.loginSucceeded(request.getEmail());
+        } catch (Exception e) {
+            loginAttemptService.loginFailed(request.getEmail());
+            throw new IllegalArgumentException("Invalid credentials");
+        }
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        // Email verification requirement has been removed
 
         String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), user.getId());
 

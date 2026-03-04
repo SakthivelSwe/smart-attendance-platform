@@ -60,6 +60,47 @@ public class AttendanceService {
     }
 
     /**
+     * Get attendance for a specific team on a specific date.
+     */
+    public List<AttendanceDTO> getAttendanceByTeamAndDate(Long teamId, LocalDate date) {
+        return attendanceRepository.findWithEmployeeByDateAndTeam(date, teamId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Self check-in: employee marks their own attendance for today.
+     */
+    @Transactional
+    public AttendanceDTO checkIn(Long employeeId, AttendanceStatus status, String remarks) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", employeeId));
+
+        LocalDate today = LocalDate.now();
+        Attendance existing = attendanceRepository.findByEmployeeIdAndDate(employeeId, today)
+                .orElse(null);
+
+        if (existing != null) {
+            existing.setStatus(status);
+            existing.setInTime(java.time.LocalTime.now());
+            existing.setSource("SELF_CHECKIN");
+            if (remarks != null)
+                existing.setRemarks(remarks);
+            return toDTO(attendanceRepository.save(existing));
+        } else {
+            Attendance newRecord = Attendance.builder()
+                    .employee(employee)
+                    .date(today)
+                    .inTime(java.time.LocalTime.now())
+                    .status(status)
+                    .source("SELF_CHECKIN")
+                    .remarks(remarks)
+                    .build();
+            return toDTO(attendanceRepository.save(newRecord));
+        }
+    }
+
+    /**
      * Process WhatsApp chat text and create attendance records.
      * 
      * @param processFullHistory if true, processes ALL dates in chat. If false,
@@ -107,7 +148,8 @@ public class AttendanceService {
         Map<LocalDate, Map<Long, Attendance>> existingMap = new java.util.HashMap<>();
         for (Attendance a : allExisting) {
             if (a.getEmployee() != null) {
-                existingMap.computeIfAbsent(a.getDate(), k -> new java.util.HashMap<>()).put(a.getEmployee().getId(), a);
+                existingMap.computeIfAbsent(a.getDate(), k -> new java.util.HashMap<>()).put(a.getEmployee().getId(),
+                        a);
             }
         }
 
@@ -142,7 +184,8 @@ public class AttendanceService {
                 boolean hasWhatsAppSource = existing != null && "WHATSAPP".equals(existing.getSource());
                 boolean isAbsentStatus = existing != null && existing.getStatus() == AttendanceStatus.ABSENT;
 
-                // Only overwrite if no record exists, or if current record is auto-generated/Absent
+                // Only overwrite if no record exists, or if current record is
+                // auto-generated/Absent
                 if (existing != null && !hasWhatsAppSource && !isAbsentStatus) {
                     continue;
                 }
@@ -218,7 +261,7 @@ public class AttendanceService {
                     existing.setStatus(status);
                     existing.setSource("WHATSAPP");
                     allToSave.add(existing);
-                    
+
                     // Trigger sheet update if needed
                     if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
                         allSheetUpdates.add(existing);
@@ -233,7 +276,7 @@ public class AttendanceService {
                             .source("WHATSAPP")
                             .build();
                     allToSave.add(newRecord);
-                    
+
                     if (employee.getGroup() != null && employee.getGroup().getGoogleSheetId() != null) {
                         allSheetUpdates.add(newRecord);
                     }
@@ -260,7 +303,8 @@ public class AttendanceService {
             }
         }
 
-        // PERFORM BULK SAVES (Chunked for memory efficiency if needed, but saveAll is fine here)
+        // PERFORM BULK SAVES (Chunked for memory efficiency if needed, but saveAll is
+        // fine here)
         if (!allToSave.isEmpty()) {
             logger.info("Saving {} attendance records...", allToSave.size());
             // Small chunks of 500 to keep transactions manageable on free tier DB
@@ -295,12 +339,14 @@ public class AttendanceService {
 
                 for (Map.Entry<String, Map<String, List<Attendance>>> sheetEntry : groupedUpdates.entrySet()) {
                     String sheetId = sheetEntry.getKey();
-                    if (sheetId == null || sheetId.isBlank()) continue;
+                    if (sheetId == null || sheetId.isBlank())
+                        continue;
 
                     for (Map.Entry<String, List<Attendance>> monthEntry : sheetEntry.getValue().entrySet()) {
                         List<Attendance> records = monthEntry.getValue();
                         try {
-                            String currentMonthName = records.get(0).getDate().getMonth().name().substring(0, 1).toUpperCase()
+                            String currentMonthName = records.get(0).getDate().getMonth().name().substring(0, 1)
+                                    .toUpperCase()
                                     + records.get(0).getDate().getMonth().name().substring(1).toLowerCase() + " Month";
                             googleSheetsService.updateAttendanceBatch(sheetId, currentMonthName, records);
                             Thread.sleep(1000); // Slight throttle

@@ -2,6 +2,9 @@ package com.smartattendance.controller;
 
 import com.smartattendance.dto.AttendanceDTO;
 import com.smartattendance.entity.AttendanceGroup;
+import com.smartattendance.entity.Employee;
+import com.smartattendance.enums.AttendanceStatus;
+import com.smartattendance.repository.EmployeeRepository;
 import com.smartattendance.repository.GroupRepository;
 import com.smartattendance.service.AttendanceService;
 import com.smartattendance.service.GmailService;
@@ -11,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -26,12 +30,21 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
     private final GmailService gmailService;
     private final GroupRepository groupRepository;
+    private final EmployeeRepository employeeRepository;
     private final com.smartattendance.service.SystemSettingService systemSettingService;
 
     @GetMapping("/date/{date}")
     public ResponseEntity<List<AttendanceDTO>> getByDate(
             @PathVariable("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(attendanceService.getAttendanceByDate(date));
+    }
+
+    @GetMapping("/team/{teamId}/date/{date}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
+    public ResponseEntity<List<AttendanceDTO>> getByTeamAndDate(
+            @PathVariable("teamId") Long teamId,
+            @PathVariable("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByTeamAndDate(teamId, date));
     }
 
     @GetMapping("/employee/{employeeId}")
@@ -204,5 +217,25 @@ public class AttendanceController {
             @PathVariable("id") Long id,
             @RequestBody AttendanceDTO dto) {
         return ResponseEntity.ok(attendanceService.updateAttendance(id, dto));
+    }
+
+    /**
+     * Self check-in: authenticated user marks their own attendance.
+     * Request body: { "status": "WFO", "remarks": "optional" }
+     */
+    @PostMapping("/check-in")
+    public ResponseEntity<AttendanceDTO> checkIn(
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        String email = auth.getName();
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new com.smartattendance.exception.ResourceNotFoundException(
+                        "Employee", "email", email));
+
+        AttendanceStatus status = AttendanceStatus.valueOf(
+                body.getOrDefault("status", "WFO").toUpperCase());
+        String remarks = body.get("remarks");
+
+        return ResponseEntity.ok(attendanceService.checkIn(employee.getId(), status, remarks));
     }
 }

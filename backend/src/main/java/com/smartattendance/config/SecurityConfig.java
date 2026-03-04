@@ -45,11 +45,18 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**", "/api/employees", "/api/attendance/**")
+                                                .requestMatchers("/api/auth/**", "/api/employees", "/api/attendance/**",
+                                                                "/api/settings/gmail/oauth/callback")
                                                 .permitAll()
-                                                .requestMatchers("/h2-console/**").permitAll()
+                                                .requestMatchers("/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**",
+                                                                "/swagger-ui.html", "/actuator/**")
+                                                .permitAll()
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                .requestMatchers("/api/manager/**").hasAnyRole("ADMIN", "MANAGER")
+                                                .requestMatchers("/api/team-lead/**")
+                                                .hasAnyRole("ADMIN", "MANAGER", "TEAM_LEAD")
+                                                .requestMatchers("/api/teams/**").authenticated()
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(e -> e.authenticationEntryPoint(
                                                 (request, response, authException) -> response.sendError(401,

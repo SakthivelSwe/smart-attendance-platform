@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { User } from '../models/interfaces';
+import { User, UserRole } from '../models/interfaces';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
 
@@ -10,6 +10,8 @@ export class AuthService {
     private apiUrl = environment.apiUrl;
     private currentUserSubject = new BehaviorSubject<User | null>(null);
     currentUser$ = this.currentUserSubject.asObservable();
+
+    private static readonly ROLE_HIERARCHY: UserRole[] = ['ADMIN', 'MANAGER', 'TEAM_LEAD', 'USER'];
 
     constructor(private http: HttpClient, private router: Router) {
         const stored = sessionStorage.getItem('user');
@@ -28,6 +30,32 @@ export class AuthService {
 
     get isAdmin(): boolean {
         return this.currentUser?.role === 'ADMIN';
+    }
+
+    get isManager(): boolean {
+        return this.currentUser?.role === 'MANAGER';
+    }
+
+    get isTeamLead(): boolean {
+        return this.currentUser?.role === 'TEAM_LEAD';
+    }
+
+    /**
+     * Check if the current user has a specific role.
+     */
+    hasRole(role: UserRole): boolean {
+        return this.currentUser?.role === role;
+    }
+
+    /**
+     * Check if the current user has at least the given role level.
+     * ADMIN > MANAGER > TEAM_LEAD > USER
+     */
+    hasMinRole(requiredRole: UserRole): boolean {
+        if (!this.currentUser) return false;
+        const userLevel = AuthService.ROLE_HIERARCHY.indexOf(this.currentUser.role);
+        const requiredLevel = AuthService.ROLE_HIERARCHY.indexOf(requiredRole);
+        return userLevel >= 0 && userLevel <= requiredLevel;
     }
 
     get token(): string | null {
