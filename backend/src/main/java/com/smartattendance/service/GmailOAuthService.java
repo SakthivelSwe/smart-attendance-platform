@@ -41,6 +41,7 @@ public class GmailOAuthService {
     private static final String TOKEN_SERVER_URL = "https://oauth2.googleapis.com/token";
     private static final String AUTH_SERVER_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+    private static final String GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
     private static final String USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
 
     // Keys used to persist OAuth2 tokens in system_settings
@@ -73,7 +74,7 @@ public class GmailOAuthService {
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
-                .queryParam("scope", GMAIL_SEND_SCOPE + " " + USERINFO_EMAIL_SCOPE)
+                .queryParam("scope", GMAIL_SEND_SCOPE + " " + GMAIL_READONLY_SCOPE + " " + USERINFO_EMAIL_SCOPE)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent") // Forces re-consent so we always get a refresh token
                 .toUriString();
@@ -140,6 +141,156 @@ public class GmailOAuthService {
 
         gmailService.users().messages().send("me", message).execute();
         logger.info("Email sent via Gmail API from {} to {}: '{}'", senderEmail, toEmail, subject);
+    }
+
+    // -----------------------------------------------------------------------
+    // Fetch and read emails via Gmail API
+    // -----------------------------------------------------------------------
+
+    public java.util.List<java.util.Map<String, String>> listRecentEmails(String subjectPattern, int maxResults) {
+        java.util.List<java.util.Map<String, String>> results = new java.util.ArrayList<>();
+        try {
+            Gmail gmailService = buildGmailService();
+            String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
+            String query = "subject:\"" + cleanSubject + "\"";
+
+            com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
+                    .list("me").setQ(query).setMaxResults(Long.valueOf(maxResults)).execute();
+
+            java.util.List<Message> messages = listResponse.getMessages();
+            if (messages != null) {
+                for (Message msgMetadata : messages) {
+                    Message msg = gmailService.users().messages().get("me", msgMetadata.getId()).setFormat("metadata")
+                            .execute();
+                    java.util.Map<String, String> emailInfo = new java.util.HashMap<>();
+
+                    String subject = "Unknown";
+                    String from = "Unknown";
+                    String dateStr = "Unknown";
+
+                    if (msg.getPayload() != null && msg.getPayload().getHeaders() != null) {
+                        for (com.google.api.services.gmail.model.MessagePartHeader header : msg.getPayload()
+                                .getHeaders()) {
+                            if ("Subject".equalsIgnoreCase(header.getName()))
+                                subject = header.getValue();
+                            if ("From".equalsIgnoreCase(header.getName()))
+                                from = header.getValue();
+                            if ("Date".equalsIgnoreCase(header.getName()))
+                                dateStr = header.getValue();
+                        }
+                    }
+
+                    emailInfo.put("subject", subject);
+                    emailInfo.put("from", from);
+                    emailInfo.put("date", dateStr);
+                    results.add(emailInfo);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error listing emails via OAuth2: {}", e.getMessage());
+        }
+        return results;
+    }
+
+    public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) throws Exception {
+        Gmail gmailService = buildGmailService();
+        String userId = "me";
+
+        String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
+        java.time.LocalDate fromDate = targetDate != null ? targetDate : java.time.LocalDate.now().minusDays(1);
+        String dateStr = fromDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        String query = "subject:\"" + cleanSubject + "\" after:" + dateStr;
+
+        logger.info("Querying Gmail API: {}", query);
+
+        com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
+                .list(userId).setQ(query).execute();
+
+        java.util.List<Message> messages = listResponse.getMessages();
+        if (messages == null || messages.isEmpty()) {
+            logger.info("No emails found matching query '{}'.", query);
+            return null;
+        }
+
+        for (Message msgMetadata : messages) {
+            Message msg = gmailService.users().messages()
+                    .get(userId, msgMetadata.getId()).setFormat("full").execute();
+
+            String text = extractChatFromGmailMessage(gmailService, userId, msg);
+            if (text != null)
+                return text;
+        }
+        return null;
+    }
+
+    private String extractChatFromGmailMessage(Gmail gmailService, String userId, Message msg) throws Exception {
+        if (msg.getPayload() == null)
+            return null;
+
+        // Handle direct payload (very rare for attachments, but possible)
+        String body = extractFromParts(gmailService, userId, msg.getId(),
+                java.util.Collections.singletonList(msg.getPayload()));
+        if (body != null)
+            return body;
+
+        return extractFromParts(gmailService, userId, msg.getId(), msg.getPayload().getParts());
+    }
+
+    private String extractFromParts(Gmail gmailService, String userId, String messageId,
+            java.util.List<com.google.api.services.gmail.model.MessagePart> parts) throws Exception {
+        if (parts == null)
+            return null;
+        for (com.google.api.services.gmail.model.MessagePart part : parts) {
+            String filename = part.getFilename();
+            if (filename != null && !filename.isEmpty()) {
+                if (filename.toLowerCase().endsWith(".zip") || filename.toLowerCase().endsWith(".txt")) {
+                    String attachmentId = part.getBody().getAttachmentId();
+                    if (attachmentId != null) {
+                        com.google.api.services.gmail.model.MessagePartBody attachment = gmailService.users().messages()
+                                .attachments().get(userId, messageId, attachmentId).execute();
+                        byte[] data = java.util.Base64.getUrlDecoder().decode(attachment.getData());
+                        logger.info("Downloaded attachment '{}' from Gmail API", filename);
+                        if (filename.toLowerCase().endsWith(".zip")) {
+                            return extractTextFromZipBytes(data);
+                        } else {
+                            return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                        }
+                    } else if (part.getBody().getData() != null) {
+                        // Sometimes small attachments are inline in the data field
+                        byte[] data = java.util.Base64.getUrlDecoder().decode(part.getBody().getData());
+                        if (filename.toLowerCase().endsWith(".zip")) {
+                            return extractTextFromZipBytes(data);
+                        } else {
+                            return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                        }
+                    }
+                }
+            }
+            if (part.getParts() != null) {
+                String nested = extractFromParts(gmailService, userId, messageId, part.getParts());
+                if (nested != null)
+                    return nested;
+            }
+        }
+        return null;
+    }
+
+    private String extractTextFromZipBytes(byte[] zipBytes) {
+        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
+                new java.io.ByteArrayInputStream(zipBytes), java.nio.charset.StandardCharsets.UTF_8)) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".txt")) {
+                    byte[] bytes = zis.readAllBytes();
+                    zis.closeEntry();
+                    return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                }
+                zis.closeEntry();
+            }
+        } catch (Exception e) {
+            logger.error("Error extracting zip bytes: {}", e.getMessage());
+        }
+        return null;
     }
 
     // -----------------------------------------------------------------------
