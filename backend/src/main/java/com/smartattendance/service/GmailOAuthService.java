@@ -41,6 +41,7 @@ public class GmailOAuthService {
     private static final String TOKEN_SERVER_URL = "https://oauth2.googleapis.com/token";
     private static final String AUTH_SERVER_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+    private static final String GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
     private static final String USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
 
     // Keys used to persist OAuth2 tokens in system_settings
@@ -73,7 +74,7 @@ public class GmailOAuthService {
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
-                .queryParam("scope", GMAIL_SEND_SCOPE + " " + USERINFO_EMAIL_SCOPE)
+                .queryParam("scope", GMAIL_SEND_SCOPE + " " + GMAIL_READONLY_SCOPE + " " + USERINFO_EMAIL_SCOPE)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent") // Forces re-consent so we always get a refresh token
                 .toUriString();
