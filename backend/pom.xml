@@ -21,7 +21,7 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.5</jjwt.version>
         <google-api.version>2.2.0</google-api.version>
-        <lombok.version>1.18.36</lombok.version>
+        <lombok.version>1.18.42</lombok.version>
     </properties>
 
     <dependencies>

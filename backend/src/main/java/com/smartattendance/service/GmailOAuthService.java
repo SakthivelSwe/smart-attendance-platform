@@ -309,14 +309,6 @@ public class GmailOAuthService {
     }
 
     /**
-     * Returns the email address of the connected Gmail OAuth account, or null if
-     * not connected.
-     */
-    public String getConnectedEmail() {
-        return systemSettingService.getOAuthConnectedEmail();
-    }
-
-    /**
      * Checks whether an attendance email matching subjectPattern exists for the
      * given date.
      * Returns false if not connected or if an error occurs.
