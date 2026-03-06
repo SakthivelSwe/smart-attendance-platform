@@ -6,6 +6,16 @@ import {
     Group, MonthlySummary, DashboardStats, Team, UserInfo, UserRole, NotificationPreference,
     LeaveBalance
 } from '../models/interfaces';
+
+export interface AppNotification {
+    type: string;       // LEAVE | ATTENDANCE | INFO
+    title: string;
+    content: string;
+    timeLabel: string;
+    icon: string;
+    color: string;      // amber | rose | indigo | emerald
+    count: number;
+}
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -237,7 +247,12 @@ export class ApiService {
         return this.http.put<any>(`${this.api}/profile/${userId}`, data);
     }
 
-    // Notifications
+    // Notifications (real-time from backend)
+    getNotifications(): Observable<AppNotification[]> {
+        return this.http.get<AppNotification[]>(`${this.api}/notifications`);
+    }
+
+    // Notification preferences
     getNotificationPreferences(userId: number): Observable<NotificationPreference> {
         return this.http.get<NotificationPreference>(`${this.api}/notification-preferences/${userId}`);
     }
