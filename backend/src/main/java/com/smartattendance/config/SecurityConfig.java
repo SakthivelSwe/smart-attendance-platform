@@ -6,6 +6,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -45,13 +48,18 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**", "/api/employees", "/api/attendance/**",
-                                                                "/api/settings/gmail/oauth/callback")
+                                                // Public endpoints — no token required
+                                                .requestMatchers("/api/auth/**", "/api/settings/gmail/oauth/callback")
                                                 .permitAll()
                                                 .requestMatchers("/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**",
                                                                 "/swagger-ui.html", "/actuator/**")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                // Self check-in is public (kiosk / WhatsApp bot usage)
+                                                .requestMatchers(HttpMethod.POST, "/api/attendance/check-in")
+                                                .permitAll()
+                                                // All other attendance endpoints require authentication (any role)
+                                                .requestMatchers("/api/attendance/**").authenticated()
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .requestMatchers("/api/manager/**").hasAnyRole("ADMIN", "MANAGER")
                                                 .requestMatchers("/api/team-lead/**")
@@ -74,6 +82,17 @@ public class SecurityConfig {
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
+        }
+
+        /**
+         * Wires RoleHierarchy into @PreAuthorize / @PostAuthorize expression evaluation
+         * so ADMIN inherits all MANAGER permissions, MANAGER inherits TEAM_LEAD, etc.
+         */
+        @Bean
+        static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+                DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+                handler.setRoleHierarchy(roleHierarchy);
+                return handler;
         }
 
         @Bean

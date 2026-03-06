@@ -84,10 +84,10 @@ interface NavItem {
                class="w-10 h-10 rounded-full ring-2 ring-white dark:ring-surface-700 shadow-md flex-shrink-0" [alt]="user.name"/>
           <div *ngIf="!isCollapsed" class="min-w-0 animate-fade-in">
             <p class="text-sm font-semibold text-[var(--text-primary)] truncate">{{ user.name }}</p>
-            <p class="text-xs text-[var(--text-secondary)] truncate flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full" [ngClass]="getRoleBadgeColor(user.role)"></span>
+            <span class="inline-flex items-center px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase"
+                  [ngClass]="getRolePillClass(user.role)">
               {{ formatRole(user.role) }}
-            </p>
+            </span>
           </div>
         </a>
       </div>
@@ -185,6 +185,15 @@ export class SidebarComponent {
     }
   }
 
+  getRolePillClass(role: string): string {
+    switch (role) {
+      case 'ADMIN': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+      case 'MANAGER': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+      case 'TEAM_LEAD': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+      default: return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+    }
+  }
+
   // Icons
   private icons = {
     dashboard: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>',
@@ -209,8 +218,9 @@ export class SidebarComponent {
     {
       label: 'Management',
       items: [
+        // All 4 roles can access these pages
         { label: 'Attendance', route: '/attendance', icon: this.icons.attendance },
-        { label: 'Employees', route: '/employees', icon: this.icons.employees, minRole: 'TEAM_LEAD' },
+        { label: 'Employees', route: '/employees', icon: this.icons.employees },
         { label: 'Leaves', route: '/leaves', icon: this.icons.leaves },
         { label: 'Holidays', route: '/holidays', icon: this.icons.holidays },
       ]
@@ -218,14 +228,17 @@ export class SidebarComponent {
     {
       label: 'Organization',
       items: [
+        // TEAM_LEAD and above
         { label: 'Teams', route: '/teams', icon: this.icons.teams, minRole: 'TEAM_LEAD' },
-        { label: 'Groups', route: '/groups', icon: this.icons.groups, minRole: 'ADMIN' },
-        { label: 'Users', route: '/user-management', icon: this.icons.users, minRole: 'ADMIN', badge: 'NEW' },
+        { label: 'Groups', route: '/groups', icon: this.icons.groups, minRole: 'TEAM_LEAD' },
+        // ADMIN only
+        { label: 'Users', route: '/user-management', icon: this.icons.users, minRole: 'ADMIN' },
       ]
     },
     {
       label: 'Analytics',
       items: [
+        // TEAM_LEAD and above
         { label: 'Summary', route: '/summary', icon: this.icons.summary, minRole: 'TEAM_LEAD' },
         { label: 'Reports', route: '/reports', icon: this.icons.reports, minRole: 'TEAM_LEAD', badge: 'PRO' },
         { label: 'Report Cards', route: '/employee-report-card', icon: this.icons.reports, minRole: 'TEAM_LEAD' },
@@ -234,12 +247,14 @@ export class SidebarComponent {
     {
       label: 'Personal',
       items: [
+        // All 4 roles can access notification settings
         { label: 'Notifications', route: '/notification-settings', icon: this.icons.settings },
       ]
     },
     {
       label: 'System',
       items: [
+        // ADMIN only
         { label: 'Settings', route: '/settings', icon: this.icons.settings, minRole: 'ADMIN' },
         { label: 'Audit Logs', route: '/audit-logs', icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>', minRole: 'ADMIN' },
       ]

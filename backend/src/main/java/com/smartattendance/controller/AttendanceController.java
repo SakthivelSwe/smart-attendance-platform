@@ -74,7 +74,7 @@ public class AttendanceController {
      * Manually trigger attendance processing from pasted WhatsApp chat text.
      */
     @PostMapping("/process")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<List<AttendanceDTO>> processAttendance(@RequestBody Map<String, String> request) {
         String chatText = request.get("chatText");
         String dateStr = request.get("date");
@@ -92,7 +92,7 @@ public class AttendanceController {
      * server).
      */
     @PostMapping("/process-email")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Map<String, Object>> processFromEmail(@RequestBody Map<String, String> request) {
         String dateStr = request.get("date");
         String subjectPattern = request.get("subjectPattern");
@@ -183,7 +183,7 @@ public class AttendanceController {
      * Admin provides credentials per-request.
      */
     @PostMapping("/email-status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Map<String, Object>> getEmailStatus(@RequestBody Map<String, String> request) {
         String gmailEmail = request.get("gmailEmail");
         String gmailPassword = request.get("gmailPassword");

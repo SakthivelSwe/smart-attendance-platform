@@ -1,13 +1,11 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     const authService = inject(AuthService);
-    const router = inject(Router);
     const toast = inject(ToastService);
 
     return next(req).pipe(
@@ -18,8 +16,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
                 authService.logout();
                 toast.warning('Session expired. Please sign in again.');
             } else if (error.status === 403) {
-                router.navigate(['/dashboard']);
-                toast.error('Access denied. You do not have permission.');
+                // Buttons are hidden via PermissionService — a 403 here means
+                // a direct API call bypass. Show a single, calm warning, no redirect.
+                toast.warning('You do not have access to this action.');
             } else if (error.status === 404) {
                 toast.warning('Requested resource not found.');
             } else if (error.status >= 500) {
