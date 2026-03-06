@@ -29,7 +29,7 @@ public class SummaryController {
     }
 
     @PostMapping("/generate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-004 fix
     public ResponseEntity<List<MonthlySummaryDTO>> generateSummary(
             @RequestParam int month,
             @RequestParam int year) {

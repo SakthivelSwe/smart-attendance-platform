@@ -25,7 +25,7 @@ public class ReportController {
     private final ExportService exportService;
 
     @GetMapping("/team-comparison")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')") // BUG-005 fix
     public ResponseEntity<List<TeamComparisonDTO>> getTeamComparison(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -34,7 +34,7 @@ public class ReportController {
     }
 
     @GetMapping("/employee-cards")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')") // BUG-005 fix
     public ResponseEntity<List<EmployeeReportCardDTO>> getEmployeeReportCards(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -43,7 +43,7 @@ public class ReportController {
     }
 
     @GetMapping("/work-trends")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')") // BUG-005 fix
     public ResponseEntity<List<WorkTrendDTO>> getWorkTrends(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
@@ -53,7 +53,7 @@ public class ReportController {
 
     // --- Exports ---
     @GetMapping("/export/employee-cards")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')") // BUG-005 fix
     public ResponseEntity<byte[]> exportEmployeeCards(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -78,7 +78,7 @@ public class ReportController {
     }
 
     @GetMapping("/export/team-comparison")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')") // BUG-005 fix
     public ResponseEntity<byte[]> exportTeamComparison(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {

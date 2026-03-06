@@ -6,17 +6,18 @@ import { AuthService } from '../../core/services/auth.service';
 import { Holiday } from '../../core/models/interfaces';
 
 @Component({
-    selector: 'app-holidays',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-holidays',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 class="page-header">Holidays</h1>
           <p class="page-subtitle">Manage company holidays and optional days</p>
         </div>
-        <button *ngIf="authService.isAdmin" (click)="openModal()" class="btn-primary">
+        <!-- BUG-007 fix: MANAGER+ can add holidays -->
+        <button *ngIf="authService.isManager" (click)="openModal()" class="btn-primary">
           <span class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -40,7 +41,8 @@ import { Holiday } from '../../core/models/interfaces';
           </div>
           <p *ngIf="h.description" class="text-sm text-[var(--text-secondary)] mt-2">{{ h.description }}</p>
 
-          <div *ngIf="authService.isAdmin" class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
+          <!-- BUG-007 fix: MANAGER+ can edit/delete holidays -->
+          <div *ngIf="authService.isManager" class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
             <button (click)="editHoliday(h)" class="flex-1 py-1.5 text-sm text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition">Edit</button>
             <button (click)="deleteHoliday(h.id)" class="flex-1 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">Delete</button>
           </div>
@@ -83,31 +85,31 @@ import { Holiday } from '../../core/models/interfaces';
   `
 })
 export class HolidaysComponent implements OnInit {
-    holidays: Holiday[] = [];
-    showModal = false;
-    editingId: number | null = null;
-    form: Partial<Holiday> = { isOptional: false };
+  holidays: Holiday[] = [];
+  showModal = false;
+  editingId: number | null = null;
+  form: Partial<Holiday> = { isOptional: false };
 
-    constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService) { }
 
-    ngOnInit() { this.loadHolidays(); }
+  ngOnInit() { this.loadHolidays(); }
 
-    loadHolidays() { this.api.getHolidays().subscribe(data => this.holidays = data); }
+  loadHolidays() { this.api.getHolidays().subscribe(data => this.holidays = data); }
 
-    openModal() { this.editingId = null; this.form = { isOptional: false }; this.showModal = true; }
+  openModal() { this.editingId = null; this.form = { isOptional: false }; this.showModal = true; }
 
-    editHoliday(h: Holiday) { this.editingId = h.id; this.form = { ...h }; this.showModal = true; }
+  editHoliday(h: Holiday) { this.editingId = h.id; this.form = { ...h }; this.showModal = true; }
 
-    saveHoliday() {
-        const obs = this.editingId
-            ? this.api.updateHoliday(this.editingId, this.form)
-            : this.api.createHoliday(this.form);
-        obs.subscribe(() => { this.showModal = false; this.loadHolidays(); });
+  saveHoliday() {
+    const obs = this.editingId
+      ? this.api.updateHoliday(this.editingId, this.form)
+      : this.api.createHoliday(this.form);
+    obs.subscribe(() => { this.showModal = false; this.loadHolidays(); });
+  }
+
+  deleteHoliday(id: number) {
+    if (confirm('Delete this holiday?')) {
+      this.api.deleteHoliday(id).subscribe(() => this.loadHolidays());
     }
-
-    deleteHoliday(id: number) {
-        if (confirm('Delete this holiday?')) {
-            this.api.deleteHoliday(id).subscribe(() => this.loadHolidays());
-        }
-    }
+  }
 }

@@ -44,7 +44,7 @@ public class LeaveController {
     }
 
     @PutMapping("/{id}/tl-approve")
-    @PreAuthorize("hasAnyRole('MANAGER', 'TEAM_LEAD')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')") // BUG-008 fix: ADMIN was missing
     public ResponseEntity<LeaveDTO> approveByTeamLead(
             @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, String> body,
@@ -54,7 +54,7 @@ public class LeaveController {
     }
 
     @PutMapping("/{id}/manager-approve")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-008 fix: ADMIN was missing
     public ResponseEntity<LeaveDTO> approveByManager(
             @PathVariable("id") Long id,
             @RequestBody(required = false) Map<String, String> body,

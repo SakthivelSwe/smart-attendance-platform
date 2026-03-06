@@ -38,19 +38,19 @@ public class HolidayController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-007 fix
     public ResponseEntity<HolidayDTO> createHoliday(@Valid @RequestBody HolidayDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(holidayService.createHoliday(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-007 fix
     public ResponseEntity<HolidayDTO> updateHoliday(@PathVariable("id") Long id, @Valid @RequestBody HolidayDTO dto) {
         return ResponseEntity.ok(holidayService.updateHoliday(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-007 fix
     public ResponseEntity<Void> deleteHoliday(@PathVariable("id") Long id) {
         holidayService.deleteHoliday(id);
         return ResponseEntity.noContent().build();

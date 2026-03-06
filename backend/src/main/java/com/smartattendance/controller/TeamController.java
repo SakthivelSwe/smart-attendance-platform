@@ -53,13 +53,13 @@ public class TeamController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-003 fix
     public ResponseEntity<TeamDTO> createTeam(@Valid @RequestBody TeamDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.createTeam(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-003 fix
     public ResponseEntity<TeamDTO> updateTeam(
             @PathVariable("id") Long id,
             @Valid @RequestBody TeamDTO dto) {
@@ -67,7 +67,7 @@ public class TeamController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-003 fix
     public ResponseEntity<Void> deleteTeam(@PathVariable("id") Long id) {
         teamService.deleteTeam(id);
         return ResponseEntity.noContent().build();

@@ -6,17 +6,18 @@ import { AuthService } from '../../core/services/auth.service';
 import { Team, UserInfo } from '../../core/models/interfaces';
 
 @Component({
-    selector: 'app-teams',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-teams',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div>
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 class="page-header">Teams</h1>
           <p class="page-subtitle">Manage organizational teams and their leads</p>
         </div>
-        <button *ngIf="authService.isAdmin" (click)="openModal()" class="btn-primary">
+        <!-- BUG-003 fix: MANAGER+ can create teams -->
+        <button *ngIf="authService.isManager" (click)="openModal()" class="btn-primary">
           <span class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -112,7 +113,8 @@ import { Team, UserInfo } from '../../core/models/interfaces';
                 <span class="font-semibold text-[var(--text-primary)]">{{ team.employeeCount }}</span>
                 <span class="text-surface-400">members</span>
               </div>
-              <div *ngIf="authService.isAdmin" class="flex gap-1">
+              <!-- BUG-003 fix: MANAGER+ can edit/delete teams -->
+              <div *ngIf="authService.isManager" class="flex gap-1">
                 <button (click)="editTeam(team)" 
                         class="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-colors" title="Edit">
                   <span class="material-icons text-lg">edit</span>
@@ -191,86 +193,87 @@ import { Team, UserInfo } from '../../core/models/interfaces';
   `
 })
 export class TeamsComponent implements OnInit {
-    teams: Team[] = [];
-    users: UserInfo[] = [];
-    isLoading = true;
-    searchTerm = '';
-    showModal = false;
-    editingId: number | null = null;
-    form: Partial<Team> = {};
+  teams: Team[] = [];
+  users: UserInfo[] = [];
+  isLoading = true;
+  searchTerm = '';
+  showModal = false;
+  editingId: number | null = null;
+  form: Partial<Team> = {};
 
-    constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService) { }
 
-    ngOnInit() {
-        this.loadTeams();
-        if (this.authService.isAdmin) {
-            this.api.getUsers().subscribe(u => this.users = u);
-        }
+  ngOnInit() {
+    this.loadTeams();
+    // BUG-003 fix: MANAGER+ need user list to assign leads/managers
+    if (this.authService.isManager) {
+      this.api.getUsers().subscribe(u => this.users = u);
     }
+  }
 
-    loadTeams() {
-        this.isLoading = true;
-        this.api.getTeams().subscribe({
-            next: (data) => { this.teams = data; this.isLoading = false; },
-            error: () => this.isLoading = false
-        });
-    }
+  loadTeams() {
+    this.isLoading = true;
+    this.api.getTeams().subscribe({
+      next: (data) => { this.teams = data; this.isLoading = false; },
+      error: () => this.isLoading = false
+    });
+  }
 
-    get filteredTeams(): Team[] {
-        if (!this.searchTerm) return this.teams;
-        const s = this.searchTerm.toLowerCase();
-        return this.teams.filter(t =>
-            t.name.toLowerCase().includes(s) ||
-            t.teamCode?.toLowerCase().includes(s) ||
-            t.teamLeadName?.toLowerCase().includes(s) ||
-            t.managerName?.toLowerCase().includes(s)
-        );
-    }
+  get filteredTeams(): Team[] {
+    if (!this.searchTerm) return this.teams;
+    const s = this.searchTerm.toLowerCase();
+    return this.teams.filter(t =>
+      t.name.toLowerCase().includes(s) ||
+      t.teamCode?.toLowerCase().includes(s) ||
+      t.teamLeadName?.toLowerCase().includes(s) ||
+      t.managerName?.toLowerCase().includes(s)
+    );
+  }
 
-    get availableLeads(): UserInfo[] {
-        return this.users.filter(u => u.role === 'TEAM_LEAD' || u.role === 'ADMIN' || u.role === 'MANAGER');
-    }
+  get availableLeads(): UserInfo[] {
+    return this.users.filter(u => u.role === 'TEAM_LEAD' || u.role === 'ADMIN' || u.role === 'MANAGER');
+  }
 
-    get availableManagers(): UserInfo[] {
-        return this.users.filter(u => u.role === 'MANAGER' || u.role === 'ADMIN');
-    }
+  get availableManagers(): UserInfo[] {
+    return this.users.filter(u => u.role === 'MANAGER' || u.role === 'ADMIN');
+  }
 
-    getTeamColor(index: number): string {
-        const colors = [
-            'bg-gradient-to-r from-indigo-500 to-blue-500',
-            'bg-gradient-to-r from-emerald-500 to-teal-500',
-            'bg-gradient-to-r from-amber-500 to-orange-500',
-            'bg-gradient-to-r from-purple-500 to-pink-500',
-            'bg-gradient-to-r from-rose-500 to-red-500',
-            'bg-gradient-to-r from-cyan-500 to-blue-500',
-        ];
-        return colors[index % colors.length];
-    }
+  getTeamColor(index: number): string {
+    const colors = [
+      'bg-gradient-to-r from-indigo-500 to-blue-500',
+      'bg-gradient-to-r from-emerald-500 to-teal-500',
+      'bg-gradient-to-r from-amber-500 to-orange-500',
+      'bg-gradient-to-r from-purple-500 to-pink-500',
+      'bg-gradient-to-r from-rose-500 to-red-500',
+      'bg-gradient-to-r from-cyan-500 to-blue-500',
+    ];
+    return colors[index % colors.length];
+  }
 
-    openModal() {
-        this.editingId = null;
-        this.form = {};
-        this.showModal = true;
-    }
+  openModal() {
+    this.editingId = null;
+    this.form = {};
+    this.showModal = true;
+  }
 
-    editTeam(team: Team) {
-        this.editingId = team.id;
-        this.form = { ...team };
-        this.showModal = true;
-    }
+  editTeam(team: Team) {
+    this.editingId = team.id;
+    this.form = { ...team };
+    this.showModal = true;
+  }
 
-    saveTeam() {
-        const obs = this.editingId
-            ? this.api.updateTeam(this.editingId, this.form)
-            : this.api.createTeam(this.form);
-        obs.subscribe({
-            next: () => { this.showModal = false; this.loadTeams(); }
-        });
-    }
+  saveTeam() {
+    const obs = this.editingId
+      ? this.api.updateTeam(this.editingId, this.form)
+      : this.api.createTeam(this.form);
+    obs.subscribe({
+      next: () => { this.showModal = false; this.loadTeams(); }
+    });
+  }
 
-    deleteTeam(id: number) {
-        if (confirm('Are you sure you want to deactivate this team?')) {
-            this.api.deleteTeam(id).subscribe(() => this.loadTeams());
-        }
+  deleteTeam(id: number) {
+    if (confirm('Are you sure you want to deactivate this team?')) {
+      this.api.deleteTeam(id).subscribe(() => this.loadTeams());
     }
+  }
 }

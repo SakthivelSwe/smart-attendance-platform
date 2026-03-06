@@ -34,19 +34,19 @@ public class GroupController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-002 fix
     public ResponseEntity<GroupDTO> createGroup(@Valid @RequestBody GroupDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(groupService.createGroup(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-002 fix
     public ResponseEntity<GroupDTO> updateGroup(@PathVariable("id") Long id, @Valid @RequestBody GroupDTO dto) {
         return ResponseEntity.ok(groupService.updateGroup(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-002 fix
     public ResponseEntity<Void> deleteGroup(@PathVariable("id") Long id) {
         groupService.deleteGroup(id);
         return ResponseEntity.noContent().build();

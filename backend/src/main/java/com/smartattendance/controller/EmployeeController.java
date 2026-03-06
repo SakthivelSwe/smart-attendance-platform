@@ -22,7 +22,7 @@ public class EmployeeController {
     private final EmployeeBulkService employeeBulkService;
 
     @PostMapping("/bulk-import")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-006 fix
     public ResponseEntity<String> importEmployees(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(employeeBulkService.importEmployeesCsv(file));
     }
@@ -53,20 +53,20 @@ public class EmployeeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-006 fix
     public ResponseEntity<EmployeeDTO> createEmployee(@Valid @RequestBody EmployeeDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.createEmployee(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-006 fix
     public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable("id") Long id,
             @Valid @RequestBody EmployeeDTO dto) {
         return ResponseEntity.ok(employeeService.updateEmployee(id, dto));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-006 fix
     public ResponseEntity<Void> deleteEmployee(@PathVariable("id") Long id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();

@@ -16,7 +16,8 @@ import { Group } from '../../core/models/interfaces';
           <h1 class="page-header">Groups</h1>
           <p class="page-subtitle">Manage WhatsApp attendance groups</p>
         </div>
-        <button *ngIf="authService.isAdmin" (click)="openModal()" class="btn-primary">
+        <!-- BUG-002 fix: MANAGER+ can add groups -->
+        <button *ngIf="authService.isManager" (click)="openModal()" class="btn-primary">
           <span class="flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -81,7 +82,8 @@ import { Group } from '../../core/models/interfaces';
             </div>
           </div>
 
-          <div *ngIf="authService.isAdmin" class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
+          <!-- BUG-002 fix: MANAGER+ can edit/delete groups -->
+          <div *ngIf="authService.isManager" class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
             <button (click)="editGroup(g)" class="flex-1 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg transition-colors">Edit</button>
             <button (click)="deleteGroup(g.id)" class="flex-1 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors">Delete</button>
           </div>
