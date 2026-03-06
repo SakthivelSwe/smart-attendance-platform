@@ -29,15 +29,15 @@ export class AuthService {
     }
 
     get isAdmin(): boolean {
-        return this.currentUser?.role === 'ADMIN';
+        return this.hasMinRole('ADMIN');
     }
 
     get isManager(): boolean {
-        return this.currentUser?.role === 'MANAGER';
+        return this.hasMinRole('MANAGER');
     }
 
     get isTeamLead(): boolean {
-        return this.currentUser?.role === 'TEAM_LEAD';
+        return this.hasMinRole('TEAM_LEAD');
     }
 
     /**
@@ -102,6 +102,15 @@ export class AuthService {
 
     getCurrentUser(): Observable<User> {
         return this.http.get<User>(`${this.apiUrl}/auth/me`);
+    }
+
+    /** Called by AppComponent on bootstrap if the server returns a different role than cached. */
+    updateStoredRole(newRole: UserRole): void {
+        const current = this.currentUser;
+        if (!current) return;
+        const updated = { ...current, role: newRole };
+        sessionStorage.setItem('user', JSON.stringify(updated));
+        this.currentUserSubject.next(updated);
     }
 
     logout(): void {
