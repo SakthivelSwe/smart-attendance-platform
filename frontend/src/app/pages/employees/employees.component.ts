@@ -16,7 +16,8 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
           <h1 class="page-header">Employees</h1>
           <p class="page-subtitle">Manage employee records and WhatsApp name mappings</p>
         </div>
-        <div class="flex items-center gap-3" *ngIf="authService.isAdmin">
+        <!-- BUG-006 fix: MANAGER+ can add/import employees -->
+        <div class="flex items-center gap-3" *ngIf="authService.isManager">
           <input type="file" #fileInput (change)="onFileSelected($event)" accept=".csv" class="hidden">
           <button (click)="fileInput.click()" class="btn-secondary flex items-center gap-2">
             <span class="material-icons text-[18px]">publish</span>
@@ -129,7 +130,8 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
           </div>
 
           <!-- Actions (Icon only) -->
-          <div *ngIf="authService.isAdmin" class="flex justify-end gap-2 pt-3 border-t border-surface-100 dark:border-surface-800">
+          <!-- BUG-006 fix: MANAGER+ can edit/delete employees -->
+          <div *ngIf="authService.isManager" class="flex justify-end gap-2 pt-3 border-t border-surface-100 dark:border-surface-800">
             <button (click)="editEmployee(emp)" 
                     class="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-colors" title="Edit">
                <span class="material-icons text-lg">edit</span>

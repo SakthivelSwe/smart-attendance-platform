@@ -28,7 +28,8 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
           </div>
           <input type="date" [(ngModel)]="selectedDate" (change)="loadAttendance()"
                  class="input-field w-auto"/>
-          <button *ngIf="authService.isAdmin" (click)="showEmailModal = true" class="btn-primary whitespace-nowrap"
+          <!-- BUG-001 fix: MANAGER+ can fetch email and paste chat -->
+          <button *ngIf="authService.isManager" (click)="showEmailModal = true" class="btn-primary whitespace-nowrap"
                   title="Fetch WhatsApp chat from Gmail automatically">
             <span class="flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,7 +38,7 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
               Fetch Email
             </span>
           </button>
-          <button *ngIf="authService.isAdmin" (click)="showProcessModal = true" class="btn-secondary whitespace-nowrap">
+          <button *ngIf="authService.isManager" (click)="showProcessModal = true" class="btn-secondary whitespace-nowrap">
             <span class="flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
@@ -322,7 +323,10 @@ export class AttendanceComponent implements OnInit {
 
   ngOnInit() {
     this.loadAttendance();
-    this.checkAutomationStatus();
+    // BUG-010 fix: only MANAGER+ need OAuth/App Password status — prevents silent 403s for TEAM_LEAD/USER
+    if (this.authService.isManager) {
+      this.checkAutomationStatus();
+    }
   }
 
   checkAutomationStatus() {

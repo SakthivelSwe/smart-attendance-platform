@@ -23,7 +23,8 @@ import { MonthlySummary } from '../../core/models/interfaces';
           <select [(ngModel)]="selectedYear" (change)="loadSummary()" class="input-field w-auto">
             <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
           </select>
-          <button *ngIf="authService.isAdmin" (click)="generateSummary()" class="btn-primary whitespace-nowrap">Generate</button>
+          <!-- BUG-004 fix: MANAGER+ can generate summaries -->
+          <button *ngIf="authService.isManager" (click)="generateSummary()" class="btn-primary whitespace-nowrap">Generate</button>
         </div>
       </div>
 
