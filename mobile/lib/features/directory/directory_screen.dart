@@ -18,7 +18,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
     final theme = Theme.of(context);
 
     // Filter employees based on search
-    final employees = employeesState.valueOrNull ?? [];
+    final employees = employeesState.asData?.value ?? [];
     final filteredEmployees = _searchQuery.isEmpty
         ? employees
         : employees
