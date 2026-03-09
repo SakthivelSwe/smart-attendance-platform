@@ -162,7 +162,7 @@ class AttendanceScreen extends ConsumerWidget {
       // timeString from backend is likely HH:mm:ss
       final parts = timeString.split(':');
       if (parts.length >= 2) {
-        final time = TimeOfDay(int.parse(parts[0]), int.parse(parts[1]));
+        final time = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         // Note: Using a dummy context here isn't ideal but works for basic formatting
         // In a real app, use intl DateFormat or pass context
         final now = DateTime.now();
