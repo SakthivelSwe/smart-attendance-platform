@@ -63,7 +63,7 @@ import { switchMap, startWith } from 'rxjs/operators';
 
             <!-- Notifications Dropdown -->
             <div *ngIf="showNotifications"
-                 class="absolute right-0 top-full mt-2 w-96 bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden z-50 animate-slide-up">
+                 class="absolute -right-2 sm:right-0 top-full mt-2 w-[90vw] sm:w-96 max-w-[384px] bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden z-50 animate-slide-up">
 
               <!-- Header -->
               <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-surface-50/50 dark:bg-surface-800/50">

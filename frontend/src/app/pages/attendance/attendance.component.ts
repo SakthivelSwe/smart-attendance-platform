@@ -17,7 +17,7 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
           <h1 class="page-header">Attendance</h1>
           <p class="page-subtitle">Daily attendance records and processing</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <div *ngIf="automationConfigured" 
                class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-full border border-emerald-200/60 dark:border-emerald-700/30 text-xs text-emerald-700 dark:text-emerald-400 shadow-sm mr-3">
             <span class="relative flex h-2 w-2 mr-1">
