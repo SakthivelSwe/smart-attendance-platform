@@ -27,6 +27,7 @@ export const routes: Routes = [
             { path: 'reports', loadComponent: () => import('./pages/reports/reports.component').then(m => m.ReportsComponent), canActivate: [teamLeadGuard] },
             { path: 'employee-report-card', loadComponent: () => import('./pages/employee-report-card/employee-report-card.component').then(m => m.EmployeeReportCardComponent), canActivate: [teamLeadGuard] },
             { path: 'groups', loadComponent: () => import('./pages/groups/groups.component').then(m => m.GroupsComponent), canActivate: [teamLeadGuard] },
+            { path: 'import-attendance', loadComponent: () => import('./pages/import-attendance/import-attendance.component').then(m => m.ImportAttendanceComponent), canActivate: [teamLeadGuard] },
             // ADMIN only
             { path: 'settings', loadComponent: () => import('./pages/settings/settings.component').then(m => m.SettingsComponent), canActivate: [adminGuard] },
             { path: 'user-management', loadComponent: () => import('./pages/user-management/user-management.component').then(m => m.UserManagementComponent), canActivate: [adminGuard] },

@@ -302,4 +302,27 @@ export class ApiService {
     triggerForcedReminder(): Observable<any> {
         return this.http.post(`${this.api}/settings/automation/force-reminder`, {});
     }
+
+    // WhatsApp Import (VCF + Chat export)
+    uploadVcf(file: File, groupId: number): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('groupId', groupId.toString());
+        return this.http.post<any>(`${this.api}/import/vcf`, formData);
+    }
+
+    getVcfStatus(groupId: number): Observable<any> {
+        return this.http.get<any>(`${this.api}/import/vcf/status`, { params: { groupId: groupId.toString() } });
+    }
+
+    previewWhatsAppImport(file: File, groupId: number): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('groupId', groupId.toString());
+        return this.http.post<any>(`${this.api}/import/whatsapp/preview`, formData);
+    }
+
+    confirmWhatsAppImport(records: any[]): Observable<any> {
+        return this.http.post<any>(`${this.api}/import/whatsapp/confirm`, records);
+    }
 }
