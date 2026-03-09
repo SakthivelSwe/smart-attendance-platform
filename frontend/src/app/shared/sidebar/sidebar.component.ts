@@ -95,7 +95,7 @@ interface NavItem {
 
     <!-- Mobile sidebar -->
     <aside *ngIf="isMobileOpen"
-           class="lg:hidden fixed left-0 top-0 h-screen w-80 bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-50 animate-slide-in-right shadow-2xl">
+           class="lg:hidden fixed left-0 top-0 h-screen w-72 sm:w-80 max-w-[85vw] bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-50 animate-slide-in-right shadow-2xl">
       <div class="flex items-center justify-between px-6 py-6 border-b border-[var(--border-color)]">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center shadow-sm border border-primary-700">

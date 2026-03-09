@@ -16,7 +16,7 @@ import { MonthlySummary } from '../../core/models/interfaces';
           <h1 class="page-header">Monthly Summary</h1>
           <p class="page-subtitle">Monthly attendance aggregation and reports</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <select [(ngModel)]="selectedMonth" (change)="loadSummary()" class="input-field w-auto">
             <option *ngFor="let m of months" [ngValue]="m.value">{{ m.label }}</option>
           </select>
