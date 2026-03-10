@@ -13,6 +13,9 @@ import java.util.concurrent.ScheduledFuture;
 
 import java.time.LocalDate;
 import java.util.List;
+import com.smartattendance.repository.GmailAccountRepository;
+import com.smartattendance.entity.GmailAccount;
+import com.smartattendance.service.VcfContactMapService;
 
 @Component
 @RequiredArgsConstructor
@@ -29,6 +32,8 @@ public class AttendanceScheduler {
     private final MonthlySummaryService monthlySummaryService;
     private final ApplicationEventPublisher eventPublisher;
     private final com.smartattendance.repository.GroupRepository groupRepository;
+    private final GmailAccountRepository gmailAccountRepository;
+    private final VcfContactMapService vcfContactMapService;
 
     @org.springframework.beans.factory.annotation.Value("${app.admin.emails:}")
     private String adminEmails;
@@ -122,11 +127,14 @@ public class AttendanceScheduler {
                     subjectPattern = "WhatsApp Chat";
                 }
 
-                boolean exists;
-                if (oauthConnected) {
+                boolean exists = false;
+                GmailAccount groupAccount = gmailAccountRepository.findByGroupId(group.getId()).orElse(null);
+                boolean isUserOAuthConnected = (groupAccount != null && groupAccount.isActive()) || oauthConnected;
+
+                if (isUserOAuthConnected) {
                     // Use OAuth2 to check email
-                    exists = gmailOAuthService.hasAttendanceEmailForDate(subjectPattern, LocalDate.now());
-                } else {
+                    exists = gmailOAuthService.hasAttendanceEmailForDate(subjectPattern, LocalDate.now(), groupAccount);
+                } else if (email != null && password != null) {
                     exists = gmailService.hasAttendanceEmailForDate(email, password, subjectPattern, LocalDate.now());
                 }
 
@@ -209,11 +217,37 @@ public class AttendanceScheduler {
                     subjectPattern = "WhatsApp Chat";
                 }
 
+                GmailAccount groupAccount = gmailAccountRepository.findByGroupId(group.getId()).orElse(null);
+                boolean isUserOAuthConnected = (groupAccount != null && groupAccount.isActive()) || oauthConnected;
+
+                // 1. Process VCF silently
+                try {
+                    if (groupAccount != null && groupAccount.isActive()) {
+                        byte[] vcfBytes = gmailOAuthService.fetchVcfAttachment(groupAccount);
+                        if (vcfBytes != null) {
+                            VcfContactMapService.VcfUploadResult result = vcfContactMapService
+                                    .uploadAndFilter(group.getId(), new java.io.ByteArrayInputStream(vcfBytes));
+                            logger.info("Auto-processed VCF for group '{}': {}", group.getName(), result.toMessage());
+                        }
+                    } else if (!isUserOAuthConnected && email != null && password != null) {
+                        byte[] vcfBytes = gmailService.fetchVcfAttachment(email, password);
+                        if (vcfBytes != null) {
+                            VcfContactMapService.VcfUploadResult result = vcfContactMapService
+                                    .uploadAndFilter(group.getId(), new java.io.ByteArrayInputStream(vcfBytes));
+                            logger.info("Auto-processed VCF via App Password for group '{}': {}", group.getName(),
+                                    result.toMessage());
+                        }
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Auto VCF processing skipped for group '{}': {}", group.getName(), ex.getMessage());
+                }
+
+                // 2. Fetch Chat text
                 String chatText = null;
                 try {
-                    if (oauthConnected) {
-                        chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today);
-                    } else {
+                    if (isUserOAuthConnected) {
+                        chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today, groupAccount);
+                    } else if (email != null && password != null) {
                         chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
                     }
                 } catch (Exception ex) {

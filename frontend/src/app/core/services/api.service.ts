@@ -185,6 +185,16 @@ export class ApiService {
         return this.http.delete<any>(`${this.api}/settings/gmail/oauth`);
     }
 
+    // Gmail Accounts (Per Group)
+    getGmailAccounts(): Observable<any[]> {
+        return this.http.get<any[]>(`${this.api}/gmail-accounts`);
+    }
+    getGmailOAuthAuthUrlForGroup(groupId: number): Observable<{ url: string }> {
+        return this.http.post<{ url: string }>(`${this.api}/gmail-accounts/oauth/url`, { groupId });
+    }
+    disconnectGmailAccount(groupId: number): Observable<any> {
+        return this.http.delete<any>(`${this.api}/gmail-accounts/${groupId}`);
+    }
 
     // Teams
     getTeams(): Observable<Team[]> {
