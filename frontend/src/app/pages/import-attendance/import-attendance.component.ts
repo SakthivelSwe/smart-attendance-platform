@@ -70,7 +70,10 @@ interface ImportRecord {
                   {{ vcfLoaded ? 'Contact Map Loaded' : 'Setup Required' }}
                 </p>
                 <p class="text-xs" [ngClass]="vcfLoaded ? 'text-emerald-600 dark:text-emerald-500' : 'text-amber-600 dark:text-amber-500'">
-                  {{ vcfContactCount > 0 ? vcfContactCount + ' contacts mapped' : 'Upload contacts.vcf to begin' }}
+                  {{ vcfContactCount > 0 ? vcfContactCount + ' employee contacts stored' : 'Upload contacts.vcf to begin' }}
+                </p>
+                <p *ngIf="vcfDiscarded > 0" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  🛡️ {{ vcfDiscarded }} personal contacts discarded
                 </p>
               </div>
             </div>
@@ -107,6 +110,11 @@ interface ImportRecord {
                   <p *ngIf="vcfFileName" class="text-xs text-emerald-600 font-medium mt-1">📎 {{ vcfFileName }}</p>
                 </div>
               </div>
+            </div>
+
+            <!-- Privacy notice -->
+            <div class="mb-3 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/40 text-xs text-blue-700 dark:text-blue-400">
+              🔒 <strong>Privacy:</strong> Only contacts matching your team's employees are stored. Personal contacts (family, friends) are discarded immediately and never saved.
             </div>
 
             <button (click)="uploadVcf()" [disabled]="!vcfFile || !selectedGroupId || vcfUploading"
@@ -312,6 +320,7 @@ export class ImportAttendanceComponent implements OnInit {
   vcfUploading = false;
   vcfLoaded = false;
   vcfContactCount = 0;
+  vcfDiscarded = 0;  // Personal contacts filtered out (never stored)
 
   // Chat import state
   chatFile: File | null = null;
@@ -390,7 +399,8 @@ export class ImportAttendanceComponent implements OnInit {
       next: (res) => {
         this.vcfUploading = false;
         this.vcfLoaded = true;
-        this.vcfContactCount = res.contactsLoaded;
+        this.vcfContactCount = res.matched ?? res.contactsLoaded;
+        this.vcfDiscarded = res.discarded ?? 0;
         this.vcfFile = null;
         this.vcfFileName = '';
         this.showAlert(res.message, true);

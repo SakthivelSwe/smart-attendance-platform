@@ -2,6 +2,7 @@ package com.smartattendance.controller;
 
 import com.smartattendance.dto.AttendanceDTO;
 import com.smartattendance.dto.WhatsAppImportRecordDTO;
+import com.smartattendance.service.VcfContactMapService;
 import com.smartattendance.service.WhatsAppImportService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,10 +20,11 @@ import java.util.Map;
  * REST Controller for WhatsApp Attendance Import feature.
  *
  * Endpoints:
- *   POST /api/import/vcf              - Upload VCF contacts file (one-time setup per group)
- *   GET  /api/import/vcf/status       - Check if VCF is loaded for a group
- *   POST /api/import/whatsapp/preview - Parse WhatsApp export, return preview (no save)
- *   POST /api/import/whatsapp/confirm - Save confirmed attendance records
+ * POST /api/import/vcf - Upload VCF contacts file (one-time setup per group)
+ * GET /api/import/vcf/status - Check if VCF is loaded for a group
+ * POST /api/import/whatsapp/preview - Parse WhatsApp export, return preview (no
+ * save)
+ * POST /api/import/whatsapp/confirm - Save confirmed attendance records
  */
 @RestController
 @RequestMapping("/api/import")
@@ -43,8 +45,8 @@ public class WhatsAppImportController {
      * so they can be used automatically for every future WhatsApp export import.
      *
      * Request: multipart/form-data with fields:
-     *   - file: the .vcf file
-     *   - groupId: the attendance group ID
+     * - file: the .vcf file
+     * - groupId: the attendance group ID
      */
     @PostMapping("/vcf")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
@@ -68,11 +70,16 @@ public class WhatsAppImportController {
         }
 
         try {
-            int count = whatsAppImportService.uploadVcf(groupId, file.getInputStream());
+            VcfContactMapService.VcfUploadResult result = whatsAppImportService.uploadVcf(groupId,
+                    file.getInputStream());
             response.put("success", true);
-            response.put("contactsLoaded", count);
-            response.put("message", count + " contacts loaded successfully! You can now import WhatsApp attendance exports.");
-            logger.info("VCF uploaded for groupId={}: {} contacts loaded", groupId, count);
+            response.put("contactsLoaded", result.matched());
+            response.put("totalInVcf", result.totalParsed());
+            response.put("matched", result.matched());
+            response.put("discarded", result.discarded());
+            response.put("message", result.toMessage());
+            logger.info("VCF uploaded for groupId={}: {}/{} contacts matched, {} personal discarded",
+                    groupId, result.matched(), result.totalParsed(), result.discarded());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("VCF upload failed for groupId={}: {}", groupId, e.getMessage());
@@ -104,13 +111,14 @@ public class WhatsAppImportController {
     // =========================================================================
 
     /**
-     * Parse a WhatsApp export file and return a preview of resolved attendance records.
+     * Parse a WhatsApp export file and return a preview of resolved attendance
+     * records.
      * Does NOT save to the database — the user must confirm via /confirm endpoint.
      *
      * Request: multipart/form-data with fields:
-     *   - file: the WhatsApp export .txt file  (OR)
-     *   - chatText: raw chat text as a string
-     *   - groupId: the attendance group ID
+     * - file: the WhatsApp export .txt file (OR)
+     * - chatText: raw chat text as a string
+     * - groupId: the attendance group ID
      */
     @PostMapping("/whatsapp/preview")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
@@ -142,7 +150,8 @@ public class WhatsAppImportController {
             long vcfCount = whatsAppImportService.getContactMapCount(groupId);
             if (vcfCount == 0) {
                 response.put("success", false);
-                response.put("message", "No contact map found for this group. Please upload your contacts.vcf file first (one-time setup).");
+                response.put("message",
+                        "No contact map found for this group. Please upload your contacts.vcf file first (one-time setup).");
                 return ResponseEntity.badRequest().body(response);
             }
 
@@ -173,9 +182,11 @@ public class WhatsAppImportController {
     }
 
     /**
-     * Confirm and save the attendance records selected by the user from the preview.
+     * Confirm and save the attendance records selected by the user from the
+     * preview.
      *
-     * Request body: JSON array of WhatsAppImportRecordDTO objects with employeeId populated.
+     * Request body: JSON array of WhatsAppImportRecordDTO objects with employeeId
+     * populated.
      * Only records with a non-null employeeId will be saved.
      */
     @PostMapping("/whatsapp/confirm")

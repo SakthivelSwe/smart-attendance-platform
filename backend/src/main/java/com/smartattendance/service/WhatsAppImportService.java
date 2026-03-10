@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
  * WhatsAppImportService orchestrates the full import flow:
  *
  * 1. uploadVcf() — One-time setup: parse .vcf and store name->phone map in DB
- * 2. previewImport() — Parse WhatsApp chat, resolve names via VCF, match employees
+ * 2. previewImport() — Parse WhatsApp chat, resolve names via VCF, match
+ * employees
  * 3. confirmImport() — Save the confirmed attendance records to database
  */
 @Service
@@ -31,59 +32,29 @@ public class WhatsAppImportService {
 
     private final VcfContactMapService vcfContactMapService;
     private final WhatsAppParser whatsAppParser;
-    private final ContactMapRepository contactMapRepository;
     private final EmployeeRepository employeeRepository;
     private final AttendanceRepository attendanceRepository;
-    private final GroupRepository groupRepository;
     private final HolidayService holidayService;
     private final LeaveService leaveService;
 
-    // ========================================================================
-    // STEP 1: Upload VCF — One-time setup
-    // ========================================================================
-
     /**
-     * Parse a VCF file and store the name->phone mappings for a given group.
-     * Replaces any existing mappings for that group (idempotent — safe to re-upload).
+     * Parse a VCF file, filter to only matched employees, encrypt phone numbers,
+     * save to DB.
+     * Personal contacts (family, friends) are discarded immediately and never
+     * written to DB.
      *
-     * @param groupId      the attendance group this VCF belongs to
-     * @param vcfStream    the .vcf file input stream
-     * @return number of contacts loaded
+     * @return VcfUploadResult with counts: totalParsed, matched, discarded
      */
     @Transactional
-    public int uploadVcf(Long groupId, InputStream vcfStream) throws Exception {
-        AttendanceGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Attendance group not found: " + groupId));
-
-        // Parse the VCF file
-        Map<String, String> nameToPhone = vcfContactMapService.parseVcf(vcfStream);
-
-        if (nameToPhone.isEmpty()) {
-            throw new RuntimeException("No contacts found in the uploaded VCF file. Please check the file format.");
-        }
-
-        // Clear old mappings for this group before inserting new ones
-        contactMapRepository.deleteByGroupId(groupId);
-
-        // Build and save new entries
-        List<ContactMapEntry> entries = new ArrayList<>();
-        for (Map.Entry<String, String> e : nameToPhone.entrySet()) {
-            entries.add(ContactMapEntry.builder()
-                    .group(group)
-                    .displayName(e.getKey())
-                    .phoneNumber(e.getValue())
-                    .build());
-        }
-        contactMapRepository.saveAll(entries);
-        logger.info("VCF upload: {} contacts saved for group '{}'", entries.size(), group.getName());
-        return entries.size();
+    public VcfContactMapService.VcfUploadResult uploadVcf(Long groupId, InputStream vcfStream) throws Exception {
+        return vcfContactMapService.uploadAndFilter(groupId, vcfStream);
     }
 
     /**
-     * Get the count of loaded contacts for a group (to show in UI).
+     * Get the count of stored (filtered) contact mappings for a group.
      */
     public long getContactMapCount(Long groupId) {
-        return contactMapRepository.countByGroupId(groupId);
+        return vcfContactMapService.getContactMapCount(groupId);
     }
 
     // ========================================================================
@@ -95,13 +66,13 @@ public class WhatsAppImportService {
      * Returns a preview list WITHOUT saving to the database.
      *
      * Priority of matching:
-     *   1. VCF-resolved phone -> Employee phone match
-     *   2. Sender name -> Employee whatsappName match
-     *   3. Sender name -> Employee name match
-     *   4. Sender (if looks like a phone number) -> Employee phone match
+     * 1. VCF-resolved phone -> Employee phone match
+     * 2. Sender name -> Employee whatsappName match
+     * 3. Sender name -> Employee name match
+     * 4. Sender (if looks like a phone number) -> Employee phone match
      *
-     * @param groupId   the attendance group scope
-     * @param chatText  the raw text from the WhatsApp .txt export
+     * @param groupId  the attendance group scope
+     * @param chatText the raw text from the WhatsApp .txt export
      * @return list of preview records (matched and unmatched)
      */
     public List<WhatsAppImportRecordDTO> previewImport(Long groupId, String chatText) {
@@ -109,8 +80,7 @@ public class WhatsAppImportService {
         Map<String, String> vcfMap = loadVcfMap(groupId);
 
         // 2. Parse the WhatsApp chat
-        Map<LocalDate, Map<String, WhatsAppParser.AttendanceEntry>> parsedChat =
-                whatsAppParser.parseChat(chatText);
+        Map<LocalDate, Map<String, WhatsAppParser.AttendanceEntry>> parsedChat = whatsAppParser.parseChat(chatText);
 
         if (parsedChat.isEmpty()) {
             return Collections.emptyList();
@@ -241,7 +211,8 @@ public class WhatsAppImportService {
      * Save the attendance records that the user has confirmed in the preview.
      * Only saves records where employeeId is set (matched records).
      *
-     * @param records  the confirmed records from the preview (with employeeId populated)
+     * @param records the confirmed records from the preview (with employeeId
+     *                populated)
      * @return list of saved AttendanceDTOs
      */
     @Transactional
@@ -254,13 +225,16 @@ public class WhatsAppImportService {
         Set<String> queued = new HashSet<>();
 
         for (WhatsAppImportRecordDTO record : records) {
-            if (record.getEmployeeId() == null) continue; // Skip unmatched
+            if (record.getEmployeeId() == null)
+                continue; // Skip unmatched
 
             Employee employee = empById.get(record.getEmployeeId());
-            if (employee == null) continue;
+            if (employee == null)
+                continue;
 
             String key = employee.getId() + "|" + record.getDate();
-            if (!queued.add(key)) continue; // Dedup
+            if (!queued.add(key))
+                continue; // Dedup
 
             // Determine final status
             LocalDate date = record.getDate();
@@ -311,12 +285,8 @@ public class WhatsAppImportService {
     // ========================================================================
 
     private Map<String, String> loadVcfMap(Long groupId) {
-        List<ContactMapEntry> entries = contactMapRepository.findByGroupId(groupId);
-        Map<String, String> map = new HashMap<>();
-        for (ContactMapEntry e : entries) {
-            map.put(e.getDisplayName(), e.getPhoneNumber());
-        }
-        return map;
+        // Loads and decrypts phone numbers (stored AES-256 encrypted)
+        return vcfContactMapService.loadDecryptedMap(groupId);
     }
 
     private Map<String, Employee> buildPhoneMap(List<Employee> employees) {
@@ -351,7 +321,8 @@ public class WhatsAppImportService {
     }
 
     private String normalizeName(String name) {
-        if (name == null) return "";
+        if (name == null)
+            return "";
         return name.replaceAll("[^a-zA-Z0-9 ]", "").toLowerCase().trim();
     }
 
