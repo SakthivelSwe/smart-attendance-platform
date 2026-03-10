@@ -221,7 +221,6 @@ export class SidebarComponent {
       items: [
         // All 4 roles can access these pages
         { label: 'Attendance', route: '/attendance', icon: this.icons.attendance },
-        { label: 'Import Attendance', route: '/import-attendance', icon: this.icons.import, minRole: 'TEAM_LEAD' },
         { label: 'Employees', route: '/employees', icon: this.icons.employees },
         { label: 'Leaves', route: '/leaves', icon: this.icons.leaves },
         { label: 'Holidays', route: '/holidays', icon: this.icons.holidays },

@@ -10,6 +10,7 @@ import com.smartattendance.service.AttendanceService;
 import com.smartattendance.service.GmailService;
 import com.smartattendance.service.GmailOAuthService;
 import com.smartattendance.service.SystemSettingService;
+import com.smartattendance.service.VcfContactMapService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ public class AttendanceController {
     private final EmployeeRepository employeeRepository;
     private final SystemSettingService systemSettingService;
     private final GmailOAuthService gmailOAuthService;
+    private final VcfContactMapService vcfContactMapService;
 
     @GetMapping("/date/{date}")
     public ResponseEntity<List<AttendanceDTO>> getByDate(
@@ -168,8 +170,25 @@ public class AttendanceController {
             return ResponseEntity.ok(response);
         }
 
+        // --- Auto-detect & process VCF from email (one-time setup, silent) ---
+        if (groupId != null && !isOAuthConnected && gmailEmail != null && gmailPassword != null) {
+            try {
+                String cleanPasswordForVcf = gmailPassword.replace(" ", "").trim();
+                byte[] vcfBytes = gmailService.fetchVcfAttachment(gmailEmail, cleanPasswordForVcf);
+                if (vcfBytes != null) {
+                    VcfContactMapService.VcfUploadResult vcfResult = vcfContactMapService.uploadAndFilter(groupId,
+                            new java.io.ByteArrayInputStream(vcfBytes));
+                    response.put("vcfUpdated", true);
+                    response.put("vcfMessage", vcfResult.toMessage());
+                    logger.info("VCF auto-processed from email for groupId={}: {}", groupId, vcfResult.toMessage());
+                }
+            } catch (Exception vcfEx) {
+                // VCF failure is non-fatal — continue with chat processing
+                logger.warn("VCF auto-fetch skipped: {}", vcfEx.getMessage());
+            }
+        }
+
         // Process the chat text
-        // Process the chat text - Manual email triggering usually warrants a full check
         List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date, true);
 
         response.put("success", true);
