@@ -223,6 +223,9 @@ export class ApiService {
     getUsers(): Observable<UserInfo[]> {
         return this.http.get<UserInfo[]>(`${this.api}/admin/users`);
     }
+    getAssignableUsers(): Observable<UserInfo[]> {
+        return this.http.get<UserInfo[]>(`${this.api}/teams/users`);
+    }
     getUsersByRole(role: UserRole): Observable<UserInfo[]> {
         return this.http.get<UserInfo[]>(`${this.api}/admin/users/role/${role}`);
     }

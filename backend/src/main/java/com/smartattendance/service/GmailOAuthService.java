@@ -92,7 +92,7 @@ public class GmailOAuthService {
             builder.queryParam("state", groupId.toString());
         }
 
-        return builder.toUriString();
+        return builder.build().encode().toUriString();
     }
 
     public String buildAuthorizationUrl() {

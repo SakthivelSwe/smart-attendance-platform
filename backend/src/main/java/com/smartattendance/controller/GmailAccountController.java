@@ -61,11 +61,13 @@ public class GmailAccountController {
 
     @PostMapping("/oauth/url")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEAM_LEAD')")
-    public ResponseEntity<java.util.Map<String, String>> getOAuthUrl(@RequestBody java.util.Map<String, Long> payload) {
-        Long groupId = payload.get("groupId");
-        if (groupId == null) {
+    public ResponseEntity<java.util.Map<String, String>> getOAuthUrl(
+            @RequestBody java.util.Map<String, Object> payload) {
+        Object groupIdObj = payload.get("groupId");
+        if (groupIdObj == null) {
             return ResponseEntity.badRequest().build();
         }
+        Long groupId = Long.valueOf(groupIdObj.toString());
         String url = gmailOAuthService.buildAuthorizationUrl(groupId);
         java.util.Map<String, String> response = new java.util.HashMap<>();
         response.put("url", url);
