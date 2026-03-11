@@ -207,7 +207,7 @@ export class TeamsComponent implements OnInit {
     this.loadTeams();
     // BUG-003 fix: MANAGER+ need user list to assign leads/managers
     if (this.authService.isManager) {
-      this.api.getAssignableUsers().subscribe(u => this.users = u);
+      this.api.getUsers().subscribe(u => this.users = u);
     }
   }
 

@@ -163,37 +163,6 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
             </span>
           </h3>
 
-          <!-- How it works panel -->
-          <details class="mb-4 group" open>
-            <summary class="cursor-pointer flex items-center justify-between text-sm font-semibold text-[var(--text-primary)] py-2 select-none">
-              <span class="flex items-center gap-2">📋 How does this work?</span>
-              <span class="text-[var(--text-secondary)] text-xs group-open:rotate-180 transition-transform">▼</span>
-            </summary>
-            <div class="mt-2 space-y-3">
-              <!-- Step 1: One-time VCF -->
-              <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30">
-                <p class="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">⚙️ STEP 1 — One-time Setup (do this once)</p>
-                <ol class="text-xs text-blue-700 dark:text-blue-400 space-y-1 list-none">
-                  <li>1. Open <strong>Contacts App</strong> on Android</li>
-                  <li>2. Tap ⋮ Menu → <strong>Export → Save as .vcf</strong></li>
-                  <li>3. <strong>Email the .vcf file</strong> to yourself (subject: "contacts.vcf")</li>
-                  <li class="text-emerald-600 dark:text-emerald-400 font-medium">✅ System will auto-detect it next time you click Fetch &amp; Process!</li>
-                </ol>
-              </div>
-              <!-- Step 2: Daily WhatsApp export -->
-              <div class="p-3 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/30">
-                <p class="text-xs font-bold text-green-700 dark:text-green-400 mb-1">📱 STEP 2 — Every day/week</p>
-                <ol class="text-xs text-green-700 dark:text-green-400 space-y-1 list-none">
-                  <li>1. Open <strong>WhatsApp</strong> → Open attendance group</li>
-                  <li>2. Tap group name → <strong>Export Chat</strong> → <strong>Without Media</strong></li>
-                  <li>3. <strong>Email it</strong> to yourself</li>
-                  <li>4. Come here → click <strong>Fetch &amp; Process</strong> 🚀</li>
-                </ol>
-              </div>
-              <p class="text-xs text-[var(--text-secondary)] italic">💡 The system automatically matches WhatsApp names to employees using the VCF contact map.</p>
-            </div>
-          </details>
-
           <!-- OAuth2 connected — simplified view -->
           <div *ngIf="oauthConnected">
             <div class="my-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-2">
@@ -240,6 +209,7 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
 
           <!-- App Password fallback — when OAuth2 not connected -->
           <div *ngIf="!oauthConnected">
+            <p class="text-sm text-[var(--text-secondary)] mb-5">Enter your Gmail credentials to read WhatsApp chat export from inbox</p>
             <div class="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-700 dark:text-amber-400">
               💡 Tip: Connect Gmail via OAuth2 in <b>Settings</b> to skip entering credentials here every time.
             </div>

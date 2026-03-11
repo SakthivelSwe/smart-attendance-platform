@@ -88,44 +88,6 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
         </div>
 
-        <!-- Team Email Accounts -->
-        <div class="card p-6 border-2 border-primary-500/20" *ngIf="authService.currentUser?.role === 'ADMIN' || authService.currentUser?.role === 'MANAGER' || authService.currentUser?.role === 'TEAM_LEAD'">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg text-primary-600 dark:text-primary-400">
-              <span class="material-icons">group</span>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-[var(--text-primary)]">Team Email Accounts</h3>
-              <p class="text-sm text-[var(--text-secondary)]">Connect Gmail accounts for specific teams to automate VCF and WhatsApp processing</p>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div *ngIf="teamAccounts.length === 0" class="text-sm text-[var(--text-secondary)]">No teams available.</div>
-            <div *ngFor="let acc of teamAccounts" class="p-4 rounded-xl border border-surface-200 dark:border-surface-700/50 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-surface-50 dark:bg-surface-900/20">
-              <div>
-                <p class="font-semibold text-[var(--text-primary)]">{{ acc.groupName }}</p>
-                <div *ngIf="acc.isActive" class="flex items-center gap-2 mt-1">
-                  <span class="material-icons text-emerald-500 text-[16px]">check_circle</span>
-                  <span class="text-xs text-[var(--text-secondary)]">{{ acc.email }}</span>
-                </div>
-                <div *ngIf="!acc.isActive" class="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                  Not Connected
-                </div>
-              </div>
-
-              <div class="shrink-0 flex gap-2">
-                <button *ngIf="!acc.isActive" (click)="connectTeamGmail(acc.groupId)" [disabled]="loading" class="btn-primary text-xs py-1.5 px-3 flex gap-1 items-center">
-                  <span class="material-icons text-[16px]">link</span> Connect
-                </button>
-                <button *ngIf="acc.isActive" (click)="disconnectTeamGmail(acc.groupId)" [disabled]="loading" class="btn-danger text-xs py-1.5 px-3 flex gap-1 items-center">
-                  <span class="material-icons text-[16px]">link_off</span> Disconnect
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Automation Preferences -->
         <div class="card p-6 border-2 border-primary-500/20 mt-6" *ngIf="authService.currentUser?.role === 'ADMIN'">
           <div class="flex items-center gap-3 mb-6">
@@ -266,7 +228,6 @@ import { ToastService } from '../../core/services/toast.service';
 export class SettingsComponent implements OnInit {
   oauthStatus: any = null;
   loading = false;
-  teamAccounts: any[] = [];
 
   automationData = {
     emailReminderEnabled: true,
@@ -301,9 +262,6 @@ export class SettingsComponent implements OnInit {
       this.loadOAuthStatus();
       this.loadAutomationSettings();
     }
-    if (this.authService.currentUser?.role && ['ADMIN', 'MANAGER', 'TEAM_LEAD'].includes(this.authService.currentUser.role)) {
-      this.loadTeamAccounts();
-    }
     // Handle OAuth callback result from query params (Google redirects back here)
     this.route.queryParams.subscribe(params => {
       if (params['gmail_oauth'] === 'success') {
@@ -311,39 +269,6 @@ export class SettingsComponent implements OnInit {
         this.loadOAuthStatus();
       } else if (params['gmail_oauth'] === 'error') {
         this.toast.error(`Gmail connection failed: ${params['reason'] || 'Unknown error'}`);
-      }
-    });
-  }
-
-  loadTeamAccounts() {
-    this.apiService.getGmailAccounts().subscribe({
-      next: (accounts) => this.teamAccounts = accounts || [],
-      error: () => this.toast.error('Failed to load team email accounts.')
-    });
-  }
-
-  connectTeamGmail(groupId: number) {
-    this.loading = true;
-    this.apiService.getGmailOAuthAuthUrlForGroup(groupId).subscribe({
-      next: (res) => window.location.href = res.url,
-      error: () => {
-        this.toast.error('Failed to start Gmail auth for team.');
-        this.loading = false;
-      }
-    });
-  }
-
-  disconnectTeamGmail(groupId: number) {
-    this.loading = true;
-    this.apiService.disconnectGmailAccount(groupId).subscribe({
-      next: () => {
-        this.toast.success('Team Gmail account disconnected.');
-        this.loadTeamAccounts();
-        this.loading = false;
-      },
-      error: () => {
-        this.toast.error('Failed to disconnect Team Gmail account.');
-        this.loading = false;
       }
     });
   }

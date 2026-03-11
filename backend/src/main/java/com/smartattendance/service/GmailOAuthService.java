@@ -15,12 +15,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.smartattendance.entity.GmailAccount;
-import com.smartattendance.repository.GmailAccountRepository;
-import com.smartattendance.repository.GroupRepository;
-import com.smartattendance.entity.AttendanceGroup;
-import com.smartattendance.entity.User;
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
@@ -66,8 +60,6 @@ public class GmailOAuthService {
 
     private final SystemSettingService systemSettingService;
     private final EncryptionService encryptionService;
-    private final GmailAccountRepository gmailAccountRepository;
-    private final GroupRepository groupRepository;
 
     // -----------------------------------------------------------------------
     // OAuth2 Authorization URL
@@ -77,26 +69,17 @@ public class GmailOAuthService {
      * Build the Google OAuth2 authorization URL that the admin navigates to.
      * Returns an absolute URL to redirect the frontend browser to.
      */
-    public String buildAuthorizationUrl(Long groupId) {
+    public String buildAuthorizationUrl() {
         String redirectUri = backendUrl + "/api/settings/gmail/oauth/callback";
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUri(java.net.URI.create(AUTH_SERVER_URL))
+        return UriComponentsBuilder.fromUri(java.net.URI.create(AUTH_SERVER_URL))
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
                 .queryParam("scope",
                         GMAIL_SEND_SCOPE + " " + GMAIL_READONLY_SCOPE + " " + USERINFO_EMAIL_SCOPE + " " + SHEETS_SCOPE)
                 .queryParam("access_type", "offline")
-                .queryParam("prompt", "consent");
-
-        if (groupId != null) {
-            builder.queryParam("state", groupId.toString());
-        }
-
-        return builder.build().encode().toUriString();
-    }
-
-    public String buildAuthorizationUrl() {
-        return buildAuthorizationUrl(null);
+                .queryParam("prompt", "consent") // Forces re-consent so we always get a refresh token
+                .toUriString();
     }
 
     // -----------------------------------------------------------------------
@@ -105,10 +88,13 @@ public class GmailOAuthService {
 
     /**
      * Exchange the authorization code from Google for tokens.
+     * Stores the refresh token (encrypted) and the connected email in
+     * system_settings.
      */
-    public String handleOAuthCallback(String code, String state, User currentUser) throws IOException {
+    public String handleOAuthCallback(String code) throws IOException {
         String redirectUri = backendUrl + "/api/settings/gmail/oauth/callback";
 
+        // Exchange code for tokens using Google's token endpoint
         com.google.api.client.http.GenericUrl tokenUrl = new com.google.api.client.http.GenericUrl(TOKEN_SERVER_URL);
         com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest tokenRequest = new com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest(
                 new com.google.api.client.http.javanet.NetHttpTransport(),
@@ -121,6 +107,7 @@ public class GmailOAuthService {
                                 clientId, clientSecret));
 
         com.google.api.client.auth.oauth2.TokenResponse tokenResponse = tokenRequest.execute();
+
         String refreshToken = tokenResponse.getRefreshToken();
         String accessToken = tokenResponse.getAccessToken();
 
@@ -129,36 +116,14 @@ public class GmailOAuthService {
                     "No refresh token returned from Google. Please revoke access at https://myaccount.google.com/permissions and try again.");
         }
 
+        // Get the connected email from the userinfo endpoint
         String connectedEmail = fetchEmailFromAccessToken(accessToken);
 
-        if (state != null && !state.isEmpty() && !state.equals("null")) {
-            // Group specific
-            Long groupId = Long.parseLong(state);
-            AttendanceGroup group = groupRepository.findById(groupId)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid group ID"));
-
-            GmailAccount account = gmailAccountRepository.findByGroupId(groupId).orElse(new GmailAccount());
-            account.setGroup(group);
-            account.setEmail(connectedEmail);
-            account.setAuthMethod("OAUTH");
-            account.setRefreshTokenEncrypted(encryptionService.encrypt(refreshToken));
-            account.setActive(true);
-            if (account.getId() == null) {
-                account.setCreatedBy(currentUser);
-            }
-            gmailAccountRepository.save(account);
-            logger.info("Gmail OAuth2 connected successfully for group {}: {}", groupId, connectedEmail);
-        } else {
-            // Global fallback
-            systemSettingService.saveOAuthTokens(connectedEmail, encryptionService.encrypt(refreshToken));
-            logger.info("Global Gmail OAuth2 connected successfully for: {}", connectedEmail);
-        }
+        // Store encrypted refresh token + email
+        systemSettingService.saveOAuthTokens(connectedEmail, encryptionService.encrypt(refreshToken));
+        logger.info("Gmail OAuth2 connected successfully for: {}", connectedEmail);
 
         return connectedEmail;
-    }
-
-    public String handleOAuthCallback(String code) throws IOException {
-        return handleOAuthCallback(code, null, null);
     }
 
     // -----------------------------------------------------------------------
@@ -167,11 +132,11 @@ public class GmailOAuthService {
 
     /**
      * Send an HTML email using the Gmail API (OAuth2 — no App Password required).
+     * Throws RuntimeException if not connected or if sending fails.
      */
-    public void sendHtmlEmail(String toEmail, String subject, String htmlBody, GmailAccount account)
-            throws IOException, MessagingException {
-        Gmail gmailService = buildGmailService(account);
-        String senderEmail = account != null ? account.getEmail() : systemSettingService.getOAuthConnectedEmail();
+    public void sendHtmlEmail(String toEmail, String subject, String htmlBody) throws IOException, MessagingException {
+        Gmail gmailService = buildGmailService();
+        String senderEmail = systemSettingService.getOAuthConnectedEmail();
 
         MimeMessage mimeMessage = buildMimeMessage(senderEmail, toEmail, subject, htmlBody);
         Message message = encodeMimeMessage(mimeMessage);
@@ -180,19 +145,14 @@ public class GmailOAuthService {
         logger.info("Email sent via Gmail API from {} to {}: '{}'", senderEmail, toEmail, subject);
     }
 
-    public void sendHtmlEmail(String toEmail, String subject, String htmlBody) throws IOException, MessagingException {
-        sendHtmlEmail(toEmail, subject, htmlBody, null);
-    }
-
     // -----------------------------------------------------------------------
     // Fetch and read emails via Gmail API
     // -----------------------------------------------------------------------
 
-    public java.util.List<java.util.Map<String, String>> listRecentEmails(String subjectPattern, int maxResults,
-            GmailAccount account) {
+    public java.util.List<java.util.Map<String, String>> listRecentEmails(String subjectPattern, int maxResults) {
         java.util.List<java.util.Map<String, String>> results = new java.util.ArrayList<>();
         try {
-            Gmail gmailService = buildGmailService(account);
+            Gmail gmailService = buildGmailService();
             String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
             String query = "subject:\"" + cleanSubject + "\"";
 
@@ -234,13 +194,8 @@ public class GmailOAuthService {
         return results;
     }
 
-    public java.util.List<java.util.Map<String, String>> listRecentEmails(String subjectPattern, int maxResults) {
-        return listRecentEmails(subjectPattern, maxResults, null);
-    }
-
-    public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate,
-            GmailAccount account) throws Exception {
-        Gmail gmailService = buildGmailService(account);
+    public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) throws Exception {
+        Gmail gmailService = buildGmailService();
         String userId = "me";
 
         String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
@@ -266,75 +221,6 @@ public class GmailOAuthService {
             String text = extractChatFromGmailMessage(gmailService, userId, msg);
             if (text != null)
                 return text;
-        }
-        return null;
-    }
-
-    public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) throws Exception {
-        return fetchAttendanceEmailForDate(subjectPattern, targetDate, null);
-    }
-
-    public byte[] fetchVcfAttachment(GmailAccount account) {
-        try {
-            Gmail gmailService = buildGmailService(account);
-            String userId = "me";
-            java.time.LocalDate fromDate = java.time.LocalDate.now().minusDays(30);
-            String dateStr = fromDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-            String query = "(subject:\"vcf\" OR subject:\"contacts\") after:" + dateStr + " has:attachment";
-
-            logger.info("Querying Gmail API for VCF: {}", query);
-
-            com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
-                    .list(userId).setQ(query).execute();
-
-            java.util.List<Message> messages = listResponse.getMessages();
-            if (messages == null || messages.isEmpty()) {
-                logger.info("No VCF emails found matching query '{}'.", query);
-                return null;
-            }
-
-            for (Message msgMetadata : messages) {
-                Message msg = gmailService.users().messages().get(userId, msgMetadata.getId()).setFormat("full")
-                        .execute();
-                byte[] vcfBytes = extractVcfFromGmailMessage(gmailService, userId, msg);
-                if (vcfBytes != null) {
-                    logger.info("VCF attachment found via OAuth2");
-                    return vcfBytes;
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Could not fetch VCF from email via OAuth2: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    private byte[] extractVcfFromGmailMessage(Gmail gmailService, String userId, Message msg) throws Exception {
-        if (msg.getPayload() == null)
-            return null;
-        return extractVcfFromParts(gmailService, userId, msg.getId(), msg.getPayload().getParts());
-    }
-
-    private byte[] extractVcfFromParts(Gmail gmailService, String userId, String messageId,
-            java.util.List<com.google.api.services.gmail.model.MessagePart> parts) throws Exception {
-        if (parts == null)
-            return null;
-        for (com.google.api.services.gmail.model.MessagePart part : parts) {
-            String filename = part.getFilename();
-            if (filename != null && !filename.isEmpty() && filename.toLowerCase().endsWith(".vcf")) {
-                String attachmentId = part.getBody().getAttachmentId();
-                if (attachmentId != null) {
-                    com.google.api.services.gmail.model.MessagePartBody attachment = gmailService.users().messages()
-                            .attachments().get(userId, messageId, attachmentId).execute();
-                    return java.util.Base64.getUrlDecoder().decode(attachment.getData());
-                } else if (part.getBody().getData() != null) {
-                    return java.util.Base64.getUrlDecoder().decode(part.getBody().getData());
-                }
-            }
-            if (part.getParts() != null) {
-                byte[] nested = extractVcfFromParts(gmailService, userId, messageId, part.getParts());
-                if (nested != null)
-                    return nested;
-            }
         }
         return null;
     }
@@ -413,27 +299,9 @@ public class GmailOAuthService {
     // Connection status
     // -----------------------------------------------------------------------
 
-    public boolean isConnected(Long groupId) {
-        if (groupId != null) {
-            return gmailAccountRepository.findByGroupId(groupId)
-                    .map(GmailAccount::isActive)
-                    .orElse(false);
-        }
-        return isConnected();
-    }
-
     public boolean isConnected() {
         return systemSettingService.getOAuthRefreshToken() != null
                 && systemSettingService.getOAuthConnectedEmail() != null;
-    }
-
-    public String getConnectedEmail(Long groupId) {
-        if (groupId != null) {
-            return gmailAccountRepository.findByGroupId(groupId)
-                    .map(GmailAccount::getEmail)
-                    .orElse(null);
-        }
-        return systemSettingService.getOAuthConnectedEmail();
     }
 
     public String getConnectedEmail() {
@@ -445,10 +313,9 @@ public class GmailOAuthService {
      * given date.
      * Returns false if not connected or if an error occurs.
      */
-    public boolean hasAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate,
-            GmailAccount account) {
+    public boolean hasAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) {
         try {
-            Gmail gmailService = buildGmailService(account);
+            Gmail gmailService = buildGmailService();
             String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
             String dateStr = targetDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"));
             String query = "subject:\"" + cleanSubject + "\" after:" + dateStr;
@@ -462,30 +329,16 @@ public class GmailOAuthService {
         }
     }
 
-    public boolean hasAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) {
-        return hasAttendanceEmailForDate(subjectPattern, targetDate, null);
-    }
-
-    public void disconnect(Long groupId) {
-        if (groupId != null) {
-            gmailAccountRepository.findByGroupId(groupId).ifPresent(account -> {
-                gmailAccountRepository.delete(account);
-            });
-        } else {
-            systemSettingService.clearOAuthTokens();
-        }
-    }
-
     public void disconnect() {
-        disconnect(null);
+        systemSettingService.clearOAuthTokens();
     }
 
     /**
      * Gets the OAuth2 credentials for the connected Google account.
+     * Returns null if not connected or if decryption fails.
      */
-    public UserCredentials getGoogleCredentials(GmailAccount account) {
-        String encryptedRefreshToken = account != null ? account.getRefreshTokenEncrypted()
-                : systemSettingService.getOAuthRefreshToken();
+    public UserCredentials getGoogleCredentials() {
+        String encryptedRefreshToken = systemSettingService.getOAuthRefreshToken();
         if (encryptedRefreshToken == null) {
             return null;
         }
@@ -501,16 +354,12 @@ public class GmailOAuthService {
                 .build();
     }
 
-    public UserCredentials getGoogleCredentials() {
-        return getGoogleCredentials(null);
-    }
-
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
 
-    private Gmail buildGmailService(GmailAccount account) throws IOException {
-        UserCredentials credentials = getGoogleCredentials(account);
+    private Gmail buildGmailService() throws IOException {
+        UserCredentials credentials = getGoogleCredentials();
         if (credentials == null) {
             throw new IllegalStateException(
                     "Gmail account is not connected or token is invalid. Please connect a Gmail account in Settings.");

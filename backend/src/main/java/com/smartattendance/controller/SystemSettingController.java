@@ -107,9 +107,7 @@ public class SystemSettingController {
      * frontend settings page.
      */
     @GetMapping("/gmail/oauth/callback")
-    public ResponseEntity<Void> handleOAuthCallback(
-            @RequestParam("code") String code,
-            @RequestParam(name = "state", required = false) String state,
+    public ResponseEntity<Void> handleOAuthCallback(@RequestParam("code") String code,
             @RequestParam(name = "error", required = false) String error) {
         String frontendRedirect;
         if (error != null) {
@@ -117,7 +115,7 @@ public class SystemSettingController {
                     + encodeParam(error);
         } else {
             try {
-                String email = gmailOAuthService.handleOAuthCallback(code, state, null);
+                String email = gmailOAuthService.handleOAuthCallback(code);
                 frontendRedirect = frontendUrl + "/settings?gmail_oauth=success&email="
                         + encodeParam(email);
             } catch (Exception e) {
