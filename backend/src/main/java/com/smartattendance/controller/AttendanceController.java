@@ -10,9 +10,6 @@ import com.smartattendance.service.AttendanceService;
 import com.smartattendance.service.GmailService;
 import com.smartattendance.service.GmailOAuthService;
 import com.smartattendance.service.SystemSettingService;
-import com.smartattendance.service.VcfContactMapService;
-import com.smartattendance.entity.GmailAccount;
-import com.smartattendance.repository.GmailAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +35,6 @@ public class AttendanceController {
     private final EmployeeRepository employeeRepository;
     private final SystemSettingService systemSettingService;
     private final GmailOAuthService gmailOAuthService;
-    private final VcfContactMapService vcfContactMapService;
-    private final GmailAccountRepository gmailAccountRepository;
 
     @GetMapping("/date/{date}")
     public ResponseEntity<List<AttendanceDTO>> getByDate(
@@ -116,13 +111,8 @@ public class AttendanceController {
             }
         }
 
-        // Check if group has a connected Gmail account
-        GmailAccount groupAccount = null;
-        if (groupId != null) {
-            groupAccount = gmailAccountRepository.findByGroupId(groupId).orElse(null);
-        }
-
-        boolean isOAuthConnected = (groupAccount != null && groupAccount.isActive()) || gmailOAuthService.isConnected();
+        // Provide flexibility: Either OAuth2 is connected OR App Password is provided
+        boolean isOAuthConnected = gmailOAuthService.isConnected();
 
         if (!isOAuthConnected) {
             // Need App password credentials
@@ -153,7 +143,7 @@ public class AttendanceController {
         String chatText = null;
         try {
             if (isOAuthConnected) {
-                chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, date, groupAccount);
+                chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, date);
             } else {
                 // Remove spaces from app password just in case user pasted 'aaaa bbbb cccc
                 // dddd'
@@ -178,37 +168,8 @@ public class AttendanceController {
             return ResponseEntity.ok(response);
         }
 
-        // --- Auto-detect & process VCF from email (one-time setup, silent) ---
-        if (groupId != null) {
-            try {
-                if (groupAccount != null && groupAccount.isActive()) {
-                    // Try OAuth
-                    byte[] vcfBytes = gmailOAuthService.fetchVcfAttachment(groupAccount);
-                    if (vcfBytes != null) {
-                        VcfContactMapService.VcfUploadResult vcfResult = vcfContactMapService.uploadAndFilter(groupId,
-                                new java.io.ByteArrayInputStream(vcfBytes));
-                        response.put("vcfUpdated", true);
-                        response.put("vcfMessage", vcfResult.toMessage());
-                    }
-                } else if (!isOAuthConnected && gmailEmail != null && gmailPassword != null) {
-                    // Try App Password
-                    String cleanPasswordForVcf = gmailPassword.replace(" ", "").trim();
-                    byte[] vcfBytes = gmailService.fetchVcfAttachment(gmailEmail, cleanPasswordForVcf);
-                    if (vcfBytes != null) {
-                        VcfContactMapService.VcfUploadResult vcfResult = vcfContactMapService.uploadAndFilter(groupId,
-                                new java.io.ByteArrayInputStream(vcfBytes));
-                        response.put("vcfUpdated", true);
-                        response.put("vcfMessage", vcfResult.toMessage());
-                        logger.info("VCF auto-processed from email for groupId={}: {}", groupId, vcfResult.toMessage());
-                    }
-                }
-            } catch (Exception vcfEx) {
-                // VCF failure is non-fatal — continue with chat processing
-                logger.warn("VCF auto-fetch skipped: {}", vcfEx.getMessage());
-            }
-        }
-
         // Process the chat text
+        // Process the chat text - Manual email triggering usually warrants a full check
         List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date, true);
 
         response.put("success", true);
@@ -226,7 +187,6 @@ public class AttendanceController {
     public ResponseEntity<Map<String, Object>> getEmailStatus(@RequestBody Map<String, String> request) {
         String gmailEmail = request.get("gmailEmail");
         String gmailPassword = request.get("gmailPassword");
-        Long groupId = request.get("groupId") != null ? Long.parseLong(request.get("groupId")) : null;
         String subjectPattern = request.getOrDefault("subjectPattern", "WhatsApp Chat");
 
         Map<String, Object> status = new HashMap<>();
@@ -239,36 +199,10 @@ public class AttendanceController {
             }
         }
 
-        GmailAccount groupAccount = null;
-        if (groupId != null) {
-            groupAccount = gmailAccountRepository.findByGroupId(groupId).orElse(null);
-        }
+        boolean isOAuthConnected = gmailOAuthService.isConnected();
 
-        boolean isOAuthConnected = (groupAccount != null && groupAccount.isActive()) || gmailOAuthService.isConnected();
-        status.put("oauthConnected", isOAuthConnected);
-
-        if (isOAuthConnected) {
-            status.put("connectedEmail",
-                    groupAccount != null ? groupAccount.getEmail() : gmailOAuthService.getConnectedEmail());
-            try {
-                // Return metadata of last 5 matching emails via OAuth2
-                List<Map<String, String>> recentEmails = gmailOAuthService.listRecentEmails(subjectPattern, 5,
-                        groupAccount);
-                status.put("configured", true);
-                status.put("connected", true);
-                status.put("recentEmails", recentEmails);
-                status.put("message", recentEmails.isEmpty()
-                        ? "Connected! But no emails found matching: \"" + subjectPattern + "\""
-                        : "Connected! Found " + recentEmails.size() + " recent emails");
-            } catch (Exception e) {
-                status.put("configured", true);
-                status.put("connected", false);
-                status.put("message", "Connection failed: " + e.getMessage());
-            }
-            return ResponseEntity.ok(status);
-        }
-
-        if (gmailEmail == null || gmailEmail.isBlank() || gmailPassword == null || gmailPassword.isBlank()) {
+        if (!isOAuthConnected
+                && (gmailEmail == null || gmailEmail.isBlank() || gmailPassword == null || gmailPassword.isBlank())) {
             status.put("configured", false);
             status.put("message",
                     "Please enter your Gmail email and App Password, or connect via Google OAuth in Settings.");
@@ -276,8 +210,12 @@ public class AttendanceController {
         }
 
         try {
-            List<Map<String, String>> recentEmails = gmailService.listRecentEmails(gmailEmail, gmailPassword,
-                    subjectPattern, 5);
+            List<Map<String, String>> recentEmails;
+            if (isOAuthConnected) {
+                recentEmails = gmailOAuthService.listRecentEmails(subjectPattern, 5);
+            } else {
+                recentEmails = gmailService.listRecentEmails(gmailEmail, gmailPassword, subjectPattern, 5);
+            }
 
             status.put("configured", true);
             status.put("connected", true);

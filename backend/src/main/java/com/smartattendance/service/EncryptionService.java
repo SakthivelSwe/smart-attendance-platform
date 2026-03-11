@@ -6,112 +6,103 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * AES-256-GCM encryption service for encrypting sensitive data at rest.
- *
- * Used to encrypt phone numbers in ContactMapEntry so that even if the
- * database is compromised, raw personal phone numbers cannot be read.
- *
- * Configuration:
- * Set APP_ENCRYPTION_KEY environment variable to a 32-byte Base64-encoded key.
- * Generate one with: openssl rand -base64 32
- * If not set, a random key is generated per server start (data won't survive
- * restarts).
+ * AES-256-GCM encryption service for sensitive data like Gmail App Passwords.
+ * Uses a configurable secret key from application properties.
  */
 @Service
 public class EncryptionService {
 
     private static final Logger logger = LoggerFactory.getLogger(EncryptionService.class);
+
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_IV_LENGTH = 12; // 96 bits
-    private static final int GCM_TAG_LENGTH = 128; // bits
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
 
-    private final SecretKey secretKey;
-
-    public EncryptionService(@Value("${app.encryption.key:}") String base64Key) {
-        if (base64Key != null && !base64Key.isBlank()) {
-            try {
-                byte[] keyBytes = Base64.getDecoder().decode(base64Key);
-                this.secretKey = new SecretKeySpec(keyBytes, "AES");
-                logger.info("EncryptionService initialized with configured key (AES-{}-GCM).", keyBytes.length * 8);
-            } catch (Exception e) {
-                throw new IllegalStateException("Invalid APP_ENCRYPTION_KEY: must be Base64-encoded 32 bytes. " +
-                        "Generate with: openssl rand -base64 32", e);
-            }
-        } else {
-            // Fallback: generate a random key (data won't survive restarts - OK for dev)
-            try {
-                KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-                keyGen.init(256, new SecureRandom());
-                this.secretKey = keyGen.generateKey();
-                logger.warn("APP_ENCRYPTION_KEY not set. Using a random AES-256 key. " +
-                        "Set APP_ENCRYPTION_KEY env var in production!");
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to generate encryption key", e);
-            }
-        }
-    }
+    @Value("${app.encryption.key:SmartAttendanceDefaultKey12345678}")
+    private String encryptionKey;
 
     /**
-     * Encrypt a plain text string.
-     * Returns prefixed Base64: ENC:[12-byte IV][ciphertext+auth-tag]
+     * Encrypt plaintext using AES-256-GCM.
+     * Returns Base64-encoded string containing IV + ciphertext.
      */
-    public String encrypt(String plaintext) {
-        if (plaintext == null || plaintext.isBlank())
-            return plaintext;
+    public String encrypt(String plainText) {
+        if (plainText == null)
+            return null;
+
         try {
+            byte[] keyBytes = normalizeKey(encryptionKey);
+            SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
+
             byte[] iv = new byte[GCM_IV_LENGTH];
             new SecureRandom().nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
-            byte[] ciphertext = cipher.doFinal(plaintext.getBytes());
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
+
+            byte[] cipherText = cipher.doFinal(plainText.getBytes());
 
             // Prepend IV to ciphertext
-            byte[] combined = new byte[iv.length + ciphertext.length];
-            System.arraycopy(iv, 0, combined, 0, iv.length);
-            System.arraycopy(ciphertext, 0, combined, iv.length, ciphertext.length);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + cipherText.length);
+            byteBuffer.put(iv);
+            byteBuffer.put(cipherText);
 
-            return "ENC:" + Base64.getEncoder().encodeToString(combined);
+            return Base64.getEncoder().encodeToString(byteBuffer.array());
         } catch (Exception e) {
+            logger.error("Encryption failed: {}", e.getMessage());
             throw new RuntimeException("Encryption failed", e);
         }
     }
 
     /**
-     * Decrypt a previously encrypted string.
-     * Input must start with "ENC:" prefix.
+     * Decrypt AES-256-GCM encrypted string.
+     * Input is Base64-encoded string containing IV + ciphertext.
      */
-    public String decrypt(String encrypted) {
-        if (encrypted == null || !encrypted.startsWith("ENC:"))
-            return encrypted;
-        try {
-            byte[] combined = Base64.getDecoder().decode(encrypted.substring(4));
+    public String decrypt(String encryptedText) {
+        if (encryptedText == null)
+            return null;
 
+        try {
+            byte[] decoded = Base64.getDecoder().decode(encryptedText);
+            byte[] keyBytes = normalizeKey(encryptionKey);
+            SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
+
+            // Extract IV from beginning
+            ByteBuffer byteBuffer = ByteBuffer.wrap(decoded);
             byte[] iv = new byte[GCM_IV_LENGTH];
-            byte[] ciphertext = new byte[combined.length - GCM_IV_LENGTH];
-            System.arraycopy(combined, 0, iv, 0, iv.length);
-            System.arraycopy(combined, iv.length, ciphertext, 0, ciphertext.length);
+            byteBuffer.get(iv);
+            byte[] cipherText = new byte[byteBuffer.remaining()];
+            byteBuffer.get(cipherText);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
-            return new String(cipher.doFinal(ciphertext));
+            GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmSpec);
+
+            byte[] plainText = cipher.doFinal(cipherText);
+            return new String(plainText);
         } catch (Exception e) {
-            throw new RuntimeException("Decryption failed. Possible key mismatch.", e);
+            // Decryption failed — the stored value is corrupted or was encrypted with a
+            // different key. Return null so callers can prompt re-entry of credentials.
+            logger.error("AES-GCM decryption failed — stored credentials may be corrupted. " +
+                    "User must re-save Gmail credentials. Error: {}", e.getMessage());
+            return null;
         }
     }
 
     /**
-     * Returns true if the value is already encrypted (has ENC: prefix).
+     * Normalize key to exactly 32 bytes (256 bits) for AES-256.
      */
-    public boolean isEncrypted(String value) {
-        return value != null && value.startsWith("ENC:");
+    private byte[] normalizeKey(String key) {
+        byte[] keyBytes = new byte[32];
+        byte[] rawBytes = key.getBytes();
+        System.arraycopy(rawBytes, 0, keyBytes, 0, Math.min(rawBytes.length, 32));
+        return keyBytes;
     }
 }
