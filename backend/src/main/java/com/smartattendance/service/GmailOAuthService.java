@@ -51,9 +51,6 @@ public class GmailOAuthService {
     private static final String USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
     private static final String SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
-    /** Marker error string returned by Google when a refresh token is invalid/revoked. */
-    private static final String INVALID_GRANT = "invalid_grant";
-
     // Keys used to persist OAuth2 tokens in system_settings
     static final String REFRESH_TOKEN_KEY = "GMAIL_OAUTH_REFRESH_TOKEN";
     static final String CONNECTED_EMAIL_KEY = "GMAIL_OAUTH_EMAIL";
@@ -243,13 +240,7 @@ public class GmailOAuthService {
 
     public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate,
             GmailAccount account) throws Exception {
-        Gmail gmailService;
-        try {
-            gmailService = buildGmailService(account);
-        } catch (IllegalStateException e) {
-            // Token invalid/not connected — already logged by buildGmailService
-            return null;
-        }
+        Gmail gmailService = buildGmailService(account);
         String userId = "me";
 
         String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
@@ -259,40 +250,29 @@ public class GmailOAuthService {
 
         logger.info("Querying Gmail API: {}", query);
 
-        try {
-            com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
-                    .list(userId).setQ(query).execute();
+        com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
+                .list(userId).setQ(query).execute();
 
-            java.util.List<Message> messages = listResponse.getMessages();
-            if (messages == null || messages.isEmpty()) {
-                logger.info("No emails found matching query '{}'.", query);
-                return null;
-            }
-
-            for (Message msgMetadata : messages) {
-                Message msg = gmailService.users().messages()
-                        .get(userId, msgMetadata.getId()).setFormat("full").execute();
-
-                String text = extractChatFromGmailMessage(gmailService, userId, msg);
-                if (text != null)
-                    return text;
-            }
+        java.util.List<Message> messages = listResponse.getMessages();
+        if (messages == null || messages.isEmpty()) {
+            logger.info("No emails found matching query '{}'.", query);
             return null;
-        } catch (com.google.api.client.http.HttpResponseException e) {
-            if (e.getStatusCode() == 400 && e.getContent() != null && e.getContent().contains(INVALID_GRANT)) {
-                logger.error("Gmail OAuth2 token is invalid or expired (invalid_grant) while fetching email. " +
-                        "Clearing token — please reconnect Gmail in Settings.");
-                clearInvalidToken(account);
-                return null;
-            }
-            throw e;
         }
+
+        for (Message msgMetadata : messages) {
+            Message msg = gmailService.users().messages()
+                    .get(userId, msgMetadata.getId()).setFormat("full").execute();
+
+            String text = extractChatFromGmailMessage(gmailService, userId, msg);
+            if (text != null)
+                return text;
+        }
+        return null;
     }
 
     public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) throws Exception {
         return fetchAttendanceEmailForDate(subjectPattern, targetDate, null);
     }
-
 
     public byte[] fetchVcfAttachment(GmailAccount account) {
         try {
@@ -464,7 +444,6 @@ public class GmailOAuthService {
      * Checks whether an attendance email matching subjectPattern exists for the
      * given date.
      * Returns false if not connected or if an error occurs.
-     * Auto-clears invalid/expired tokens so admin is prompted to reconnect.
      */
     public boolean hasAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate,
             GmailAccount account) {
@@ -477,15 +456,6 @@ public class GmailOAuthService {
                     .list("me").setQ(query).setMaxResults(1L).execute();
             java.util.List<Message> messages = listResponse.getMessages();
             return messages != null && !messages.isEmpty();
-        } catch (com.google.api.client.http.HttpResponseException e) {
-            if (e.getStatusCode() == 400 && e.getContent() != null && e.getContent().contains(INVALID_GRANT)) {
-                logger.error("Gmail OAuth2 token is invalid or expired (invalid_grant). " +
-                        "Clearing stored token — please reconnect Gmail in Settings.");
-                clearInvalidToken(account);
-            } else {
-                logger.error("Error checking email existence via OAuth2: {}", e.getMessage());
-            }
-            return false;
         } catch (Exception e) {
             logger.error("Error checking email existence via OAuth2: {}", e.getMessage());
             return false;
@@ -508,43 +478,6 @@ public class GmailOAuthService {
 
     public void disconnect() {
         disconnect(null);
-    }
-
-    /**
-     * Returns true if the stored OAuth token appears valid.
-     * Note: this only checks that a token exists in DB — it does NOT
-     * make a live network call. Use hasAttendanceEmailForDate to validate live.
-     */
-    public boolean isTokenLikelyValid(Long groupId) {
-        if (groupId != null) {
-            return gmailAccountRepository.findByGroupId(groupId)
-                    .map(a -> a.isActive() && a.getRefreshTokenEncrypted() != null)
-                    .orElse(false);
-        }
-        return systemSettingService.getOAuthRefreshToken() != null
-                && systemSettingService.getOAuthConnectedEmail() != null;
-    }
-
-    /**
-     * Clears an invalid/expired token so the admin is forced to reconnect.
-     * For a per-group GmailAccount, marks it inactive.
-     * For the global token, clears system_settings.
-     */
-    private void clearInvalidToken(GmailAccount account) {
-        try {
-            if (account != null) {
-                account.setActive(false);
-                account.setRefreshTokenEncrypted(null);
-                gmailAccountRepository.save(account);
-                logger.warn("Marked GmailAccount (group={}) as inactive due to invalid_grant.",
-                        account.getGroup() != null ? account.getGroup().getId() : "?");
-            } else {
-                systemSettingService.clearOAuthTokens();
-                logger.warn("Cleared global Gmail OAuth tokens due to invalid_grant.");
-            }
-        } catch (Exception ex) {
-            logger.error("Failed to clear invalid OAuth token: {}", ex.getMessage());
-        }
     }
 
     /**
@@ -577,17 +510,7 @@ public class GmailOAuthService {
     // -----------------------------------------------------------------------
 
     private Gmail buildGmailService(GmailAccount account) throws IOException {
-        UserCredentials credentials;
-        try {
-            credentials = getGoogleCredentials(account);
-        } catch (RuntimeException e) {
-            // Decryption failure usually means APP_ENCRYPTION_KEY changed (e.g. server restart with no key set)
-            logger.error("Failed to decrypt OAuth token — APP_ENCRYPTION_KEY may have changed. " +
-                    "Clearing stored token. Please reconnect Gmail in Settings.");
-            clearInvalidToken(account);
-            throw new IllegalStateException(
-                    "Gmail OAuth token could not be decrypted. Please reconnect your Gmail account in Settings.", e);
-        }
+        UserCredentials credentials = getGoogleCredentials(account);
         if (credentials == null) {
             throw new IllegalStateException(
                     "Gmail account is not connected or token is invalid. Please connect a Gmail account in Settings.");
