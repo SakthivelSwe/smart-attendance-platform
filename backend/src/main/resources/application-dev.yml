@@ -29,8 +29,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-id: ${GOOGLE_CLIENT_ID:1080249198691-444ld2o9fqo8qdm76usdmie92lk8knjh.apps.googleusercontent.com}
+            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder-secret}
 
   # Disable mail in dev
   mail:

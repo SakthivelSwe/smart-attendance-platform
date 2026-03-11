@@ -185,6 +185,16 @@ export class ApiService {
         return this.http.delete<any>(`${this.api}/settings/gmail/oauth`);
     }
 
+    // Gmail Accounts (Per Group)
+    getGmailAccounts(): Observable<any[]> {
+        return this.http.get<any[]>(`${this.api}/gmail-accounts`);
+    }
+    getGmailOAuthAuthUrlForGroup(groupId: number): Observable<{ url: string }> {
+        return this.http.post<{ url: string }>(`${this.api}/gmail-accounts/oauth/url`, { groupId });
+    }
+    disconnectGmailAccount(groupId: number): Observable<any> {
+        return this.http.delete<any>(`${this.api}/gmail-accounts/${groupId}`);
+    }
 
     // Teams
     getTeams(): Observable<Team[]> {
@@ -212,6 +222,9 @@ export class ApiService {
     // User Management (Admin)
     getUsers(): Observable<UserInfo[]> {
         return this.http.get<UserInfo[]>(`${this.api}/admin/users`);
+    }
+    getAssignableUsers(): Observable<UserInfo[]> {
+        return this.http.get<UserInfo[]>(`${this.api}/teams/users`);
     }
     getUsersByRole(role: UserRole): Observable<UserInfo[]> {
         return this.http.get<UserInfo[]>(`${this.api}/admin/users/role/${role}`);
@@ -301,5 +314,28 @@ export class ApiService {
 
     triggerForcedReminder(): Observable<any> {
         return this.http.post(`${this.api}/settings/automation/force-reminder`, {});
+    }
+
+    // WhatsApp Import (VCF + Chat export)
+    uploadVcf(file: File, groupId: number): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('groupId', groupId.toString());
+        return this.http.post<any>(`${this.api}/import/vcf`, formData);
+    }
+
+    getVcfStatus(groupId: number): Observable<any> {
+        return this.http.get<any>(`${this.api}/import/vcf/status`, { params: { groupId: groupId.toString() } });
+    }
+
+    previewWhatsAppImport(file: File, groupId: number): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('groupId', groupId.toString());
+        return this.http.post<any>(`${this.api}/import/whatsapp/preview`, formData);
+    }
+
+    confirmWhatsAppImport(records: any[]): Observable<any> {
+        return this.http.post<any>(`${this.api}/import/whatsapp/confirm`, records);
     }
 }

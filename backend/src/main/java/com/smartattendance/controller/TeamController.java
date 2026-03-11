@@ -4,6 +4,7 @@ import com.smartattendance.dto.TeamDTO;
 import com.smartattendance.entity.User;
 import com.smartattendance.enums.UserRole;
 import com.smartattendance.service.TeamService;
+import com.smartattendance.service.UserManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+    private final UserManagementService userManagementService;
 
     /**
      * Get all teams. Admin/Manager sees all, Team Lead sees own teams.
@@ -45,6 +47,15 @@ public class TeamController {
     @GetMapping("/active")
     public ResponseEntity<List<TeamDTO>> getActiveTeams() {
         return ResponseEntity.ok(teamService.getActiveTeams());
+    }
+
+    /**
+     * Get all users for assigning as Manager/Team Lead (Admin/Manager only).
+     */
+    @GetMapping("/users")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<com.smartattendance.dto.UserDTO>> getAssignableUsers() {
+        return ResponseEntity.ok(userManagementService.getAllUsers());
     }
 
     @GetMapping("/{id}")

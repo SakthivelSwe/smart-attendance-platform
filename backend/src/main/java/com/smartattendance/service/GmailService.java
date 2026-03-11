@@ -383,4 +383,81 @@ public class GmailService {
         }
         return null;
     }
+
+    /**
+     * Scan inbox for an email containing a .vcf attachment (contacts file).
+     * Looks for emails with "vcf" or "contacts" in subject within the last 30 days.
+     *
+     * @return raw VCF bytes, or null if no VCF email found
+     */
+    public byte[] fetchVcfAttachment(String gmailEmail, String gmailAppPassword) {
+        try {
+            Session session = createSession();
+            Store store = session.getStore("imaps");
+            store.connect(IMAP_HOST, IMAP_PORT, gmailEmail, gmailAppPassword);
+            Folder inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_ONLY);
+
+            // Search for emails containing "vcf" or "contacts" in subject within last 30
+            // days
+            LocalDate fromDate = LocalDate.now().minusDays(30);
+            Date startDate = Date.from(fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+            SearchTerm dateTerm = new ReceivedDateTerm(ComparisonTerm.GE, startDate);
+            SearchTerm vcfSubject1 = new SubjectTerm("vcf");
+            SearchTerm vcfSubject2 = new SubjectTerm("contacts");
+            SearchTerm subjectTerm = new OrTerm(vcfSubject1, vcfSubject2);
+            SearchTerm combined = new AndTerm(subjectTerm, dateTerm);
+
+            Message[] messages = inbox.search(combined);
+            logger.info("Found {} emails potentially containing VCF attachment", messages.length);
+
+            // Newest first
+            for (int i = messages.length - 1; i >= 0; i--) {
+                byte[] vcfBytes = extractVcfFromMessage(messages[i]);
+                if (vcfBytes != null) {
+                    logger.info("VCF attachment found in email: {}", messages[i].getSubject());
+                    inbox.close(false);
+                    store.close();
+                    return vcfBytes;
+                }
+            }
+
+            inbox.close(false);
+            store.close();
+        } catch (Exception e) {
+            logger.warn("Could not fetch VCF from email: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * OAuth version of VCF fetch — uses GmailOAuthService token.
+     * (Called from controller if OAuth is connected.)
+     */
+    public byte[] fetchVcfAttachment(jakarta.mail.Session session, Store connectedStore) {
+        // OAuth path not yet implemented for VCF — return null to skip silently
+        return null;
+    }
+
+    private byte[] extractVcfFromMessage(Message message) {
+        try {
+            Object content = message.getContent();
+            if (content instanceof MimeMultipart multipart) {
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    BodyPart part = multipart.getBodyPart(i);
+                    String filename = part.getFileName();
+                    if (filename != null) {
+                        filename = jakarta.mail.internet.MimeUtility.decodeText(filename);
+                        if (filename.toLowerCase().endsWith(".vcf")) {
+                            return part.getInputStream().readAllBytes();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Error extracting VCF from message: {}", e.getMessage());
+        }
+        return null;
+    }
 }
