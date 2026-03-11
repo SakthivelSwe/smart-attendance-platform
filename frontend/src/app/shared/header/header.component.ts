@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -11,167 +11,170 @@ import { switchMap, startWith } from 'rxjs/operators';
   selector: 'app-header',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="sticky top-0 z-40 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-800/40 animate-fade-in transition-all duration-500">
-      <div class="flex items-center justify-between px-6 lg:px-10 h-20">
-        <!-- Left Section -->
-        <div class="flex items-center gap-6">
-          <button (click)="toggleMobileMenu.emit()" 
-                  class="lg:hidden w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-primary-500 hover:text-white transition-all transform active:scale-95">
-            <span class="material-icons">menu_open</span>
+    <header class="sticky top-0 z-20 bg-[var(--card-bg)]/80 backdrop-blur-lg border-b border-[var(--border-color)]">
+      <div class="flex items-center justify-between px-4 md:px-6 lg:px-8 h-16">
+        <!-- Left: Mobile menu + Search -->
+        <div class="flex items-center gap-4">
+          <button (click)="toggleMobileMenu.emit()" class="lg:hidden p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
           </button>
 
-          <div class="hidden md:flex items-center gap-3 bg-slate-100/40 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl px-5 py-3 w-80 lg:w-96 group focus-within:ring-2 focus-within:ring-primary-500/10 focus-within:border-primary-500/30 transition-all duration-300">
-            <span class="material-icons text-slate-400 group-focus-within:text-primary-500 transition-colors">search</span>
-            <input type="text" placeholder="Omni Search: employees, attendance..."
-              class="bg-transparent border-none outline-none text-[13px] font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 w-full tracking-tight"/>
-            <span class="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-800 text-[9px] font-black text-slate-400 uppercase tracking-tighter">Enter</span>
+          <div class="hidden md:flex items-center gap-2 bg-[var(--bg-secondary)] rounded-xl px-4 py-2 w-64 lg:w-80">
+            <svg class="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" placeholder="Search employees, attendance..."
+              class="bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] w-full"/>
           </div>
         </div>
 
-        <!-- Right Section: Interactive Actions -->
-        <div class="flex items-center gap-3">
-          <!-- Quick Status (Optional Addition) -->
-          <div class="hidden xl:flex items-center gap-1.5 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">System Live</span>
-          </div>
-
-          <!-- Theme Configuration Accelerator -->
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2">
+          <!-- Theme toggle -->
           <button (click)="themeService.toggleTheme()"
-                  class="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-all hover:scale-110 active:scale-90 shadow-sm overflow-hidden"
-                  [title]="themeService.isDark ? 'Lumina Mode' : 'Shadow Mode'">
-            <div class="relative w-full h-full flex items-center justify-center transform transition-transform duration-500" [class.rotate-[360deg]="themeService.isDark">
-              <span *ngIf="!themeService.isDark" class="material-icons text-amber-500">light_mode</span>
-              <span *ngIf="themeService.isDark" class="material-icons text-indigo-400">dark_mode</span>
-            </div>
+                  class="p-2.5 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200"
+                  [title]="themeService.isDark ? 'Switch to Light' : 'Switch to Dark'">
+            <svg *ngIf="!themeService.isDark" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <svg *ngIf="themeService.isDark" class="w-5 h-5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
           </button>
 
-          <!-- Notification Command Center -->
+          <!-- Notifications Bell -->
           <div class="relative" id="notifications-container">
             <button (click)="toggleNotifications()"
-                    class="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-all hover:scale-110 active:scale-90 relative"
-                    title="Intelligence Center">
-              <span class="material-icons-outlined text-slate-600 dark:text-slate-300">notifications</span>
+                    class="p-2.5 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200 relative"
+                    title="Notifications">
+              <svg class="w-5 h-5 text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <!-- Live badge -->
               <span *ngIf="notifications.length > 0"
-                    class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 px-1 shadow-lg shadow-red-500/20 animate-bounce">
+                    class="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[var(--card-bg)] px-0.5 animate-pulse">
                 {{ notifications.length }}
               </span>
             </button>
 
-            <!-- Refined Intelligence Dropdown -->
+            <!-- Notifications Dropdown -->
             <div *ngIf="showNotifications"
-                 class="absolute -right-2 sm:right-0 top-full mt-5 w-[90vw] sm:w-[420px] glass-card shadow-3xl rounded-[2.5rem] border-0 ring-1 ring-slate-200/50 dark:ring-white/10 overflow-hidden z-50 animate-scale-in">
+                 class="absolute -right-2 sm:right-0 top-full mt-2 w-[90vw] sm:w-96 max-w-[384px] bg-[var(--card-bg)] rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden z-50 animate-slide-up">
 
-              <div class="p-8 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                <div>
-                  <h3 class="text-xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none">Notifications</h3>
-                  <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-2">Real-time Activity Stream</p>
+              <!-- Header -->
+              <div class="p-4 border-b border-[var(--border-color)] flex items-center justify-between bg-surface-50/50 dark:bg-surface-800/50">
+                <h3 class="text-sm font-bold text-[var(--text-primary)]">Notifications</h3>
+                <div class="flex items-center gap-2">
+                  <span *ngIf="notifications.length > 0"
+                        class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                    {{ notifications.length }} New
+                  </span>
+                  <span *ngIf="isLoading"
+                        class="text-[10px] text-[var(--text-secondary)] animate-pulse">Refreshing...</span>
+                  <button (click)="refresh()" title="Refresh notifications"
+                          class="p-1 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition">
+                    <span class="material-icons text-sm text-[var(--text-secondary)]">refresh</span>
+                  </button>
                 </div>
-                <button (click)="refresh()" 
-                        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary-500 hover:text-white transition-all transform active:rotate-180">
-                  <span class="material-icons text-sm" [class.animate-spin]="isLoading">refresh</span>
-                </button>
               </div>
 
-              <div class="max-h-[500px] overflow-y-auto px-4 py-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-100 dark:scrollbar-thumb-slate-800">
-                <div *ngIf="isLoading && notifications.length === 0" class="space-y-6 px-4">
-                  <div *ngFor="let i of [1,2]" class="flex gap-4 animate-pulse">
-                    <div class="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 shrink-0"></div>
-                    <div class="flex-1 space-y-3">
-                      <div class="h-4 bg-slate-100 dark:bg-slate-800 rounded w-2/3"></div>
-                      <div class="h-3 bg-slate-50 dark:bg-slate-800/50 rounded w-full"></div>
+              <!-- Notification list -->
+              <div class="max-h-80 overflow-y-auto divide-y divide-[var(--border-color)]">
+
+                <!-- Loading skeleton -->
+                <div *ngIf="isLoading && notifications.length === 0" class="p-4 space-y-3">
+                  <div *ngFor="let i of [1,2]" class="flex gap-3 animate-pulse">
+                    <div class="w-9 h-9 rounded-full bg-surface-200 dark:bg-surface-700 shrink-0"></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-3/4"></div>
+                      <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-full"></div>
+                      <div class="h-2.5 bg-surface-200 dark:bg-surface-700 rounded w-1/4"></div>
                     </div>
                   </div>
                 </div>
 
-                <div *ngFor="let note of notifications; trackBy: trackByNotificationId"
-                     class="group p-5 hover:bg-white dark:hover:bg-slate-800/60 rounded-[1.8rem] border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 hover:shadow-xl transition-all duration-300">
-                  <div class="flex gap-4">
-                    <div [class]="getIconBg(note.color) + ' w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/10 transform group-hover:rotate-6 transition-transform opacity-90'">
-                      <span class="material-icons text-white text-lg">{{ note.icon }}</span>
+                <!-- Real notifications -->
+                <div *ngFor="let note of notifications"
+                     class="p-4 hover:bg-surface-50 dark:hover:bg-surface-800/40 transition-colors cursor-pointer">
+                  <div class="flex gap-3">
+                    <div [class]="getIconBg(note.color) + ' w-9 h-9 rounded-full flex items-center justify-center shrink-0'">
+                      <span class="material-icons text-white text-base">{{ note.icon }}</span>
                     </div>
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-start justify-between gap-2 mb-1">
-                        <p class="text-sm font-black text-slate-900 dark:text-white font-manrope leading-tight group-hover:text-primary-600 transition-colors">{{ note.title }}</p>
+                      <div class="flex items-start justify-between gap-2">
+                        <p class="text-xs font-bold text-[var(--text-primary)] leading-snug">{{ note.title }}</p>
                         <span *ngIf="note.count > 1"
                               [class]="getCountBadge(note.color)"
-                              class="text-[9px] font-black px-2 py-0.5 rounded-lg shrink-0">
-                          +{{ note.count }}
+                              class="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                          {{ note.count }}
                         </span>
                       </div>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-3">{{ note.content }}</p>
-                      <div class="flex items-center gap-2">
-                        <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md" [class]="getTimeColor(note.color) + ' bg-slate-50 dark:bg-slate-900/50'">
-                          {{ note.timeLabel }}
-                        </span>
-                      </div>
+                      <p class="text-[11px] text-[var(--text-secondary)] leading-snug mt-0.5">{{ note.content }}</p>
+                      <p class="text-[10px] font-medium mt-1 uppercase tracking-wider" [class]="getTimeColor(note.color)">
+                        {{ note.timeLabel }}
+                      </p>
                     </div>
                   </div>
                 </div>
 
+                <!-- Empty state — no notifications -->
                 <div *ngIf="!isLoading && notifications.length === 0"
-                     class="flex flex-col items-center justify-center py-16 text-slate-300 dark:text-slate-700">
-                  <div class="w-20 h-20 rounded-full bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center mb-6">
-                    <span class="material-icons text-5xl">notifications_none</span>
-                  </div>
-                  <h4 class="text-lg font-black text-slate-900 dark:text-white font-manrope tracking-tight">Zero Delta</h4>
-                  <p class="text-xs font-bold uppercase tracking-widest mt-2">Intelligence Stream is Empty</p>
+                     class="flex flex-col items-center justify-center py-10 text-[var(--text-secondary)]">
+                  <span class="material-icons text-3xl mb-2 opacity-40">notifications_off</span>
+                  <p class="text-sm font-medium">All caught up!</p>
+                  <p class="text-xs opacity-60 mt-0.5">No pending items right now.</p>
                 </div>
               </div>
 
-              <div class="p-6 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-center">
+              <!-- Footer -->
+              <div class="px-4 py-2.5 bg-surface-50/50 dark:bg-surface-800/50 border-t border-[var(--border-color)] flex items-center justify-between">
+                <span class="text-[10px] text-[var(--text-secondary)]">Auto-refreshes every 5 min</span>
                 <button (click)="showNotifications = false"
-                        class="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-[0.2em] hover:tracking-[0.3em] transition-all">
-                  Dismiss Protocol
+                        class="text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:underline">
+                  Close
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Operator Interface -->
-          <div class="relative user-menu-container" *ngIf="authService.currentUser as user">
-            <button (click)="showUserMenu = !showUserMenu; showNotifications = false"
-                    class="group flex items-center gap-3 pl-2 pr-4 py-2 rounded-2xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 transform active:scale-95 shadow-sm">
-              <div class="relative items-center justify-center flex">
+          <!-- User menu -->
+          <div class="relative" *ngIf="authService.currentUser as user">
+            <button (click)="showUserMenu = !showUserMenu"
+                    class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200">
+              <div class="relative">
                 <img #profileImg [src]="user.avatarUrl || getDefaultAvatar(user.name)"
                      (error)="handleImageError($event, user.name)"
-                     class="w-10 h-10 rounded-xl ring-2 ring-primary-500/10 object-cover shadow-sm group-hover:scale-105 transition-transform" [alt]="user.name"/>
-                <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-lg flex items-center justify-center">
-                  <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                </div>
+                     class="w-9 h-9 rounded-full ring-2 ring-primary-500/20 object-cover shadow-sm" [alt]="user.name"/>
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-[var(--card-bg)] rounded-full"></span>
               </div>
-              <div class="hidden md:flex flex-col items-start min-w-[100px]">
-                <span class="text-xs font-black text-slate-900 dark:text-white font-manrope truncate w-full group-hover:text-primary-600 transition-colors uppercase tracking-tight">{{ user.name }}</span>
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em]">{{ user.role }}</span>
+              <div class="hidden md:flex flex-col items-start translate-y-[-1px]">
+                <span class="text-xs font-bold text-[var(--text-primary)] leading-tight">{{ user.name }}</span>
+                <span class="text-[10px] font-medium text-[var(--text-secondary)]">{{ user.role }}</span>
               </div>
-              <span class="material-icons text-slate-400 text-sm hidden md:block group-hover:translate-y-0.5 transition-transform" [class.rotate-180]="showUserMenu">expand_more</span>
+              <svg class="w-4 h-4 text-[var(--text-secondary)] hidden md:inline ml-1 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
             </button>
 
-            <!-- Sophisticated Identity Menu -->
+            <!-- User Dropdown -->
             <div *ngIf="showUserMenu"
-                 class="absolute right-0 top-full mt-4 w-72 glass-card shadow-3xl rounded-[2rem] border-0 ring-1 ring-slate-200/50 dark:ring-white/10 p-6 animate-scale-in z-50">
-              <div class="flex flex-col items-center text-center p-4 rounded-3xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 mb-6">
-                 <div class="w-20 h-20 rounded-[1.8rem] bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white mb-4 shadow-xl shadow-primary-500/20">
-                    <span class="text-2xl font-black font-manrope">{{ user.name.charAt(0) }}</span>
-                 </div>
-                 <p class="text-lg font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none">{{ user.name }}</p>
-                 <p class="text-[10px] text-slate-400 font-bold mt-2 truncate w-full px-2">{{ user.email }}</p>
+                 class="absolute right-0 top-full mt-2 w-56 bg-[var(--card-bg)] rounded-xl shadow-lg border border-[var(--border-color)] py-2 animate-slide-up z-50">
+              <div class="px-4 py-3 border-b border-[var(--border-color)]">
+                <p class="text-sm font-semibold text-[var(--text-primary)]">{{ user.name }}</p>
+                <p class="text-xs text-[var(--text-secondary)]">{{ user.email }}</p>
               </div>
-
-              <div class="space-y-1">
-                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
-                  <span class="material-icons text-lg text-slate-400 group-hover:text-primary-500 transition-colors">account_circle</span>
-                  <span class="text-xs font-bold font-manrope group-hover:text-slate-900 dark:group-hover:text-white">Profile Control</span>
-                </button>
-                <div class="h-px bg-slate-100 dark:bg-slate-800 my-2 mx-2"></div>
-                <button (click)="authService.logout(); showUserMenu = false"
-                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group">
-                  <span class="material-icons text-lg group-hover:translate-x-1 transition-transform">logout</span>
-                  <span class="text-xs font-black uppercase tracking-widest">Sign Out</span>
-                </button>
-              </div>
+              <button (click)="authService.logout(); showUserMenu = false"
+                      class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Sign Out
+              </button>
             </div>
           </div>
         </div>
@@ -193,8 +196,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   constructor(
     public authService: AuthService,
     public themeService: ThemeService,
-    private api: ApiService,
-    private cdr: ChangeDetectorRef
+    private api: ApiService
   ) { }
 
   ngOnInit() {
@@ -205,8 +207,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
         return this.api.getNotifications();
       }))
       .subscribe({
-        next: (data) => { this.notifications = data; this.isLoading = false; this.cdr.markForCheck(); },
-        error: () => { this.isLoading = false; this.cdr.markForCheck(); }
+        next: (data) => { this.notifications = data; this.isLoading = false; },
+        error: () => { this.isLoading = false; }
       });
   }
 
@@ -221,10 +223,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   refresh() {
     this.isLoading = true;
-    this.cdr.markForCheck();
     this.api.getNotifications().subscribe({
-      next: (data) => { this.notifications = data; this.isLoading = false; this.cdr.markForCheck(); },
-      error: () => { this.isLoading = false; this.cdr.markForCheck(); }
+      next: (data) => { this.notifications = data; this.isLoading = false; },
+      error: () => { this.isLoading = false; }
     });
   }
 
@@ -232,19 +233,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    let changed = false;
-    if (!target.closest('#notifications-container') && this.showNotifications) {
+    if (!target.closest('#notifications-container')) {
       this.showNotifications = false;
-      changed = true;
     }
-    if (!target.closest('.user-menu-container') && this.showUserMenu) {
-      if (!target.closest('button[click="showUserMenu = !showUserMenu"]') && !target.closest('button.flex.items-center.gap-2.pl-2.pr-3.py-1\\.5')) {
-          this.showUserMenu = false;
-          changed = true;
-      }
-    }
-    if (changed) {
-        this.cdr.markForCheck();
+    if (!target.closest('.user-menu-container')) {
+      // only close user menu when clicking outside its container
     }
   }
 
@@ -284,9 +277,5 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   getDefaultAvatar(name: string): string {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&bold=true`;
-  }
-  
-  trackByNotificationId(index: number, item: any): string {
-    return item.id || index.toString();
   }
 }

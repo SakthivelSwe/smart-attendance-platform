@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -18,7 +18,6 @@ interface NavItem {
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Desktop sidebar -->
     <aside class="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-40 transition-all duration-300"
@@ -47,38 +46,32 @@ interface NavItem {
 
       <!-- Navigation -->
       <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        <ng-container *ngFor="let section of navSections; trackBy: trackByLabel">
+        <ng-container *ngFor="let section of navSections">
           <!-- Section Label -->
           <div *ngIf="section.label && !isCollapsed && hasVisibleItems(section.items)" 
-               class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 font-outfit">
+               class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-surface-400">
             {{ section.label }}
           </div>
           <div *ngIf="section.label && isCollapsed && hasVisibleItems(section.items)" 
-               class="border-t border-slate-200 dark:border-slate-800 my-2 mx-2"></div>
+               class="border-t border-[var(--border-color)] my-2 mx-2"></div>
 
-          <ng-container *ngFor="let item of section.items; trackBy: trackByLabel">
+          <ng-container *ngFor="let item of section.items">
             <a *ngIf="isItemVisible(item)"
                [routerLink]="item.route"
                routerLinkActive="active"
-               class="sidebar-link group relative cursor-pointer"
+               class="sidebar-link group"
                [title]="item.label">
-               
-              <!-- Active Glow -->
-              <div class="absolute inset-0 bg-primary-500/10 dark:bg-primary-500/20 rounded-xl opacity-0 group-[.active]:opacity-100 transition-opacity"></div>
+              <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0"></span>
+              <span *ngIf="!isCollapsed" class="truncate font-medium animate-fade-in">{{ item.label }}</span>
               
-              <div class="relative flex items-center gap-3 w-full">
-                <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0 text-slate-400 group-hover:text-primary-500 group-[.active]:text-primary-600 dark:group-[.active]:text-primary-400 transition-colors"></span>
-                <span *ngIf="!isCollapsed" class="truncate font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white group-[.active]:text-primary-700 dark:group-[.active]:text-primary-300 group-[.active]:font-bold transition-all animate-fade-in">{{ item.label }}</span>
-                
-                <!-- Badge -->
-                <span *ngIf="item.badge && !isCollapsed" 
-                      class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-md bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-sm">
-                  {{ item.badge }}
-                </span>
-                
-                <!-- Active Indicator Dot -->
-                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-[.active]:opacity-100 transition-opacity shadow-[0_0_8px_rgba(99,102,241,0.6)]" *ngIf="!isCollapsed && !item.badge"></div>
-              </div>
+              <!-- Badge -->
+              <span *ngIf="item.badge && !isCollapsed" 
+                    class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+                {{ item.badge }}
+              </span>
+              
+              <!-- Active Indicator Dot -->
+              <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-[.active]:opacity-100 transition-opacity" *ngIf="!isCollapsed && !item.badge"></div>
             </a>
           </ng-container>
         </ng-container>
@@ -120,29 +113,23 @@ interface NavItem {
       </div>
 
       <nav class="px-4 py-6 space-y-1 overflow-y-auto">
-        <ng-container *ngFor="let section of navSections; trackBy: trackByLabel">
+        <ng-container *ngFor="let section of navSections">
           <div *ngIf="section.label && hasVisibleItems(section.items)" 
-               class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 font-outfit">
+               class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-surface-400">
             {{ section.label }}
           </div>
-          <ng-container *ngFor="let item of section.items; trackBy: trackByLabel">
+          <ng-container *ngFor="let item of section.items">
             <a *ngIf="isItemVisible(item)"
                [routerLink]="item.route"
                routerLinkActive="active"
                (click)="closeMobile.emit()"
-               class="sidebar-link group relative cursor-pointer">
-              
-              <div class="absolute inset-0 bg-primary-500/10 dark:bg-primary-500/20 rounded-xl opacity-0 group-[.active]:opacity-100 transition-opacity"></div>
-              
-              <div class="relative flex items-center gap-3 w-full">
-                <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0 text-slate-400 group-[.active]:text-primary-600 dark:group-[.active]:text-primary-400"></span>
-                <span class="font-medium text-slate-700 dark:text-slate-300 group-[.active]:text-primary-700 dark:group-[.active]:text-primary-300 group-[.active]:font-bold">{{ item.label }}</span>
-                <span *ngIf="item.badge" 
-                      class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-md bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-sm">
-                  {{ item.badge }}
-                </span>
-                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-[.active]:opacity-100 transition-opacity shadow-[0_0_8px_rgba(99,102,241,0.6)]" *ngIf="!item.badge"></div>
-              </div>
+               class="sidebar-link group">
+              <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0"></span>
+              <span class="font-medium">{{ item.label }}</span>
+              <span *ngIf="item.badge" 
+                    class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+                {{ item.badge }}
+              </span>
             </a>
           </ng-container>
         </ng-container>
@@ -151,24 +138,12 @@ interface NavItem {
   `
 })
 export class SidebarComponent {
-  @Input() set collapsed(val: boolean) {
-    this.isCollapsed = val;
-    this.cdr.markForCheck();
-  }
-  get collapsed() { return this.isCollapsed; }
-  isCollapsed = false;
-  
-  @Input() set mobileOpen(val: boolean) {
-    this.isMobileOpen = val;
-    this.cdr.markForCheck();
-  }
-  get mobileOpen() { return this.isMobileOpen; }
-  isMobileOpen = false;
-
+  @Input() isCollapsed = false;
+  @Input() isMobileOpen = false;
   @Output() toggleCollapse = new EventEmitter<void>();
   @Output() closeMobile = new EventEmitter<void>();
 
-  constructor(public authService: AuthService, private sanitizer: DomSanitizer, private cdr: ChangeDetectorRef) { }
+  constructor(public authService: AuthService, private sanitizer: DomSanitizer) { }
 
   getIcon(svg: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
@@ -285,8 +260,4 @@ export class SidebarComponent {
       ]
     },
   ];
-  
-  trackByLabel(index: number, item: any): string {
-    return item.label || index.toString();
-  }
 }
