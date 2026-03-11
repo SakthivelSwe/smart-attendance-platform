@@ -153,12 +153,18 @@ public class AttendanceScheduler {
                 logger.warn("One or more attendance emails missing for today. Sending reminder based on preferences.");
 
                 if (systemSettingService.isEmailReminderEnabled()) {
-                    if (adminEmails != null && !adminEmails.isBlank()) {
-                        for (String adminEmail : adminEmails.split(",")) {
-                            emailNotificationService.sendReminderToAdmin(adminEmail.trim());
+                    try {
+                        if (adminEmails != null && !adminEmails.isBlank()) {
+                            for (String adminEmail : adminEmails.split(",")) {
+                                emailNotificationService.sendReminderToAdmin(adminEmail.trim());
+                            }
+                        } else {
+                            emailNotificationService.sendReminderToAdmin(notificationEmail);
                         }
-                    } else {
-                        emailNotificationService.sendReminderToAdmin(notificationEmail);
+                    } catch (Exception emailEx) {
+                        logger.warn("Reminder email could not be sent: {}. " +
+                                "If you see 'invalid_grant', please reconnect Gmail in Settings.",
+                                emailEx.getMessage());
                     }
                 }
 
