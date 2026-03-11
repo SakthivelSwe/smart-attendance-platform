@@ -3,12 +3,17 @@ name: Build and Release Android APK
 on:
   push:
     tags:
-      - 'v*.*.*' # Triggers on semantic version tags like v1.0.0
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+      - 'v*.*.*'          # Auto-triggers on git tags like v1.0.0
+  workflow_dispatch:       # Also allows manual trigger from GitHub UI
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g. v1.0.1)'
+        required: true
+        default: 'v1.0.0'
 
 jobs:
   build:
-    name: Build APK
+    name: Build & Publish APK
     runs-on: ubuntu-latest
 
     steps:
@@ -19,37 +24,59 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Flutter Android builds require Java 17
+          java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.4' # Match the version used locally
+          flutter-version: '3.27.4'   # Last stable before 3.29 API changes
           channel: 'stable'
 
       - name: Install Dependencies
         working-directory: ./mobile
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build Release APK
         working-directory: ./mobile
         run: flutter build apk --release
 
       - name: Rename APK
-        working-directory: ./mobile
-        run: mv build/app/outputs/flutter-apk/app-release.apk SmartAttend.apk
+        run: mv mobile/build/app/outputs/flutter-apk/app-release.apk SmartAttend.apk
 
-      - name: Upload APK as Artifact
+      - name: Upload APK as Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SmartAttend-APK
-          path: mobile/SmartAttend.apk
+          path: SmartAttend.apk
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Determine Release Tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
-          files: mobile/SmartAttend.apk
-          generate_release_notes: true
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "SmartAttend Android ${{ steps.tag.outputs.tag }}"
+          body: |
+            ## 📱 SmartAttend Android Release ${{ steps.tag.outputs.tag }}
+
+            ### Installation Instructions
+            1. Download **SmartAttend.apk** below
+            2. On your Android phone, go to **Settings → Install unknown apps** and allow your browser/Files app
+            3. Open the downloaded APK and tap **Install**
+
+            ### What's included
+            - Dashboard with live attendance stats
+            - Employee directory with search
+            - Leave application form
+            - Real-time notifications
+          files: SmartAttend.apk
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
