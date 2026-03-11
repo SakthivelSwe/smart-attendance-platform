@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -9,262 +9,229 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
   selector: 'app-employees',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-12 animate-fade-in pb-20">
-      <!-- High-Fidelity Header & Strategic Controls -->
-      <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
+    <div>
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 class="text-4xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none mb-3">
-            Personnel <span class="text-primary-600 dark:text-primary-400">Inventory</span>
-          </h1>
-          <p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Authoritative registry of corporate personnel nodes and structural associations</p>
+          <h1 class="page-header">Employees</h1>
+          <p class="page-subtitle">Manage employee records and WhatsApp name mappings</p>
         </div>
-
-        <div class="flex flex-col sm:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl p-3 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-black/20" *ngIf="authService.isManager">
+        <!-- BUG-006 fix: MANAGER+ can add/import employees -->
+        <div class="flex items-center gap-3" *ngIf="authService.isManager">
           <input type="file" #fileInput (change)="onFileSelected($event)" accept=".csv" class="hidden">
-          
-          <button (click)="fileInput.click()" 
-                  class="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-100 dark:border-white/5 shadow-xl transition-all transform hover:-translate-y-1 active:scale-95">
-            <span class="material-icons text-xl text-slate-400 group-hover:text-amber-500 transition-colors">cloud_upload</span>
-            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Import CSV</span>
+          <button (click)="fileInput.click()" class="btn-secondary flex items-center gap-2">
+            <span class="material-icons text-[18px]">publish</span>
+            Import CSV
           </button>
-          
-          <button (click)="openModal()" 
-                  class="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white shadow-xl shadow-primary-500/30 transition-all transform hover:-translate-y-1 active:scale-95">
-            <span class="material-icons text-xl group-hover:rotate-90 transition-transform">person_add</span>
-            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Deploy Node</span>
+          <button (click)="openModal()" class="btn-primary">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add Employee
+            </span>
           </button>
         </div>
       </div>
 
-      <!-- Tactical Search & Meta Bar -->
-      <div class="glass-card p-4 border-0 ring-1 ring-slate-100 dark:ring-white/5 shadow-4xl animate-zoom-in flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="relative w-full md:max-w-xl group">
-          <div class="absolute inset-0 bg-primary-500/5 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-100 transition-all"></div>
-          <span class="absolute left-5 top-1/2 -translate-y-1/2 text-primary-500 material-icons text-xl">manage_search</span>
-          <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="currentPage = 1; onSearchChange()" 
-                 placeholder="Search by Identity, Digital Address, or Personnel Code..." 
-                 class="relative w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl pl-16 pr-8 py-5 text-sm font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all"/>
+      <!-- Search & Filters -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 bg-surface-50 dark:bg-surface-900/30 p-4 rounded-2xl border border-surface-200 dark:border-surface-700">
+        <div class="relative w-full sm:w-80">
+           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 material-icons text-sm">search</span>
+           <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="currentPage = 1" placeholder="Search employees..." 
+                  class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all text-sm"/>
         </div>
         
-        <div class="flex items-center gap-4 px-8 py-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5">
-           <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Temporal View</span>
-           <span class="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-             {{ filteredEmployees.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0 }} – {{ Math.min(currentPage * itemsPerPage, filteredEmployees.length) }}
-           </span>
-           <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mx-1 opacity-40">of</span>
-           <span class="text-xs font-black text-slate-900 dark:text-white tabular-nums">{{ filteredEmployees.length }} Nodes</span>
+        <div class="text-sm text-surface-500 font-medium">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length) }} of {{ filteredEmployees.length }}
         </div>
       </div>
 
       <!-- Skeleton Loaders -->
-      <!-- Inventory Matrix: High-Fidelity Nodes -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-        <!-- Skeleton Infrastructure -->
-        <ng-container *ngIf="isLoading">
-          <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="glass-card p-10 animate-pulse rounded-[2.5rem] border-0 ring-1 ring-slate-50 dark:ring-white/5 shadow-2xl">
-             <div class="flex flex-col items-center mb-10">
-                <div class="w-24 h-24 rounded-[2.5rem] bg-slate-100 dark:bg-white/5 mb-6"></div>
-                <div class="h-5 bg-slate-100 dark:bg-white/5 rounded-full w-48 mb-3"></div>
-                <div class="h-3 bg-slate-50 dark:bg-white/[0.02] rounded-full w-24"></div>
-             </div>
-             <div class="space-y-4 px-4">
-                <div class="h-10 bg-slate-50 dark:bg-white/[0.02] rounded-2xl w-full"></div>
-                <div class="h-10 bg-slate-50 dark:bg-white/[0.02] rounded-2xl w-full"></div>
-             </div>
-          </div>
-        </ng-container>
-
-        <!-- Personnel Node Cards -->
-        <div *ngFor="let emp of paginatedEmployees; trackBy: trackByEmployeeId; let i = index" 
-             class="glass-card group p-0 overflow-hidden border-slate-100 dark:border-white/5 hover:border-primary-500/20 shadow-xl hover:shadow-4xl transition-all duration-500 animate-slide-up transform hover:-translate-y-2 rounded-[2.5rem]"
-             [style.animation-delay]="i * 40 + 'ms'">
-          
-          <!-- Identity Status Ribbon -->
-          <div class="absolute top-8 right-8 flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all z-10"
-               [ngClass]="emp.isActive 
-                ? 'bg-emerald-500/5 text-emerald-600 border-emerald-500/10' 
-                : 'bg-rose-500/5 text-rose-600 border-rose-500/10'">
-            <span class="w-1.5 h-1.5 rounded-full" [ngClass]="emp.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'"></span>
-            {{ emp.isActive ? 'Active' : 'Dormant' }}
-          </div>
-
-          <div class="p-10 pb-6 flex flex-col items-center text-center">
-            <div class="relative mb-8 pt-4">
-              <div class="absolute inset-0 bg-primary-500/10 rounded-[2.5rem] blur-2xl group-hover:bg-primary-500/20 transition-all scale-150"></div>
-              <div class="relative w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-slate-900 dark:text-white font-black text-3xl shadow-2xl border-4 border-white dark:border-slate-800 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                {{ emp.name ? emp.name.charAt(0) : '?' }}
+      <div *ngIf="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="glass-card p-4 animate-pulse bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm">
+           <div class="flex items-center gap-4 mb-5">
+              <div class="w-12 h-12 rounded-xl bg-surface-200 dark:bg-surface-800 shrink-0"></div>
+              <div class="space-y-2 flex-1">
+                 <div class="h-4 bg-surface-200 dark:bg-surface-800 rounded w-3/4"></div>
+                 <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-1/3"></div>
               </div>
-            </div>
+           </div>
+           <div class="space-y-3">
+              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-full"></div>
+              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-5/6"></div>
+              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-4/6"></div>
+           </div>
+           <div class="mt-4 pt-3 border-t border-surface-100 dark:border-surface-800 flex justify-end gap-2">
+              <div class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800"></div>
+              <div class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800"></div>
+           </div>
+        </div>
+      </div>
 
-            <h3 class="text-xl font-black text-slate-900 dark:text-white font-manrope tracking-tight uppercase leading-none mb-3 group-hover:text-primary-600 transition-colors truncate w-full px-4" [title]="emp.name">{{ emp.name }}</h3>
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8">{{ emp.designation || 'Specialist Node' }}</p>
-            
-            <div class="w-full space-y-4">
-               <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 transition-all group-hover:bg-white dark:group-hover:bg-white/5">
-                 <span class="material-icons text-primary-500 text-lg">fingerprint</span>
-                 <div class="text-left">
-                   <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Structural ID</p>
-                   <p class="text-xs font-black text-slate-900 dark:text-white tabular-nums">{{ emp.employeeCode || 'VOID' }}</p>
-                 </div>
-               </div>
-               
-               <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 transition-all group-hover:bg-white dark:group-hover:bg-white/5">
-                 <span class="material-icons text-primary-500 text-lg">hub</span>
-                 <div class="text-left">
-                   <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Node Collective</p>
-                   <p class="text-xs font-black text-slate-900 dark:text-white truncate max-w-[150px]">{{ emp.groupName || 'No Group' }}</p>
-                 </div>
-               </div>
+      <!-- Employee cards grid -->
+      <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div *ngFor="let emp of paginatedEmployees; let i = index" 
+             class="glass-card p-4 relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm hover:shadow-md"
+             [style.animation-delay]="i * 50 + 'ms'">
+          
+          <!-- Status Dot -->
+           <span [class]="emp.isActive ? 'bg-emerald-500' : 'bg-red-500'"
+                 class="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-surface-900"
+                 [title]="emp.isActive ? 'Active' : 'Inactive'">
+           </span>
+
+          <!-- Header (Compact) -->
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 flex items-center justify-center shrink-0">
+               <span class="text-xl font-sans font-semibold text-primary-600 dark:text-primary-400">
+                 {{ emp.name.charAt(0) }}
+               </span>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-base font-bold text-[var(--text-primary)] truncate" [title]="emp.name">{{ emp.name }}</h3>
+              <p class="text-xs text-surface-500 font-mono bg-surface-100 dark:bg-surface-800 px-1.5 py-0.5 rounded inline-block mt-1">
+                {{ emp.employeeCode }}
+              </p>
             </div>
           </div>
 
-          <!-- Node Strategic Actions -->
-          <div class="px-10 py-8 bg-slate-50/80 dark:bg-white/[0.01] border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-4">
-             <div class="flex flex-col">
-               <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Status</span>
-               <span class="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">{{ emp.isActive ? 'Active' : 'Inactive' }}</span>
-             </div>
-             
-             <div class="flex items-center gap-3">
-               <button (click)="editEmployee(emp)" *ngIf="authService.isManager"
-                       class="p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 hover:text-primary-600 shadow-lg border border-slate-100 dark:border-white/5 transition-all active:scale-90">
-                 <span class="material-icons text-sm">edit_note</span>
-               </button>
-               <button (click)="deleteEmployee(emp.id)" *ngIf="authService.isManager"
-                       class="p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-400 hover:text-rose-600 shadow-lg border border-slate-100 dark:border-white/5 transition-all active:scale-90">
-                 <span class="material-icons text-sm">delete_sweep</span>
-               </button>
-             </div>
+          <!-- Compact Details -->
+          <div class="space-y-2 mb-4 text-sm">
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" [title]="emp.email">
+              <span class="material-icons text-base text-surface-400">email</span>
+              <span class="truncate">{{ emp.email }}</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.phone">
+               <span class="material-icons text-base text-surface-400">phone</span>
+              <span class="truncate">{{ emp.phone }}</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.whatsappName">
+               <span class="material-icons text-base text-green-500">chat</span>
+              <span class="truncate">{{ emp.whatsappName }}</span>
+            </div>
+            
+             <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.groupName">
+               <span class="material-icons text-base text-amber-500">group</span>
+              <span class="truncate">{{ emp.groupName }}</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.teamName">
+               <span class="material-icons text-base text-indigo-500">business</span>
+              <span class="truncate">{{ emp.teamName }}</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-surface-600 dark:text-surface-400" *ngIf="emp.designation">
+               <span class="material-icons text-base text-purple-500">badge</span>
+              <span class="truncate">{{ emp.designation }}</span>
+            </div>
+          </div>
+
+          <!-- Actions (Icon only) -->
+          <!-- BUG-006 fix: MANAGER+ can edit/delete employees -->
+          <div *ngIf="authService.isManager" class="flex justify-end gap-2 pt-3 border-t border-surface-100 dark:border-surface-800">
+            <button (click)="editEmployee(emp)" 
+                    class="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-colors" title="Edit">
+               <span class="material-icons text-lg">edit</span>
+            </button>
+            <button (click)="deleteEmployee(emp.id)" 
+                    class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors" title="Delete">
+               <span class="material-icons text-lg">delete</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Tactical Pagination Controls -->
-      <div *ngIf="!isLoading && filteredEmployees.length > itemsPerPage" class="flex items-center justify-center gap-6 pt-12">
-        <button [disabled]="currentPage === 1" (click)="currentPage = currentPage - 1; cdr.markForCheck()"
-                class="w-16 h-16 rounded-[1.5rem] bg-white dark:bg-slate-800 text-slate-400 hover:text-primary-600 disabled:opacity-20 border border-slate-100 dark:border-white/5 shadow-xl transition-all active:scale-90 flex items-center justify-center group">
-          <span class="material-icons group-hover:-translate-x-1 transition-transform">west</span>
+      <!-- Pagination -->
+      <div class="flex justify-center mt-8 gap-2" *ngIf="totalPages > 1">
+        <button (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1"
+                class="btn-secondary px-3 py-1 flex items-center disabled:opacity-50">
+          <span class="material-icons text-sm">chevron_left</span>
         </button>
         
-        <div class="flex items-center gap-3 p-2 bg-slate-100/50 dark:bg-white/5 rounded-[1.5rem] border border-slate-200/50 dark:border-white/5">
-           <button *ngFor="let page of visiblePages" 
-                   (click)="setPage(page); cdr.markForCheck()"
-                   class="w-12 h-12 rounded-xl text-[10px] font-black flex items-center justify-center transition-all transform active:scale-95 shadow-sm"
-                   [ngClass]="currentPage === page 
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl' 
-                    : 'text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'">
-             {{ page }}
-           </button>
-        </div>
+        <button *ngFor="let page of visiblePages" 
+                (click)="setPage(page)"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-colors"
+                [class.bg-primary-600]="currentPage === page"
+                [class.text-white]="currentPage === page"
+                [class.hover:bg-surface-200]="currentPage !== page"
+                [class.dark:hover:bg-surface-700]="currentPage !== page">
+          {{ page }}
+        </button>
 
-        <button [disabled]="currentPage === totalPages" (click)="currentPage = currentPage + 1; cdr.markForCheck()"
-                class="w-16 h-16 rounded-[1.5rem] bg-white dark:bg-slate-800 text-slate-400 hover:text-primary-600 disabled:opacity-20 border border-slate-100 dark:border-white/5 shadow-xl transition-all active:scale-90 flex items-center justify-center group">
-          <span class="material-icons group-hover:translate-x-1 transition-transform">east</span>
+        <button (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages"
+                class="btn-secondary px-3 py-1 flex items-center disabled:opacity-50">
+          <span class="material-icons text-sm">chevron_right</span>
         </button>
       </div>
 
-      <!-- Null Reality State -->
-      <div *ngIf="!isLoading && filteredEmployees.length === 0" class="min-h-[500px] flex flex-col items-center justify-center p-20 text-center animate-fade-in">
-        <div class="relative mb-12 w-32 h-32 flex items-center justify-center">
-          <div class="absolute inset-0 bg-primary-500/10 rounded-[3rem] animate-pulse"></div>
-          <span class="material-icons text-7xl text-slate-200 dark:text-white/5 relative z-10">person_off</span>
-        </div>
-        <h3 class="text-3xl font-black text-slate-300 dark:text-white/10 uppercase tracking-[0.4em]">Zero Personnel Data</h3>
-        <p class="text-[10px] font-bold text-slate-400 mt-6 max-w-sm uppercase tracking-widest leading-loose">The current identity vector identifies no structural nodes in the corporate registry.</p>
-        <button (click)="searchTerm = ''; onSearchChange()" class="mt-12 text-primary-600 text-[10px] font-black uppercase tracking-[0.3em] hover:underline transition-all">Reset Matrix Filter</button>
+      <div *ngIf="!isLoading && filteredEmployees.length === 0" class="text-center py-12 text-[var(--text-secondary)]">
+        <svg class="w-16 h-16 mx-auto mb-4 text-surface-300 dark:text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <p>No employees found</p>
       </div>
 
-      <!-- Modern Modal -->      <!-- Node Deployment Modal (Add/Edit) -->
-      <div *ngIf="showModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xl z-50 flex items-center justify-center p-6 animate-fade-in">
-        <div class="glass-card w-full max-w-2xl p-0 overflow-hidden ring-1 ring-white/10 shadow-5xl animate-zoom-in border-0 rounded-[3.5rem] bg-white dark:bg-slate-950">
-          <div class="px-12 py-12 bg-slate-900 dark:bg-black text-white relative">
-            <h3 class="text-3xl font-black font-manrope tracking-tight leading-none mb-2">{{ editingId ? 'Refine Node' : 'Deploy Node' }}</h3>
-            <p class="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">Structural Identity Calibration Matrix</p>
-            <button (click)="showModal = false; cdr.markForCheck()" class="absolute top-12 right-12 text-white/40 hover:text-white transition-colors">
-              <span class="material-icons">close</span>
-            </button>
-          </div>
-
-          <div class="p-12 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Formal Identity</label>
-                <div class="relative">
-                  <span class="absolute left-6 top-1/2 -translate-y-1/2 text-primary-500 material-icons">person_outline</span>
-                  <input type="text" [(ngModel)]="form.name" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl pl-16 pr-6 py-5 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="Full Name Node">
-                </div>
+      <!-- Modal -->
+      <div *ngIf="showModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
+          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">{{ editingId ? 'Edit' : 'Add' }} Employee</h3>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name *</label>
+                <input type="text" [(ngModel)]="form.name" class="input-field" placeholder="Full name"/>
               </div>
-              <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Structural Code</label>
-                <div class="relative">
-                  <span class="absolute left-6 top-1/2 -translate-y-1/2 text-primary-500 material-icons">fingerprint</span>
-                  <input type="text" [(ngModel)]="form.employeeCode" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl pl-16 pr-6 py-5 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="EMP-XXX">
-                </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Code *</label>
+                <input type="text" [(ngModel)]="form.employeeCode" class="input-field" placeholder="EMP001"/>
               </div>
             </div>
-
-            <div class="space-y-4">
-              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Digital Communication Address</label>
-              <div class="relative">
-                <span class="absolute left-6 top-1/2 -translate-y-1/2 text-primary-500 material-icons">alternate_email</span>
-                <input type="email" [(ngModel)]="form.email" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl pl-16 pr-6 py-5 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="node@enterprise.com">
+            <div>
+              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email *</label>
+              <input type="email" [(ngModel)]="form.email" class="input-field" placeholder="email@example.com"/>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Phone</label>
+                <input type="text" [(ngModel)]="form.phone" class="input-field" placeholder="+91 9876543210"/>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">WhatsApp Name</label>
+                <input type="text" [(ngModel)]="form.whatsappName" class="input-field" placeholder="Name in group"/>
               </div>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Cellular Vector</label>
-                <input type="text" [(ngModel)]="form.phone" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="+XX-XXXXXXXXXX">
-              </div>
-              <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">WhatsApp Identifier</label>
-                <input type="text" [(ngModel)]="form.whatsappName" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="Platform Profile Name">
-              </div>
+            <div>
+              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Group</label>
+              <select [(ngModel)]="form.groupId" class="input-field">
+                <option [ngValue]="null">No Group</option>
+                <option *ngFor="let g of groups" [ngValue]="g.id">{{ g.name }}</option>
+              </select>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Org Collective</label>
-                <select [(ngModel)]="form.groupId" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all cursor-pointer">
-                  <option [ngValue]="null">Select Group</option>
-                  <option *ngFor="let g of groups; trackBy: trackByGroupId" [ngValue]="g.id">{{ g.name }}</option>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team</label>
+                <select [(ngModel)]="form.teamId" class="input-field">
+                  <option [ngValue]="null">No Team</option>
+                  <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.name }}</option>
                 </select>
               </div>
-              <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Task Force</label>
-                <select [(ngModel)]="form.teamId" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all cursor-pointer">
-                  <option [ngValue]="null">Select Team</option>
-                  <option *ngFor="let t of teams; trackBy: trackByTeamId" [ngValue]="t.id">{{ t.name }}</option>
-                </select>
+              <div>
+                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Designation</label>
+                <input type="text" [(ngModel)]="form.designation" class="input-field" placeholder="Software Engineer"/>
               </div>
             </div>
-
-            <div class="space-y-4">
-              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Professional Designation</label>
-              <input type="text" [(ngModel)]="form.designation" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-2xl p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="e.g. Lead Developer"/>
-            </div>
           </div>
-
-          <div class="px-12 py-10 bg-slate-50/50 dark:bg-white/[0.01] flex justify-end gap-6 items-center border-t border-slate-100 dark:border-white/5">
-            <button (click)="showModal = false; cdr.markForCheck()" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Abort</button>
-            <button (click)="saveEmployee()" class="px-14 py-6 rounded-[2rem] bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black uppercase tracking-[0.4em] shadow-4xl hover:scale-105 active:scale-95 transition-all">
-              {{ editingId ? 'Re-Commit Node' : 'Initialize Node' }}
-            </button>
+          <div class="flex justify-end gap-3 mt-6">
+            <button (click)="showModal = false" class="btn-secondary">Cancel</button>
+            <button (click)="saveEmployee()" class="btn-primary">{{ editingId ? 'Update' : 'Create' }}</button>
           </div>
         </div>
       </div>
     </div>
-  `,
-  styles: [`
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { 
-      background: rgba(var(--color-primary-500-rgb), 0.1); 
-      border-radius: 20px;
-    }
-  `]
+  `
 })
 export class EmployeesComponent implements OnInit {
   employees: Employee[] = [];
@@ -281,35 +248,22 @@ export class EmployeesComponent implements OnInit {
   itemsPerPage = 12;
   Math = Math; // for template usage
 
-  constructor(private api: ApiService, public authService: AuthService, public cdr: ChangeDetectorRef) { }
-
-  trackByEmployeeId(index: number, emp: Employee): number { return emp.id; }
-  trackByGroupId(index: number, group: Group): number { return group.id; }
-  trackByTeamId(index: number, team: Team): number { return team.id; }
+  constructor(private api: ApiService, public authService: AuthService) { }
 
   ngOnInit() {
     this.loadEmployees();
-    this.api.getGroups().subscribe({
-        next: g => { this.groups = g; this.cdr.markForCheck(); }
-    });
-    this.api.getActiveTeams().subscribe({
-        next: t => { this.teams = t; this.cdr.markForCheck(); }
-    });
+    this.api.getGroups().subscribe(g => this.groups = g);
+    this.api.getActiveTeams().subscribe(t => this.teams = t);
   }
 
   loadEmployees() {
     this.isLoading = true;
-    this.cdr.markForCheck();
     this.api.getEmployees().subscribe({
       next: (data) => {
         this.employees = data;
         this.isLoading = false;
-        this.cdr.markForCheck();
       },
-      error: () => {
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      }
+      error: () => this.isLoading = false
     });
   }
 
@@ -359,38 +313,25 @@ export class EmployeesComponent implements OnInit {
     this.editingId = null;
     this.form = {};
     this.showModal = true;
-    this.cdr.markForCheck();
   }
 
   editEmployee(emp: Employee) {
     this.editingId = emp.id;
     this.form = { ...emp };
     this.showModal = true;
-    this.cdr.markForCheck();
   }
 
   saveEmployee() {
     const obs = this.editingId
       ? this.api.updateEmployee(this.editingId, this.form)
       : this.api.createEmployee(this.form);
-    obs.subscribe({ next: () => { 
-        this.showModal = false; 
-        this.loadEmployees(); 
-        this.cdr.markForCheck();
-    } });
+    obs.subscribe({ next: () => { this.showModal = false; this.loadEmployees(); } });
   }
 
   deleteEmployee(id: number) {
     if (confirm('Are you sure you want to deactivate this employee?')) {
-      this.api.deleteEmployee(id).subscribe(() => {
-        this.loadEmployees();
-        this.cdr.markForCheck();
-      });
+      this.api.deleteEmployee(id).subscribe(() => this.loadEmployees());
     }
-  }
-
-  onSearchChange() {
-    this.cdr.markForCheck();
   }
 
   onFileSelected(event: any) {
@@ -401,12 +342,8 @@ export class EmployeesComponent implements OnInit {
           next: (res) => {
             alert(res);
             this.loadEmployees();
-            this.cdr.markForCheck();
           },
-          error: (err) => {
-            alert('Import failed: ' + err.message);
-            this.cdr.markForCheck();
-          }
+          error: (err) => alert('Import failed: ' + err.message)
         });
       }
     }

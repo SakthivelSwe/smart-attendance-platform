@@ -49,22 +49,22 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
                                                 // Public endpoints — no token required
-                                                .requestMatchers("/api/v1/auth/**", "/api/v1/settings/gmail/oauth/callback")
+                                                .requestMatchers("/api/auth/**", "/api/settings/gmail/oauth/callback")
                                                 .permitAll()
                                                 .requestMatchers("/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**",
                                                                 "/swagger-ui.html", "/actuator/**")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                                // Self check-in requires authentication
-                                                .requestMatchers(HttpMethod.POST, "/api/v1/attendance/check-in")
-                                                .authenticated()
+                                                // Self check-in is public (kiosk / WhatsApp bot usage)
+                                                .requestMatchers(HttpMethod.POST, "/api/attendance/check-in")
+                                                .permitAll()
                                                 // All other attendance endpoints require authentication (any role)
-                                                .requestMatchers("/api/v1/attendance/**").authenticated()
-                                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                                                .requestMatchers("/api/v1/manager/**").hasAnyRole("ADMIN", "MANAGER")
-                                                .requestMatchers("/api/v1/team-lead/**")
+                                                .requestMatchers("/api/attendance/**").authenticated()
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                .requestMatchers("/api/manager/**").hasAnyRole("ADMIN", "MANAGER")
+                                                .requestMatchers("/api/team-lead/**")
                                                 .hasAnyRole("ADMIN", "MANAGER", "TEAM_LEAD")
-                                                .requestMatchers("/api/v1/teams/**").authenticated()
+                                                .requestMatchers("/api/teams/**").authenticated()
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(e -> e.authenticationEntryPoint(
                                                 (request, response, authException) -> response.sendError(401,

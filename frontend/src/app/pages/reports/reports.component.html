@@ -7,32 +7,32 @@
     </div>
 
     <!-- Date Pickers -->
-    <div class="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+    <div class="flex flex-wrap items-center gap-3 bg-white dark:bg-surface-800 p-2 rounded-xl shadow-sm border border-surface-200 dark:border-surface-700">
       <div class="flex flex-col relative w-36">
-        <label class="form-label absolute -top-5 left-1">Start Date</label>
+        <label class="text-[10px] font-bold text-surface-500 uppercase tracking-wider absolute -top-5 left-1">Start Date</label>
         <input type="date" [(ngModel)]="startDate" (change)="loadData()" 
-               class="form-input !py-1 !px-2 border-transparent focus:border-transparent bg-transparent cursor-pointer">
+               class="bg-transparent text-sm font-medium outline-none text-surface-700 dark:text-surface-200 cursor-pointer">
       </div>
-      <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+      <div class="h-6 w-px bg-surface-200 dark:bg-surface-700"></div>
       <div class="flex flex-col relative w-36">
-        <label class="form-label absolute -top-5 left-1">End Date</label>
+        <label class="text-[10px] font-bold text-surface-500 uppercase tracking-wider absolute -top-5 left-1">End Date</label>
         <input type="date" [(ngModel)]="endDate" (change)="loadData()" 
-               class="form-input !py-1 !px-2 border-transparent focus:border-transparent bg-transparent cursor-pointer">
+               class="bg-transparent text-sm font-medium outline-none text-surface-700 dark:text-surface-200 cursor-pointer">
       </div>
     </div>
   </div>
 
   <!-- Work Trend Chart -->
-  <div class="glass-card p-6 stagger-1">
+  <div class="bg-white dark:bg-surface-800 rounded-3xl p-6 shadow-sm border border-[var(--border-color)]">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 font-manrope">
+      <h2 class="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
         <span class="material-icons text-primary-500">trending_up</span> 
         Work Location Trends
       </h2>
       <div class="flex gap-4 text-sm font-medium">
-        <div class="flex items-center gap-1"><div class="badge-dot bg-blue-500"></div> WFO</div>
-        <div class="flex items-center gap-1"><div class="badge-dot bg-violet-500"></div> WFH</div>
-        <div class="flex items-center gap-1"><div class="badge-dot bg-amber-500"></div> Leaves</div>
+        <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#4f46e5]"></div> WFO</div>
+        <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#10b981]"></div> WFH</div>
+        <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-[#f59e0b]"></div> Leaves</div>
       </div>
     </div>
     
@@ -57,58 +57,58 @@
   </div>
 
   <!-- Team Comparison Table -->
-  <div class="table-wrapper stagger-2">
-    <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-      <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 font-manrope">
-        <span class="material-icons text-primary-500">groups</span> 
+  <div class="bg-white dark:bg-surface-800 rounded-3xl shadow-sm border border-[var(--border-color)] overflow-hidden">
+    <div class="px-6 py-5 border-b border-[var(--border-color)] flex items-center justify-between">
+      <h2 class="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
+        <span class="material-icons text-indigo-500">groups</span> 
         Team Comparisons
       </h2>
       
-      <button (click)="exportTeamComparisonPDF()" class="btn-secondary">
+      <button (click)="exportTeamComparisonPDF()" class="btn-secondary text-sm flex items-center gap-2 hover:border-red-500 hover:text-red-500 transition-colors">
         <span class="material-icons text-[18px]">picture_as_pdf</span>
         Export PDF
       </button>
     </div>
 
     <div class="overflow-x-auto">
-      <table class="table-base">
+      <table class="w-full text-left border-collapse">
         <thead>
-          <tr class="table-thead-row">
-            <th class="table-th">Team Name</th>
-            <th class="table-th text-center">Total Employees</th>
-            <th class="table-th text-center text-emerald-600 dark:text-emerald-400">Present (inc. WFH)</th>
-            <th class="table-th text-center text-red-600 dark:text-red-400">Absent</th>
-            <th class="table-th text-center text-amber-600 dark:text-amber-400">On Leave</th>
-            <th class="table-th text-center">Attendance Rate</th>
+          <tr class="bg-surface-50 dark:bg-surface-800/50 border-b border-[var(--border-color)] text-xs font-semibold text-surface-500 uppercase tracking-wider">
+            <th class="py-4 px-6 font-semibold">Team Name</th>
+            <th class="py-4 px-6 font-semibold text-center">Total Employees</th>
+            <th class="py-4 px-6 font-semibold text-center text-emerald-600 dark:text-emerald-400">Present (inc. WFH)</th>
+            <th class="py-4 px-6 font-semibold text-center text-red-600 dark:text-red-400">Absent</th>
+            <th class="py-4 px-6 font-semibold text-center text-amber-600 dark:text-amber-400">On Leave</th>
+            <th class="py-4 px-6 font-semibold text-center">Attendance Rate</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-          <tr *ngFor="let t of teamComparisons; trackBy: trackByTeamName" class="table-tbody-row">
-            <td class="table-td">
+        <tbody class="divide-y divide-[var(--border-color)] text-sm font-medium text-[var(--text-secondary)]">
+          <tr *ngFor="let t of teamComparisons" class="hover:bg-surface-50/50 dark:hover:bg-surface-700/50 transition-colors">
+            <td class="py-4 px-6">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center font-bold">
+                <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center font-bold">
                   {{ t.teamName.charAt(0) }}
                 </div>
-                <span class="text-slate-900 dark:text-slate-100 font-semibold">{{ t.teamName }}</span>
+                <span class="text-surface-900 dark:text-surface-100 font-semibold">{{ t.teamName }}</span>
               </div>
             </td>
-            <td class="table-td text-center tabular-nums">{{ t.totalEmployees }}</td>
-            <td class="table-td text-center text-emerald-600 font-semibold tabular-nums">{{ t.totalPresent }}</td>
-            <td class="table-td text-center text-red-500 font-semibold tabular-nums">{{ t.totalAbsent }}</td>
-            <td class="table-td text-center text-amber-500 font-semibold tabular-nums">{{ t.totalOnLeave }}</td>
-            <td class="table-td text-center">
+            <td class="py-3 px-6 text-center">{{ t.totalEmployees }}</td>
+            <td class="py-3 px-6 text-center text-emerald-600 font-semibold">{{ t.totalPresent }}</td>
+            <td class="py-3 px-6 text-center text-red-500 font-semibold">{{ t.totalAbsent }}</td>
+            <td class="py-3 px-6 text-center text-amber-500 font-semibold">{{ t.totalOnLeave }}</td>
+            <td class="py-3 px-6 text-center">
               <div class="inline-flex items-center gap-2">
-                <span class="font-bold text-slate-900 dark:text-white tabular-nums">{{ t.attendanceRate }}%</span>
+                <span class="font-bold text-surface-900 dark:text-white">{{ t.attendanceRate }}%</span>
                 <!-- mini bar graph visualization -->
-                <div class="progress-track w-16">
-                  <div class="progress-fill bg-emerald-500" [style.width]="t.attendanceRate + '%'"></div>
+                <div class="w-16 h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden flex">
+                  <div class="h-full bg-emerald-500" [style.width]="t.attendanceRate + '%'"></div>
                 </div>
               </div>
             </td>
           </tr>
           
           <tr *ngIf="teamComparisons.length === 0">
-            <td colspan="6" class="py-12 text-center text-slate-500">
+            <td colspan="6" class="py-12 text-center text-surface-500">
               <span class="material-icons block text-4xl mb-2 opacity-50">analytics</span>
               No team data found for selected period
             </td>
