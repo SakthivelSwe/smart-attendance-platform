@@ -63,12 +63,6 @@ app:
     secret: ${JWT_SECRET}
     expiration-ms: 1800000  # 30 minutes
 
-  # REQUIRED: stable encryption key so OAuth tokens survive server restarts.
-  # Generate: openssl rand -base64 32
-  # If unset, a random key is used per restart, invalidating stored OAuth tokens!
-  encryption:
-    key: ${APP_ENCRYPTION_KEY:}
-
   supabase:
     url: ${SUPABASE_URL}
     anon-key: ${SUPABASE_ANON_KEY}

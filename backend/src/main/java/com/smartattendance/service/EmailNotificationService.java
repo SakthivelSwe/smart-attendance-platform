@@ -57,8 +57,6 @@ public class EmailNotificationService {
     /**
      * Generic method to send any HTML email content.
      * Prefers Gmail API (OAuth2) if connected; falls back to SMTP App Password.
-     * On platforms like Render free tier, SMTP (port 587) may be blocked;
-     * in that case the fallback is skipped gracefully.
      */
     public void sendHtmlEmail(String toEmail, String subject, String htmlContent) {
         // --- Path 1: Gmail API via OAuth2 (preferred — no App Password needed) ---
@@ -66,17 +64,6 @@ public class EmailNotificationService {
             try {
                 gmailOAuthService.sendHtmlEmail(toEmail, subject, htmlContent);
                 return;
-            } catch (com.google.api.client.http.HttpResponseException e) {
-                if (e.getStatusCode() == 400 && e.getContent() != null
-                        && e.getContent().contains("invalid_grant")) {
-                    // Token expired/revoked — token auto-cleared by GmailOAuthService.
-                    // Do NOT fall through to SMTP as Render blocks port 587.
-                    logger.error("Gmail OAuth2 token is expired (invalid_grant). " +
-                            "Email to {} skipped. Please reconnect Gmail account in Settings.", toEmail);
-                    return;
-                }
-                logger.error("Gmail API send failed, falling back to SMTP: {}", e.getMessage());
-                // Fall through to SMTP path for other OAuth errors
             } catch (Exception e) {
                 logger.error("Gmail API send failed, falling back to SMTP: {}", e.getMessage());
                 // Fall through to SMTP path
@@ -113,16 +100,6 @@ public class EmailNotificationService {
         } catch (MessagingException e) {
             logger.error("Failed to send email '{}' to {}: {}", subject, toEmail, e.getMessage());
             throw new RuntimeException("Email send failed: " + e.getMessage(), e);
-        } catch (Exception e) {
-            // Catch ConnectException / MailConnectException (SMTP port blocked on cloud hosts)
-            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            if (msg.contains("Connection timed out") || msg.contains("MailConnectException")) {
-                logger.error("SMTP connection failed — outbound port 587 may be blocked by the hosting platform. "
-                        + "Please use OAuth2 Gmail connection instead. Error: {}", msg);
-                throw new RuntimeException("SMTP port blocked by hosting provider. Use OAuth2 Gmail in Settings.", e);
-            }
-            logger.error("Unexpected email send failure to {}: {}", toEmail, msg);
-            throw new RuntimeException("Email send failed: " + msg, e);
         }
     }
 

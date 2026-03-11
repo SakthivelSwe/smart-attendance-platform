@@ -247,46 +247,9 @@ public class SystemSettingController {
         String passwordHint = (password != null && password.length() >= 4)
                 ? password.substring(0, 4) + "****" + " (length=" + password.length() + ")"
                 : "(null or empty)";
-
-        // Also surface OAuth2 status
-        boolean oauthConnected = gmailOAuthService.isConnected();
-        String oauthEmail = gmailOAuthService.getConnectedEmail();
-        String oauthToken = systemSettingService.getOAuthRefreshToken();
-
-        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
-        result.put("smtpEmail", email != null ? email : "NOT_SET");
-        result.put("smtpPasswordHint", passwordHint);
-        result.put("smtpPasswordLength", password != null ? password.length() : 0);
-        result.put("oauth2Connected", oauthConnected);
-        result.put("oauth2Email", oauthEmail != null ? oauthEmail : "NOT_SET");
-        result.put("oauth2TokenPresent", oauthToken != null && !oauthToken.isBlank());
-        result.put("hint",
-                !oauthConnected
-                        ? "OAuth2 not connected. Go to Settings > Connect Gmail Account."
-                        : "OAuth2 connected. If you see 'invalid_grant' in logs, the token expired — reconnect Gmail.");
-        return ResponseEntity.ok(result);
-    }
-
-    /**
-     * Perform a live validation of the stored OAuth2 token by attempting a
-     * simple Gmail API call (list 1 email).
-     * Useful after deployment to verify the token is still valid.
-     */
-    @PostMapping("/diagnose-email/validate-oauth")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> validateOAuthToken() {
-        if (!gmailOAuthService.isConnected()) {
-            return ResponseEntity.ok(Map.of(
-                    "valid", false,
-                    "message", "No OAuth2 account connected. Please connect Gmail in Settings."));
-        }
-        boolean valid = gmailOAuthService.hasAttendanceEmailForDate("WhatsApp", java.time.LocalDate.now());
-        String email = gmailOAuthService.getConnectedEmail();
-        return ResponseEntity.ok(Map.of(
-                "valid", valid,
-                "connectedEmail", email != null ? email : "",
-                "message", valid
-                        ? "OAuth2 token is valid. Gmail API call succeeded."
-                        : "OAuth2 token is INVALID (invalid_grant or network error). Token has been auto-cleared. Please reconnect Gmail in Settings."));
+        return ResponseEntity.ok(java.util.Map.of(
+                "storedEmail", email != null ? email : "NOT_SET",
+                "passwordHint", passwordHint,
+                "passwordLength", password != null ? password.length() : 0));
     }
 }
