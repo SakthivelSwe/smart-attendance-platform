@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -8,21 +8,22 @@ import { HeaderComponent } from '../header/header.component';
   selector: 'app-layout',
   standalone: true,
   imports: [CommonModule, RouterModule, RouterOutlet, SidebarComponent, HeaderComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
       <!-- Sidebar -->
       <app-sidebar
-        [isCollapsed]="sidebarCollapsed"
-        [isMobileOpen]="mobileMenuOpen"
-        (toggleCollapse)="sidebarCollapsed = !sidebarCollapsed"
-        (closeMobile)="mobileMenuOpen = false"
+        [collapsed]="sidebarCollapsed"
+        [mobileOpen]="mobileMenuOpen"
+        (toggleCollapse)="toggleSidebar()"
+        (closeMobile)="closeMobileMenu()"
       ></app-sidebar>
 
       <!-- Mobile overlay -->
       <div
         *ngIf="mobileMenuOpen"
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden"
-        (click)="mobileMenuOpen = false"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden"
+        (click)="closeMobileMenu()"
       ></div>
 
       <!-- Main content -->
@@ -30,7 +31,7 @@ import { HeaderComponent } from '../header/header.component';
            [class.lg:ml-72]="!sidebarCollapsed"
            [class.lg:ml-20]="sidebarCollapsed">
         <app-header
-          (toggleMobileMenu)="mobileMenuOpen = !mobileMenuOpen"
+          (toggleMobileMenu)="toggleMobileMenu()"
         ></app-header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
@@ -45,5 +46,22 @@ import { HeaderComponent } from '../header/header.component';
 export class LayoutComponent {
   sidebarCollapsed = false;
   mobileMenuOpen = false;
+  
+  constructor(private cdr: ChangeDetectorRef) {}
+  
+  toggleSidebar() {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+      this.cdr.markForCheck();
+  }
+  
+  closeMobileMenu() {
+      this.mobileMenuOpen = false;
+      this.cdr.markForCheck();
+  }
+  
+  toggleMobileMenu() {
+      this.mobileMenuOpen = !this.mobileMenuOpen;
+      this.cdr.markForCheck();
+  }
 }
 

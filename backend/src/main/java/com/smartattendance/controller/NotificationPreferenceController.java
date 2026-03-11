@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/notification-preferences")
+@RequestMapping("/api/v1/notification-preferences")
 @RequiredArgsConstructor
 public class NotificationPreferenceController {
 

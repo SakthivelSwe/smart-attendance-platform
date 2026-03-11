@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin/audit-logs")
+@RequestMapping("/api/v1/admin/audit-logs")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class AuditController {

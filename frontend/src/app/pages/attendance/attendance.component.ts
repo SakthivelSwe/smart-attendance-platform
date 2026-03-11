@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -10,277 +10,300 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
   selector: 'app-attendance',
   standalone: true,
   imports: [CommonModule, FormsModule, LottieComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div>
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div class="space-y-12 animate-fade-in pb-20">
+      <!-- High-Fidelity Header & Strategic Controls -->
+      <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
         <div>
-          <h1 class="page-header">Attendance</h1>
-          <p class="page-subtitle">Daily attendance records and processing</p>
+          <h1 class="text-4xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none mb-3">
+            Personnel <span class="text-primary-600 dark:text-primary-400">Deployment</span>
+          </h1>
+          <p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Managing real-time presence markers and structural availability flow</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl p-3 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-black/20">
           <div *ngIf="automationConfigured" 
-               class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-full border border-emerald-200/60 dark:border-emerald-700/30 text-xs text-emerald-700 dark:text-emerald-400 shadow-sm mr-3">
-            <span class="relative flex h-2 w-2 mr-1">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+               class="flex items-center gap-3 px-5 py-2.5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 text-[10px] text-emerald-600 font-black uppercase tracking-widest shadow-inner">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span class="font-semibold tracking-wide">AUTOMATION ACTIVE</span>
+            Automated Vector Active
           </div>
-          <input type="date" [(ngModel)]="selectedDate" (change)="loadAttendance()"
-                 class="input-field w-auto"/>
-          <!-- BUG-001 fix: MANAGER+ can fetch email and paste chat -->
-          <button *ngIf="authService.isManager" (click)="showEmailModal = true" class="btn-primary whitespace-nowrap"
-                  title="Fetch WhatsApp chat from Gmail automatically">
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-              </svg>
-              Fetch Email
-            </span>
-          </button>
-          <button *ngIf="authService.isManager" (click)="showProcessModal = true" class="btn-secondary whitespace-nowrap">
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-              </svg>
-              Paste Chat
-            </span>
-          </button>
+
+          <div class="relative group">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-primary-500 material-icons text-lg group-hover:scale-110 transition-transform">calendar_today</span>
+            <input type="date" [(ngModel)]="selectedDate" (change)="loadAttendance()"
+                   class="bg-slate-50 dark:bg-white/5 border-0 rounded-2xl pl-12 pr-6 py-4 text-xs font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 transition-all cursor-pointer tabular-nums shadow-inner"/>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <button *ngIf="authService.isManager" (click)="showEmailModal = true" 
+                    class="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white shadow-xl shadow-primary-500/30 transition-all transform hover:-translate-y-1 active:scale-95">
+              <span class="material-icons text-xl group-hover:rotate-12 transition-transform">mail_lock</span>
+              <span class="text-[10px] font-black uppercase tracking-[0.2em]">Ingest Email</span>
+            </button>
+            
+            <button *ngIf="authService.isManager" (click)="showProcessModal = true" 
+                    class="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 active:scale-95">
+              <span class="material-icons text-xl text-slate-400 group-hover:text-primary-500 transition-colors">history_edu</span>
+              <span class="text-[10px] font-black uppercase tracking-[0.2em]">Manual Entry</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Email fetch result banner -->
-      <div *ngIf="emailMessage" class="mb-4 p-4 rounded-xl text-sm flex items-start gap-3"
-           [ngClass]="emailSuccess ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
-        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path *ngIf="emailSuccess" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          <path *ngIf="!emailSuccess" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <div>
-          <p class="font-medium">{{ emailMessage }}</p>
+      <!-- Execution Feedback Banner -->
+      <div *ngIf="emailMessage" class="glass-card p-6 border-l-4 animate-fade-in flex items-center justify-between"
+           [ngClass]="emailSuccess ? 'border-emerald-500 bg-emerald-500/5' : 'border-rose-500 bg-rose-500/5'">
+        <div class="flex items-center gap-5">
+           <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
+                [ngClass]="emailSuccess ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'">
+              <span class="material-icons">{{ emailSuccess ? 'verified' : 'report_problem' }}</span>
+           </div>
+           <div>
+             <h4 class="text-xs font-black uppercase tracking-widest" [ngClass]="emailSuccess ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'">Vector Processing {{ emailSuccess ? 'Successful' : 'Terminated' }}</h4>
+             <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">{{ emailMessage }}</p>
+           </div>
         </div>
-        <button (click)="emailMessage = ''" class="ml-auto opacity-50 hover:opacity-100">✕</button>
-      </div>
-
-      <!-- Status filter tabs -->
-      <div class="flex flex-wrap gap-2 mb-6">
-        <button *ngFor="let f of filters"
-                (click)="activeFilter = f.value"
-                CLASS="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200"
-                [ngClass]="activeFilter === f.value ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30' : 'bg-white dark:bg-surface-800 text-[var(--text-secondary)] border border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-surface-700'">
-          {{ f.label }} ({{ getCount(f.value) }})
+        <button (click)="emailMessage = ''; cdr.markForCheck()" class="p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+          <span class="material-icons text-slate-400">close</span>
         </button>
       </div>
 
-      <!-- Table -->
-      <div class="glass-card overflow-hidden border-0">
-        <div class="overflow-x-auto">
-          <table class="w-full">
+      <!-- Tactical Matrix Filters -->
+      <div class="flex flex-wrap items-center gap-3 p-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-2xl w-fit">
+        <button *ngFor="let f of filters; trackBy: trackByFilterLabel"
+                (click)="activeFilter = f.value; cdr.markForCheck()"
+                class="relative px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-95 overflow-hidden group"
+                [ngClass]="activeFilter === f.value 
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl' 
+                  : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'">
+          <span class="relative z-10">{{ f.label }}</span>
+          <span class="relative z-10 ml-2 py-0.5 px-2 rounded-lg bg-white/10 dark:bg-slate-900/10 tabular-nums text-[8px]">{{ getCount(f.value) }}</span>
+          <div *ngIf="activeFilter === f.value" class="absolute inset-0 bg-gradient-to-tr from-primary-600/20 to-transparent"></div>
+        </button>
+      </div>
+
+      <!-- Deployment Matrix: High-Fidelity Table -->
+      <div class="glass-card p-0 overflow-hidden border-0 ring-1 ring-slate-100 dark:ring-white/5 shadow-4xl animate-zoom-in">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse min-w-[1000px]">
             <thead>
-              <tr class="bg-white/50 dark:bg-surface-800/40 backdrop-blur-md border-b border-[var(--border-color)]">
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Employee</th>
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Code</th>
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">In Time</th>
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Out Time</th>
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Status</th>
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Source</th>
-                <th class="text-left px-6 py-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Remarks</th>
+              <tr class="bg-slate-50/50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5">
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Personnel Node</th>
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Structural ID</th>
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Temporal Ingress</th>
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Temporal Egress</th>
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Presence Status</th>
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Vector Source</th>
+                <th class="py-10 px-10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Remarks</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[var(--border-color)]">
-              <tr *ngFor="let a of filteredAttendance; let i = index" 
-                  class="group hover:bg-white/40 dark:hover:bg-surface-700/40 transition-all duration-200 animate-slide-up"
-                  [style.animation-delay]="i * 50 + 'ms'">
-                <td class="px-6 py-4">
-                   <div class="flex items-center gap-3">
-                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-primary-500/20">
-                       {{ a.employeeName.charAt(0) }}
+            <tbody class="divide-y divide-slate-50 dark:divide-white/5">
+              <tr *ngFor="let a of filteredAttendance; trackBy: trackByAttendanceId; let i = index" 
+                  class="group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all duration-500 animate-slide-up"
+                  [style.animation-delay]="i * 40 + 'ms'">
+                <td class="py-8 px-10">
+                   <div class="flex items-center gap-5">
+                     <div class="relative">
+                       <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-slate-900 dark:text-white font-black text-lg shadow-inner group-hover:scale-110 group-hover:rotate-12 transition-all">
+                         {{ a.employeeName.charAt(0) }}
+                       </div>
+                       <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 shadow-sm"
+                            [ngClass]="a.status === 'WFO' || a.status === 'WFH' ? 'bg-emerald-500' : 'bg-slate-300'"></div>
                      </div>
-                     <span class="font-semibold text-[var(--text-primary)] group-hover:text-primary-600 transition-colors">{{ a.employeeName }}</span>
+                     <div class="min-w-0">
+                       <p class="text-sm font-black text-slate-900 dark:text-white font-manrope tracking-tight uppercase group-hover:text-primary-600 transition-colors truncate">{{ a.employeeName }}</p>
+                       <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{{ a.groupName }}</p>
+                     </div>
                    </div>
                 </td>
-                <td class="px-6 py-4 text-sm text-[var(--text-secondary)] font-mono">{{ a.employeeCode }}</td>
-                <td class="px-6 py-4 text-sm font-medium" [ngClass]="a.inTime ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-secondary)]'">
-                  {{ a.inTime || '—' }}
+                <td class="py-8 px-10">
+                  <span class="px-3 py-2 rounded-xl bg-slate-100/50 dark:bg-white/5 text-[10px] font-black font-mono text-slate-500 border border-slate-100 dark:border-white/5 tabular-nums">
+                    {{ a.employeeCode }}
+                  </span>
                 </td>
-                <td class="px-6 py-4 text-sm font-medium" [ngClass]="a.outTime ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-secondary)]'">
-                  {{ a.outTime || '—' }}
+                <td class="py-8 px-10">
+                   <div class="flex items-center gap-2">
+                     <span class="material-icons text-emerald-500 text-sm" *ngIf="a.inTime">login</span>
+                     <span class="text-xs font-black tabular-nums font-manrope transition-all" [ngClass]="a.inTime ? 'text-emerald-600 group-hover:scale-110' : 'text-slate-200 dark:text-white/5 font-normal'">
+                       {{ a.inTime || 'N/A' }}
+                     </span>
+                   </div>
                 </td>
-                <td class="px-6 py-4">
+                <td class="py-8 px-10">
+                   <div class="flex items-center gap-2">
+                     <span class="material-icons text-indigo-500 text-sm" *ngIf="a.outTime">logout</span>
+                     <span class="text-xs font-black tabular-nums font-manrope transition-all" [ngClass]="a.outTime ? 'text-indigo-600 group-hover:scale-110' : 'text-slate-200 dark:text-white/5 font-normal'">
+                       {{ a.outTime || 'N/A' }}
+                     </span>
+                   </div>
+                </td>
+                <td class="py-8 px-10">
                   <span [class]="getStatusBadge(a.status)" 
-                        class="shadow-sm transition-transform group-hover:scale-105">
+                        class="px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all group-hover:scale-110 group-hover:shadow-lg">
                     {{ a.status }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-sm">
-                  <span class="px-2 py-0.5 rounded-md text-xs font-medium" 
-                        [ngClass]="a.source === 'WHATSAPP' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'">
-                    {{ a.source || '—' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-sm text-[var(--text-secondary)] max-w-[200px] truncate">{{ a.remarks || '—' }}</td>
-              </tr>
-              <tr *ngIf="isLoading">
-                <td colspan="7" class="p-0">
-                  <div class="divide-y divide-[var(--border-color)]">
-                    <div *ngFor="let i of [1,2,3,4,5]" class="px-6 py-4 flex items-center gap-6 animate-pulse">
-                      <div class="w-8 h-8 rounded-full bg-surface-200 dark:bg-surface-700 flex-shrink-0"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-32"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
-                      <div class="h-6 bg-surface-200 dark:bg-surface-700 rounded-full w-24"></div>
-                      <div class="h-5 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-full max-w-[150px]"></div>
-                    </div>
+                <td class="py-8 px-10">
+                  <div class="inline-flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all" 
+                       [ngClass]="a.source === 'WHATSAPP' 
+                         ? 'bg-emerald-500/5 text-emerald-600 border-emerald-500/10' 
+                         : 'bg-slate-500/5 text-slate-500 border-slate-500/10'">
+                    <span class="material-icons text-sm">{{ a.source === 'WHATSAPP' ? 'whatsapp' : 'laptop_mac' }}</span>
+                    <span class="text-[9px] font-black uppercase tracking-widest">{{ a.source || 'Structural' }}</span>
                   </div>
                 </td>
+                <td class="py-8 px-10">
+                  <p class="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed max-w-[250px] italic line-clamp-2 truncate">
+                    "{{ a.remarks || 'Void' }}"
+                  </p>
+                </td>
               </tr>
-              <tr *ngIf="!isLoading && filteredAttendance.length === 0">
-                <td colspan="7" class="px-6 py-12 text-center text-[var(--text-secondary)]">
-                  <div class="flex flex-col items-center animate-fade-in">
-                    <div class="mb-4">
-                      <ng-lottie [options]="emptyStateOptions" width="160px" height="160px"></ng-lottie>
+              
+              <!-- Refined Loading Skeletons -->
+              <tr *ngIf="isLoading">
+                <td colspan="7" class="p-0">
+                  <div class="divide-y divide-slate-50 dark:divide-white/5">
+                    <div *ngFor="let i of [1,2,3,4,5,6]" class="px-10 py-10 flex items-center justify-between animate-pulse">
+                      <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5"></div>
+                        <div class="space-y-3">
+                          <div class="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-48"></div>
+                          <div class="h-2 bg-slate-50 dark:bg-white/[0.02] rounded-full w-24"></div>
+                        </div>
+                      </div>
+                      <div class="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-16"></div>
+                      <div class="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-24"></div>
+                      <div class="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-24"></div>
+                      <div class="h-10 bg-slate-100 dark:bg-white/5 rounded-xl w-32"></div>
+                      <div class="h-10 bg-slate-100 dark:bg-white/5 rounded-2xl w-32"></div>
+                      <div class="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-48"></div>
                     </div>
-                    <p class="text-lg font-medium">No records found</p>
-                    <p class="text-sm opacity-70">Try selecting a different date or filter</p>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
 
-      <!-- Fetch from Email modal -->
-      <div *ngIf="showEmailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
-          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-1">
-            <span class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-              </svg>
-              Fetch from Gmail
-            </span>
-          </h3>
-
-          <!-- OAuth2 connected — simplified view -->
-          <div *ngIf="oauthConnected">
-            <div class="my-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-2">
-              <span class="material-icons text-emerald-500 text-base">check_circle</span>
-              <div>
-                <p class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Connected via Google OAuth2</p>
-                <p class="text-xs text-emerald-600 dark:text-emerald-500">{{ gmailEmail }}</p>
-              </div>
-              <span class="ml-auto text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">No password needed</span>
-            </div>
-
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date</label>
-                <input type="date" [(ngModel)]="emailDate" class="input-field">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Subject Pattern</label>
-                <input type="text" [(ngModel)]="emailSubjectPattern" class="input-field" placeholder="e.g., WhatsApp Chat with Java Team">
-                <p class="text-xs text-[var(--text-secondary)] mt-1">Matches emails with subjects containing this text</p>
-              </div>
-            </div>
-
-            <div *ngIf="emailFetching" class="mt-4 flex items-center gap-3 text-sm text-primary-500">
-              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              Fetching email via Gmail API...
-            </div>
-
-            <div class="flex justify-end gap-3 mt-6">
-              <button (click)="showEmailModal = false" class="btn-secondary">Cancel</button>
-              <button (click)="fetchFromEmail()" class="btn-primary" [disabled]="emailFetching">
-                <span class="flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                  </svg>
-                  {{ emailFetching ? 'Fetching...' : 'Fetch & Process' }}
-                </span>
-              </button>
-            </div>
+        <!-- Matrix Null Reality -->
+        <div *ngIf="!isLoading && filteredAttendance.length === 0" class="min-h-[500px] flex flex-col items-center justify-center p-20 animate-fade-in">
+          <div class="relative mb-12 w-32 h-32 flex items-center justify-center">
+            <div class="absolute inset-0 bg-primary-500/10 rounded-[3rem] animate-pulse"></div>
+            <span class="material-icons text-7xl text-slate-200 dark:text-white/5 relative z-10">visibility_off</span>
           </div>
-
-          <!-- App Password fallback — when OAuth2 not connected -->
-          <div *ngIf="!oauthConnected">
-            <p class="text-sm text-[var(--text-secondary)] mb-5">Enter your Gmail credentials to read WhatsApp chat export from inbox</p>
-            <div class="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-700 dark:text-amber-400">
-              💡 Tip: Connect Gmail via OAuth2 in <b>Settings</b> to skip entering credentials here every time.
-            </div>
-
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail Email</label>
-                <input type="email" [(ngModel)]="gmailEmail" class="input-field" placeholder="your.email@gmail.com">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Gmail App Password</label>
-                <input type="password" [(ngModel)]="gmailPassword" class="input-field" placeholder="Enter 16-char App Password">
-                <p class="text-xs text-[var(--text-secondary)] mt-1">Generate at myaccount.google.com/apppasswords</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date</label>
-                <input type="date" [(ngModel)]="emailDate" class="input-field">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Subject Pattern</label>
-                <input type="text" [(ngModel)]="emailSubjectPattern" class="input-field" placeholder="e.g., WhatsApp Chat with Java Team">
-                <p class="text-xs text-[var(--text-secondary)] mt-1">Matches emails with subjects containing this text</p>
-              </div>
-            </div>
-
-            <div *ngIf="emailFetching" class="mt-4 flex items-center gap-3 text-sm text-primary-500">
-              <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              Connecting to Gmail and fetching email...
-            </div>
-
-            <div class="flex justify-end gap-3 mt-6">
-              <button (click)="showEmailModal = false" class="btn-secondary">Cancel</button>
-              <button (click)="fetchFromEmail()" class="btn-primary" [disabled]="emailFetching || !gmailEmail || !gmailPassword">
-                <span class="flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                  </svg>
-                  {{ emailFetching ? 'Fetching...' : 'Fetch & Process' }}
-                </span>
-              </button>
-            </div>
-          </div>
-
+          <h3 class="text-3xl font-black text-slate-300 dark:text-white/10 uppercase tracking-[0.4em]">Zero Presence Vectors</h3>
+          <p class="text-[10px] font-bold text-slate-400 mt-6 max-w-sm text-center uppercase tracking-widest leading-loose">The selected temporal frame contains no deployment data matching current structural filters.</p>
+          <button (click)="activeFilter = 'ALL'; cdr.markForCheck()" class="mt-12 px-10 py-5 rounded-2xl border-2 border-primary-500/20 text-primary-600 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-primary-500/5 transition-all active:scale-95">Reset Matrix Filters</button>
         </div>
       </div>
 
-      <!-- Manual paste modal -->
-      <div *ngIf="showProcessModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
-          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Process WhatsApp Chat</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date</label>
-              <input type="date" [(ngModel)]="processDate" class="input-field"/>
+      <!-- Ingest Vector Modal (Email) -->
+      <div *ngIf="showEmailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xl z-50 flex items-center justify-center p-6 animate-fade-in">
+        <div class="glass-card w-full max-w-xl p-0 overflow-hidden ring-1 ring-white/10 shadow-5xl animate-zoom-in border-0 rounded-[3rem]">
+          <div class="px-10 py-10 bg-slate-900 text-white relative">
+            <h3 class="text-3xl font-black font-manrope tracking-tight leading-none mb-2">Vector Ingestion</h3>
+            <p class="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">Automated Gmail Extraction Gateway</p>
+          </div>
+
+          <div class="p-10 space-y-10 bg-white dark:bg-slate-950 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <!-- OAuth2 Status Vector -->
+            <div *ngIf="oauthConnected" class="p-8 rounded-[2.5rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-6 animate-fade-in shadow-inner">
+              <div class="w-16 h-16 rounded-[1.5rem] bg-emerald-500 flex items-center justify-center text-white shadow-xl shadow-emerald-500/30 shrink-0">
+                <span class="material-icons text-3xl">verified</span>
+              </div>
+              <div class="min-w-0">
+                 <p class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mb-1">Authenticated Node</p>
+                 <p class="text-sm font-black text-slate-900 dark:text-white truncate tabular-nums">{{ gmailEmail }}</p>
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Chat Text</label>
-              <textarea [(ngModel)]="chatText" rows="8" class="input-field resize-none" placeholder="Paste WhatsApp chat export here..."></textarea>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div class="space-y-4">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Target Temporal Slice</label>
+                <input type="date" [(ngModel)]="emailDate" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-[2rem] p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all">
+              </div>
+              <div class="space-y-4">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Structural Group Vector</label>
+                <div class="relative">
+                  <span class="absolute left-6 top-1/2 -translate-y-1/2 text-primary-500 material-icons">filter_list</span>
+                  <input type="text" [(ngModel)]="emailSubjectPattern" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-[2rem] pl-16 pr-6 py-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all" placeholder="e.g. Java Project Alpha">
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="emailFetching" class="p-10 rounded-[2.5rem] bg-primary-500/5 border border-primary-500/10 flex flex-col items-center justify-center gap-6 animate-pulse">
+               <div class="relative w-16 h-16">
+                 <div class="absolute inset-0 border-4 border-primary-500/10 rounded-full"></div>
+                 <div class="absolute inset-0 border-4 border-primary-500 rounded-full border-t-transparent animate-spin"></div>
+               </div>
+               <p class="text-[9px] font-black text-primary-500 uppercase tracking-[0.4em]">Decoding Communication Stream</p>
             </div>
           </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button (click)="showProcessModal = false" class="btn-secondary">Cancel</button>
-            <button (click)="processChat()" class="btn-primary" [disabled]="!chatText">Process</button>
+
+          <div class="px-10 py-10 bg-slate-50/50 dark:bg-white/[0.01] flex justify-end gap-6 items-center">
+            <button (click)="showEmailModal = false" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Abort</button>
+            <button (click)="fetchFromEmail()" [disabled]="emailFetching" class="px-14 py-6 rounded-[2rem] bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black uppercase tracking-[0.4em] shadow-4xl hover:scale-105 active:scale-95 transition-all">
+              {{ emailFetching ? 'Processing Matrix...' : 'Commit Extraction' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Structural Analysis Modal (Manual) -->
+      <div *ngIf="showProcessModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-2xl z-50 flex items-center justify-center p-6 animate-fade-in">
+        <div class="glass-card w-full max-w-3xl p-0 overflow-hidden ring-1 ring-white/10 shadow-5xl animate-zoom-in border-0 rounded-[3rem]">
+          <div class="px-12 py-12 bg-primary-600 text-white relative overflow-hidden">
+            <div class="relative z-10">
+              <h3 class="text-3xl font-black font-manrope tracking-tight leading-none mb-2">Structural Synthesis</h3>
+              <p class="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">Direct Communication Processing Matrix</p>
+            </div>
+            <div class="absolute top-0 right-0 p-10 opacity-10 blur-sm">
+               <span class="material-icons text-[150px]">data_array</span>
+            </div>
+          </div>
+          
+          <div class="p-12 space-y-10 bg-white dark:bg-slate-950">
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Target Temporal Point</label>
+              <input type="date" [(ngModel)]="processDate" class="w-full bg-slate-50 dark:bg-white/5 border-0 rounded-[2rem] p-6 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 shadow-inner transition-all"/>
+            </div>
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Raw Communication Payload</label>
+              <textarea [(ngModel)]="chatText" rows="12" class="w-full bg-slate-900 p-10 rounded-[3rem] text-primary-400 font-mono text-xs leading-loose border-0 focus:ring-4 focus:ring-primary-500/20 custom-scrollbar resize-none shadow-2xl" placeholder="Inject raw communication data here for structural decomposition..."></textarea>
+            </div>
+          </div>
+          
+          <div class="px-12 py-10 bg-slate-50/50 dark:bg-white/[0.01] flex justify-end gap-6 items-center">
+            <button (click)="showProcessModal = false" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Discard</button>
+            <button (click)="processChat()" [disabled]="!chatText" class="px-14 py-6 rounded-[2rem] bg-primary-600 text-white text-[10px] font-black uppercase tracking-[0.4em] shadow-4xl hover:scale-105 active:scale-95 transition-all">
+              Initialize Synthesis
+            </button>
           </div>
         </div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { 
+      background: rgba(var(--color-primary-500-rgb), 0.1); 
+      border-radius: 20px;
+    }
+    
+    .badge-wfo { @apply bg-emerald-500/10 text-emerald-600 border-emerald-500/20; }
+    .badge-wfh { @apply bg-indigo-500/10 text-indigo-600 border-indigo-500/20; }
+    .badge-leave { @apply bg-rose-500/10 text-rose-600 border-rose-500/20; }
+    .badge-holiday { @apply bg-amber-500/10 text-amber-600 border-amber-500/20; }
+    .badge-absent { @apply bg-slate-500/10 text-slate-600 border-slate-500/20; }
+    .badge-bench { @apply bg-blue-500/10 text-blue-600 border-blue-500/20; }
+    .badge-training { @apply bg-purple-500/10 text-purple-600 border-purple-500/20; }
+    .badge { @apply bg-slate-100 text-slate-500 border-slate-200; }
+  `]
 })
 export class AttendanceComponent implements OnInit {
   attendance: Attendance[] = [];
@@ -319,7 +342,10 @@ export class AttendanceComponent implements OnInit {
     { label: 'Training', value: 'TRAINING' },
   ];
 
-  constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService, public cdr: ChangeDetectorRef) { }
+
+  trackByAttendanceId(index: number, item: Attendance): number { return item.id; }
+  trackByFilterLabel(index: number, item: any): string { return item.label; }
 
   ngOnInit() {
     this.loadAttendance();
@@ -327,6 +353,7 @@ export class AttendanceComponent implements OnInit {
     if (this.authService.isManager) {
       this.checkAutomationStatus();
     }
+    this.cdr.markForCheck();
   }
 
   checkAutomationStatus() {
@@ -337,12 +364,14 @@ export class AttendanceComponent implements OnInit {
           this.oauthConnected = true;
           this.automationConfigured = true;
           this.gmailEmail = status.email;
+          this.cdr.markForCheck();
         } else {
           // Fall back to checking App Password credentials
           this.api.getGmailStatus().subscribe({
             next: (s) => {
               this.automationConfigured = s.configured;
               if (s.configured) this.gmailEmail = s.email;
+              this.cdr.markForCheck();
             }
           });
         }
@@ -353,6 +382,7 @@ export class AttendanceComponent implements OnInit {
           next: (s) => {
             this.automationConfigured = s.configured;
             if (s.configured) this.gmailEmail = s.email;
+            this.cdr.markForCheck();
           }
         });
       }
@@ -362,14 +392,17 @@ export class AttendanceComponent implements OnInit {
   loadAttendance() {
     this.isLoading = true;
     this.attendance = []; // Clear current records while loading
+    this.cdr.markForCheck();
     this.api.getAttendanceByDate(this.selectedDate).subscribe({
       next: (data) => {
         this.attendance = data;
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isLoading = false;
         this.attendance = [];
+        this.cdr.markForCheck();
       }
     });
   }
@@ -400,6 +433,7 @@ export class AttendanceComponent implements OnInit {
         this.showProcessModal = false;
         this.chatText = '';
         this.selectedDate = this.processDate;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -408,6 +442,7 @@ export class AttendanceComponent implements OnInit {
     this.emailFetching = true;
     this.emailMessage = '';
     this.emailPreview = '';
+    this.cdr.markForCheck();
 
     this.api.processAttendanceFromEmail(this.emailDate, this.gmailEmail, this.gmailPassword, this.emailSubjectPattern).subscribe({
       next: (response) => {
@@ -420,12 +455,14 @@ export class AttendanceComponent implements OnInit {
           this.attendance = response.attendance;
           this.selectedDate = this.emailDate;
         }
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.emailFetching = false;
         this.showEmailModal = false;
         this.emailSuccess = false;
         this.emailMessage = err.error?.message || 'Failed to fetch email. Check Gmail IMAP settings.';
+        this.cdr.markForCheck();
       }
     });
   }

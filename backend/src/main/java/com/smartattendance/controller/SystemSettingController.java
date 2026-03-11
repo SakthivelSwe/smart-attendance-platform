@@ -19,7 +19,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 
 @RestController
-@RequestMapping("/api/settings")
+@RequestMapping("/api/v1/settings")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class SystemSettingController {
