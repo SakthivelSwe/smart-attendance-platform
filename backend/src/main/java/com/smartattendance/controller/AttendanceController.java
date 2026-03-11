@@ -23,7 +23,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/attendance")
+@RequestMapping("/api/v1/attendance")
 @RequiredArgsConstructor
 public class AttendanceController {
 

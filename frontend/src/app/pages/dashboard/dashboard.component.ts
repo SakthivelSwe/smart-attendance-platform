@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -24,158 +24,161 @@ export type ChartOptions = {
   selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule, FormsModule, NgApexchartsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div>
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div class="space-y-10 animate-fade-in pb-12">
+      <!-- Header Module -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 class="page-header">Dashboard</h1>
-          <p class="page-subtitle">{{ getDashboardSubtitle() }}</p>
+          <h1 class="text-4xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none mb-3">
+            Intelligence <span class="text-primary-600 dark:text-primary-400">Dashboard</span>
+          </h1>
+          <p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">{{ getDashboardSubtitle() }}</p>
         </div>
 
-        <!-- Team selector for ADMIN / MANAGER / TEAM_LEAD -->
-        <div *ngIf="teams.length > 0" class="flex items-center gap-3">
+        <div *ngIf="teams.length > 0" class="flex items-center gap-4 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 p-2 rounded-[1.5rem] shadow-sm">
+          <span class="pl-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Context:</span>
           <select [(ngModel)]="selectedTeamId" (ngModelChange)="onTeamChange($event)"
-                  class="text-sm px-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all font-medium min-w-[180px]">
-            <option [ngValue]="null">All Teams (Org-wide)</option>
-            <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.name }}</option>
+                  class="text-sm px-6 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border-none shadow-sm focus:ring-2 focus:ring-primary-500/20 outline-none transition-all font-bold min-w-[200px] text-slate-900 dark:text-white appearance-none cursor-pointer">
+            <option [ngValue]="null">Organizational Core</option>
+            <option *ngFor="let t of teams; trackBy: trackByTeamId" [ngValue]="t.id">{{ t.name }}</option>
           </select>
         </div>
       </div>
 
-      <!-- Quick Check-in Card for ALL users -->
-      <div class="mb-6 bg-gradient-to-r from-primary-600 to-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-primary-500/20 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4"></div>
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
-          <div>
-            <h3 class="text-lg font-bold mb-1">Quick Check-in</h3>
-            <p class="text-sm text-white/80" *ngIf="!checkedIn">Mark your attendance for today</p>
-            <p class="text-sm text-emerald-200 flex items-center gap-1" *ngIf="checkedIn">
-              <span class="material-icons text-sm">check_circle</span>
-              Checked in as {{ checkInStatus }}
-            </p>
+      <!-- Protocol Execution Card (Quick Check-in) -->
+      <div class="relative group overflow-hidden rounded-[2.5rem] p-1 shadow-2xl shadow-primary-500/10">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-indigo-600 to-violet-700"></div>
+        <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-white opacity-[0.03] rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4 animate-pulse"></div>
+        
+        <div class="relative bg-black/5 backdrop-blur-sm rounded-[2.4rem] p-8 md:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div class="flex items-start gap-6">
+            <div class="w-16 h-16 rounded-3xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+               <span class="material-icons text-3xl text-white opacity-90">location_on</span>
+            </div>
+            <div>
+              <h3 class="text-2xl font-black text-white font-manrope tracking-tight mb-2">Presence Protocol</h3>
+              <p class="text-white/70 font-medium max-w-md" *ngIf="!checkedIn">Initialize your organizational presence for the current cycle.</p>
+              <div class="flex items-center gap-3" *ngIf="checkedIn">
+                <span class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-black uppercase tracking-widest">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  Active Identity
+                </span>
+                <p class="text-white/90 font-bold">Checked in as {{ checkInStatus }}</p>
+              </div>
+            </div>
           </div>
-          <div class="flex gap-2" *ngIf="!checkedIn">
+
+          <div class="flex gap-4 shrink-0" *ngIf="!checkedIn">
             <button (click)="doCheckIn('WFO')" 
-                    class="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-sm font-semibold transition-all hover:scale-105 backdrop-blur-sm border border-white/10">
-              🏢 WFO
+                    class="px-8 py-4 rounded-2xl bg-white text-primary-900 text-sm font-black uppercase tracking-widest transition-all hover:scale-[1.03] active:scale-95 shadow-xl shadow-black/10 hover:shadow-white/20 group/btn">
+              <span class="flex items-center gap-2">
+                <span class="material-icons text-sm transition-transform group-hover/btn:-translate-y-0.5">business</span>
+                Static Office
+              </span>
             </button>
             <button (click)="doCheckIn('WFH')" 
-                    class="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-sm font-semibold transition-all hover:scale-105 backdrop-blur-sm border border-white/10">
-              🏠 WFH
+                    class="px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-sm font-black uppercase tracking-widest transition-all hover:scale-[1.03] active:scale-95 backdrop-blur-md border border-white/20 group/btn">
+              <span class="flex items-center gap-2">
+                <span class="material-icons text-sm transition-transform group-hover/btn:-translate-y-0.5">home</span>
+                Remote Node
+              </span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- AI Insight Banner -->
-      <div class="mb-8 relative overflow-hidden rounded-lg bg-[var(--card-bg)] border border-[var(--border-color)] p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 group shadow-sm">
-         <div class="w-10 h-10 rounded bg-primary-50 dark:bg-primary-900/40 flex items-center justify-center shrink-0 border border-primary-100 dark:border-primary-800">
-            <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" [class.animate-pulse]="insightLoading" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+      <!-- Neural Insight Module -->
+      <div class="glass-card rounded-[2rem] p-8 flex flex-col lg:flex-row items-center gap-8 group animate-fade-in ring-1 ring-slate-100 dark:ring-white/5 shadow-3xl">
+         <div class="relative shrink-0">
+           <div class="w-16 h-16 rounded-[1.5rem] bg-gradient-to-tr from-primary-500/20 to-indigo-500/20 flex items-center justify-center border border-primary-500/30">
+              <span class="material-icons text-primary-500 text-3xl" [class.animate-spin]="insightLoading">psychology</span>
+           </div>
+           <div class="absolute -top-2 -right-2 bg-primary-600 text-[8px] font-black text-white px-2 py-0.5 rounded-full shadow-lg">CORE AI</div>
          </div>
-         <div class="flex-1">
-            <h3 class="font-sans text-sm font-semibold text-[var(--text-primary)] tracking-tight mb-1 flex items-center gap-2">
-               Smart Insight
-               <span class="px-2 py-0.5 rounded text-[9px] font-sans font-bold border bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/30 dark:border-primary-800 dark:text-primary-300">AI</span>
-            </h3>
-            <p *ngIf="insightLoading" class="text-[var(--text-secondary)] text-sm animate-pulse">
-               Analyzing today's attendance patterns...
-            </p>
-            <p *ngIf="!insightLoading && insight" class="text-[var(--text-primary)] text-sm leading-relaxed font-medium">
-               {{ insight }}
-            </p>
-            <p *ngIf="!insightLoading && !insight" class="text-[var(--text-secondary)] text-sm">
-               Insights unavailable.
+         
+         <div class="flex-1 text-center lg:text-left">
+            <h3 class="text-xs font-black text-primary-600 dark:text-primary-400 uppercase tracking-[0.3em] mb-3">Intelligent Synthesis</h3>
+            <div *ngIf="insightLoading" class="space-y-2">
+               <div class="h-4 bg-slate-100 dark:bg-slate-800 rounded-full w-3/4 animate-pulse mx-auto lg:mx-0"></div>
+               <div class="h-3 bg-slate-50 dark:bg-slate-800/50 rounded-full w-full animate-pulse mx-auto lg:mx-0"></div>
+            </div>
+            <p *ngIf="!insightLoading" class="text-lg font-bold text-slate-800 dark:text-slate-100 leading-snug font-manrope tracking-tight">
+               {{ insight || 'Awaiting synchronization with intelligence core...' }}
             </p>
          </div>
-         <button *ngIf="!insightLoading" (click)="loadInsight()" class="p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors" title="Refresh Insight">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+
+         <button *ngIf="!insightLoading" (click)="loadInsight()" 
+                 class="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-primary-500 transition-all transform active:scale-90 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+            <span class="material-icons">refresh</span>
          </button>
       </div>
 
-      <!-- Stats grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <!-- Total Employees -->
-        <div class="stat-card animate-slide-up stagger-1">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 rounded bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center border border-primary-200 dark:border-primary-800">
-              <svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
+      <!-- Tactical Analytics (Stats) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <!-- Metric Cards with Glassmorphism -->
+        <div *ngFor="let m of [
+          { label: 'Personnel', value: stats?.totalEmployees, sub: 'Total Strength', icon: 'people', color: 'primary', delay: '100ms' },
+          { label: 'Deployed', value: stats?.presentToday, sub: presentPercentage + '% Efficiency', icon: 'sensors', color: 'emerald', delay: '200ms' },
+          { label: 'Standby', value: stats?.onLeaveToday, sub: (stats?.pendingLeaves || 0) + ' Awaiting', icon: 'event_busy', color: 'amber', delay: '300ms' },
+          { label: 'Offline', value: stats?.absentToday, sub: 'Current Delta', icon: 'person_off', color: 'rose', delay: '400ms' }
+        ]; trackBy: trackByMetricId"
+             class="glass-card p-8 group hover:scale-[1.02] transition-all duration-500 animate-slide-up relative overflow-hidden"
+             [style.animation-delay]="m.delay">
+          
+          <div class="flex items-center justify-between mb-8 relative z-10">
+            <div [class]="'w-14 h-14 rounded-2xl flex items-center justify-center border transition-colors shadow-sm group-hover:shadow-lg ' + 
+               (m.color === 'emerald' ? 'bg-emerald-50/50 border-emerald-500/20 text-emerald-600 dark:bg-emerald-500/10' : 
+                m.color === 'amber' ? 'bg-amber-50/50 border-amber-500/20 text-amber-600 dark:bg-amber-500/10' : 
+                m.color === 'rose' ? 'bg-rose-50/50 border-rose-500/20 text-rose-600 dark:bg-rose-500/10' : 
+                'bg-primary-50/50 border-primary-500/20 text-primary-600 dark:bg-primary-500/10')">
+              <span class="material-icons text-2xl group-hover:scale-110 transition-transform">{{ m.icon }}</span>
             </div>
-            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">Total</span>
+            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{{ m.label }}</span>
           </div>
-          <p class="stat-card-value">{{ stats?.totalEmployees || 0 }}</p>
-          <p class="text-sm text-[var(--text-secondary)] mt-1 font-medium">Employees Registered</p>
-        </div>
 
-        <!-- Present Today -->
-        <div class="stat-card animate-slide-up stagger-2">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 rounded bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
-              <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-              {{ presentPercentage }}% Rate
-            </span>
-          </div>
-          <p class="stat-card-value">{{ stats?.presentToday || 0 }}</p>
-          <p class="text-sm text-[var(--text-secondary)] mt-1 font-medium">Present Today</p>
-          <div class="flex gap-2 mt-3">
-             <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30">
-                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                <span class="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">WFO: {{ stats?.wfoToday || 0 }}</span>
+          <h4 class="text-4xl font-black text-slate-900 dark:text-white font-manrope tracking-tighter mb-2 relative z-10">
+            {{ m.value || 0 }}
+          </h4>
+          <p class="text-[11px] font-bold text-slate-500/70 uppercase tracking-widest relative z-10">{{ m.sub }}</p>
+
+          <!-- Status specific breakdown for deployed card -->
+          <div *ngIf="m.label === 'Deployed'" class="flex gap-2 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/50 relative z-10">
+             <div class="flex-1 p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
+                <span class="block text-[10px] font-black text-emerald-600/80 mb-0.5">WFO</span>
+                <span class="text-sm font-black text-emerald-900 dark:text-emerald-100">{{ stats?.wfoToday || 0 }}</span>
              </div>
-             <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
-                <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                <span class="text-[10px] font-semibold text-blue-700 dark:text-blue-400">WFH: {{ stats?.wfhToday || 0 }}</span>
+             <div class="flex-1 p-2 rounded-xl bg-blue-500/5 border border-blue-500/10 text-center">
+                <span class="block text-[10px] font-black text-blue-600/80 mb-0.5">WFH</span>
+                <span class="text-sm font-black text-indigo-900 dark:text-indigo-100">{{ stats?.wfhToday || 0 }}</span>
              </div>
           </div>
-        </div>
 
-        <!-- On Leave -->
-        <div class="stat-card animate-slide-up stagger-3">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 rounded bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center border border-amber-200 dark:border-amber-800">
-              <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-            </div>
-            <span *ngIf="stats?.pendingLeaves" class="animate-pulse text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/30 px-3 py-1 rounded border border-amber-200 dark:border-amber-800">{{ stats?.pendingLeaves }} Pending</span>
-          </div>
-          <p class="stat-card-value">{{ stats?.onLeaveToday || 0 }}</p>
-          <p class="text-sm text-[var(--text-secondary)] mt-1 font-medium">On Leave Today</p>
-        </div>
-
-        <!-- Absent -->
-        <div class="stat-card animate-slide-up stagger-3" style="animation-delay: 400ms">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 rounded bg-red-50 dark:bg-red-900/30 flex items-center justify-center border border-red-200 dark:border-red-800">
-              <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-          </div>
-          <p class="stat-card-value">{{ stats?.absentToday || 0 }}</p>
-          <p class="text-sm text-[var(--text-secondary)] mt-1 font-medium">Absent Today</p>
-           <div class="flex gap-3 mt-3" *ngIf="stats?.upcomingHolidays">
-            <span class="badge-holiday text-xs border border-purple-200 dark:border-purple-800">{{ stats?.upcomingHolidays }} upcoming holidays</span>
-          </div>
+          <!-- Absolute decorative bg element -->
+          <div [class]="'absolute -bottom-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity ' + 
+             (m.color === 'emerald' ? 'bg-emerald-500' : 
+              m.color === 'amber' ? 'bg-amber-500' : 
+              m.color === 'rose' ? 'bg-rose-500' : 
+              'bg-primary-500')"></div>
         </div>
       </div>
 
-      <!-- Quick actions -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Strategic Visualizer & Intelligence Stream -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
         
-        <!-- Attendance overview (ApexChart) -->
-        <div class="card p-6 flex flex-col items-center justify-center min-h-[340px] relative overflow-hidden">
-          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-2 self-start">Today's Breakdown</h3>
-          <div *ngIf="chartOptions" class="w-full flex justify-center animate-fade-in z-10" id="chart">
+        <!-- Interactive Analytics Engine -->
+        <div class="glass-card p-10 flex flex-col items-center justify-center min-h-[450px] relative overflow-hidden group">
+          <div class="w-full flex items-center justify-between mb-10 relative z-10">
+             <div>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none mb-2">Tactical Distribution</h3>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Temporal Analysis of Forces</p>
+             </div>
+             <div class="w-12 h-12 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 flex items-center justify-center text-slate-400">
+                <span class="material-icons">pie_chart</span>
+             </div>
+          </div>
+
+          <div *ngIf="chartOptions" class="w-full flex justify-center animate-scale-in z-10 mb-8" id="chart">
              <apx-chart
               [series]="chartOptions.series!"
               [chart]="chartOptions.chart!"
@@ -188,83 +191,75 @@ export type ChartOptions = {
               [tooltip]="chartOptions.tooltip!"
             ></apx-chart>
           </div>
-          <div *ngIf="!chartOptions" class="flex flex-col items-center justify-center h-48 opacity-50 z-10">
-             <div class="flex gap-2">
-                <div class="w-3 h-3 bg-primary-400 rounded-full animate-bounce"></div>
-                <div class="w-3 h-3 bg-primary-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                <div class="w-3 h-3 bg-primary-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+
+          <!-- Sophisticated Legend Interface -->
+          <div *ngIf="chartOptions" class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full animate-slide-up stagger-1 z-10">
+            <div *ngFor="let l of [
+              { color: '#10b981', label: 'WFO', val: stats?.wfoToday },
+              { color: '#3b82f6', label: 'WFH', val: stats?.wfhToday },
+              { color: '#f59e0b', label: 'LEAVE', val: stats?.onLeaveToday },
+              { color: '#ef4444', label: 'AWOL', val: stats?.absentToday }
+            ]" class="flex flex-col items-center p-3 rounded-2xl bg-white/30 dark:bg-slate-800/20 border border-slate-100/50 dark:border-slate-700/50">
+              <span class="w-2 h-2 rounded-full mb-2" [style.backgroundColor]="l.color"></span>
+              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ l.label }}</span>
+              <span class="text-lg font-black text-slate-900 dark:text-white mt-1">{{ l.val || 0 }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="!chartOptions" class="flex flex-col items-center justify-center h-64 z-10">
+             <div class="relative w-16 h-16 mb-6">
+                <div class="absolute inset-0 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-primary-500 rounded-full border-t-transparent animate-spin"></div>
              </div>
-             <span class="mt-4 text-sm font-medium text-[var(--text-secondary)]">Loading Chart...</span>
+             <p class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Computing Matrix...</p>
           </div>
-          <!-- Legend -->
-          <div *ngIf="chartOptions" class="flex flex-wrap items-center justify-center gap-4 mt-2 animate-slide-up stagger-1 z-10">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30"></span>
-              <span class="text-sm font-medium text-[var(--text-secondary)]">WFO</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-blue-500 shadow-sm shadow-blue-500/30"></span>
-              <span class="text-sm font-medium text-[var(--text-secondary)]">WFH</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500/30"></span>
-              <span class="text-sm font-medium text-[var(--text-secondary)]">On Leave</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/30"></span>
-              <span class="text-sm font-medium text-[var(--text-secondary)]">Absent</span>
-            </div>
-          </div>
-          <!-- Decorative Background element -->
-          <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-primary-500/5 rounded-full blur-3xl"></div>
-          <div class="absolute top-10 -left-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl"></div>
+
+          <!-- Decorative Kinetic Elements -->
+          <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-primary-500/10 rounded-full blur-[100px] group-hover:scale-125 transition-transform duration-1000"></div>
+          <div class="absolute -top-20 -left-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] group-hover:scale-125 transition-transform duration-1000"></div>
         </div>
 
-        <!-- Quick stats -->
-        <div class="card p-6 relative overflow-hidden">
-          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4 relative z-10">Quick Info</h3>
-          <div class="space-y-4 relative z-10">
-            <div class="group flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)] border border-transparent hover:border-primary-100 dark:hover:border-primary-900/30 transition-all cursor-default shadow-sm hover:shadow-md hover:shadow-primary-500/5">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center transition-transform group-hover:scale-110">
-                  <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <span class="text-sm font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Last Processed</span>
+        <!-- System Delta Module -->
+        <div class="glass-card p-10 relative overflow-hidden group">
+          <div class="w-full flex items-center justify-between mb-10 relative z-10">
+             <div>
+                <h3 class="text-xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none mb-2">Delta Intelligence</h3>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active System Parameters</p>
+             </div>
+             <div class="w-12 h-12 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 flex items-center justify-center text-slate-400">
+                <span class="material-icons">architecture</span>
+             </div>
+          </div>
+
+          <div class="space-y-6 relative z-10">
+            <div *ngFor="let item of [
+              { label: 'Synchronization State', val: 'Full Synergy', icon: 'sync', color: 'primary', desc: 'Backend systems operating at peak performance' },
+              { label: 'Pending Leave Assets', val: stats?.pendingLeaves || 0, icon: 'approval', color: 'amber', desc: 'Critical human resource decisions required' },
+              { label: 'Upcoming Neural Breaks', val: stats?.upcomingHolidays || 0, icon: 'auto_awesome', color: 'violet', desc: 'Scheduled organizational downtime approaching' }
+            ]" class="flex items-center gap-6 p-6 rounded-3xl bg-white/40 dark:bg-slate-900/40 border border-slate-100/50 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default group/item shadow-sm">
+              <div [class]="'w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover/item:scale-110 transition-transform ' + 
+                (item.color === 'amber' ? 'bg-amber-500/10 text-amber-600' : 
+                 item.color === 'violet' ? 'bg-violet-500/10 text-violet-600' : 
+                 'bg-primary-500/10 text-primary-600')">
+                <span class="material-icons">{{ item.icon }}</span>
               </div>
-              <span class="text-sm font-bold text-[var(--text-primary)]">Today</span>
-            </div>
-            
-            <div class="group flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)] border border-transparent hover:border-amber-100 dark:hover:border-amber-900/30 transition-all cursor-default shadow-sm hover:shadow-md hover:shadow-amber-500/5">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center transition-transform group-hover:scale-110">
-                  <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                  </svg>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-black text-slate-800 dark:text-slate-200 font-manrope tracking-tight">{{ item.label }}</span>
+                  <span [class]="'text-sm font-black uppercase tracking-widest px-3 py-1 rounded-lg ' + 
+                    (item.color === 'amber' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 
+                     item.color === 'violet' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 
+                     'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400')">
+                    {{ item.val }}
+                  </span>
                 </div>
-                <span class="text-sm font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Pending Leaves</span>
+                <p class="text-[11px] text-slate-400 font-medium leading-tight truncate">{{ item.desc }}</p>
               </div>
-              <span class="text-sm font-semibold px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded shadow-sm border border-amber-200 dark:border-amber-800">
-                {{ stats?.pendingLeaves || 0 }}
-              </span>
-            </div>
-            
-            <div class="group flex items-center justify-between p-4 rounded-xl bg-[var(--bg-secondary)] border border-transparent hover:border-purple-100 dark:hover:border-purple-900/30 transition-all cursor-default shadow-sm hover:shadow-md hover:shadow-purple-500/5">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center transition-transform group-hover:scale-110">
-                  <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                  </svg>
-                </div>
-                <span class="text-sm font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Upcoming Holidays</span>
-              </div>
-              <span class="text-sm font-semibold px-3 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded shadow-sm border border-purple-200 dark:border-purple-800">
-                {{ stats?.upcomingHolidays || 0 }}
-              </span>
             </div>
           </div>
-          <div class="absolute -top-10 -right-10 w-40 h-40 bg-teal-500/5 rounded-full blur-3xl"></div>
+          
+          <!-- Decorative Kinetic Elements -->
+          <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-teal-500/10 rounded-full blur-[100px] group-hover:scale-125 transition-transform duration-1000"></div>
         </div>
       </div>
     </div>
@@ -283,7 +278,7 @@ export class DashboardComponent implements OnInit {
     return Math.round((this.stats.presentToday / this.stats.totalEmployees) * 100);
   }
 
-  constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService, public cdr: ChangeDetectorRef) { }
 
   teams: Team[] = [];
   selectedTeamId: number | null = null;
@@ -297,7 +292,12 @@ export class DashboardComponent implements OnInit {
 
     // Load teams for ADMIN/MANAGER/TEAM_LEAD
     if (this.authService.hasMinRole('TEAM_LEAD')) {
-      this.api.getTeams().subscribe(t => this.teams = t);
+      this.api.getTeams().subscribe({
+        next: (t) => {
+          this.teams = t;
+          this.cdr.markForCheck();
+        }
+      });
     }
   }
 
@@ -310,10 +310,12 @@ export class DashboardComponent implements OnInit {
       next: (data) => {
         this.stats = data;
         this.initChart();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.stats = { totalEmployees: 0, presentToday: 0, wfoToday: 0, wfhToday: 0, onLeaveToday: 0, absentToday: 0, pendingLeaves: 0, upcomingHolidays: 0 };
         this.initChart();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -333,27 +335,35 @@ export class DashboardComponent implements OnInit {
 
   doCheckIn(status: string) {
     this.checkInLoading = true;
+    this.cdr.markForCheck();
     this.api.checkIn(status).subscribe({
       next: () => {
         this.checkedIn = true;
         this.checkInStatus = status;
         this.checkInLoading = false;
         this.loadStats(); // Refresh stats after check-in
+        this.cdr.markForCheck();
       },
-      error: () => this.checkInLoading = false
+      error: () => {
+        this.checkInLoading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
   loadInsight() {
     this.insightLoading = true;
+    this.cdr.markForCheck();
     this.api.getDashboardInsights().subscribe({
       next: (res) => {
         this.insight = res.insight;
         this.insightLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.insight = "Unable to load AI insights. Check if Google Gemini API key is configured in backend.";
         this.insightLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -414,5 +424,13 @@ export class DashboardComponent implements OnInit {
       },
       legend: { show: false }
     };
+  }
+
+  trackByTeamId(index: number, team: Team): number {
+    return team.id;
+  }
+
+  trackByMetricId(index: number, metric: any): string {
+    return metric.label + index;
   }
 }

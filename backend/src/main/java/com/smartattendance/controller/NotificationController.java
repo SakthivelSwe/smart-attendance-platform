@@ -22,7 +22,7 @@ import java.util.List;
  * - Active groups with zero attendance records today
  */
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 

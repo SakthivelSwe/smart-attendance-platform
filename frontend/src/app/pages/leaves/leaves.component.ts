@@ -1,261 +1,272 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { LeaveRequest, Employee, LeaveBalance } from '../../core/models/interfaces';
+import { LeaveRequest, Employee, LeaveBalance, LeaveApprovalChain } from '../../core/models/interfaces';
 
 @Component({
   selector: 'app-leaves',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div>
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div class="space-y-12 animate-fade-in pb-20">
+      <!-- High-Fidelity Header & Strategic Controls -->
+      <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-10">
         <div>
-          <h1 class="page-header text-3xl font-extrabold tracking-tight">Leave Management</h1>
-          <p class="page-subtitle text-surface-500">Track and manage employee leave requests</p>
+          <h1 class="text-4xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none mb-3">
+            Personnel <span class="text-primary-600 dark:text-primary-400">Absence</span> Matrix
+          </h1>
+          <p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Orchestrating leave request workflows and temporal deployment balance</p>
         </div>
-        <div class="flex gap-3">
-          <!-- View Toggle -->
-          <div class="bg-surface-100 dark:bg-surface-800 p-1 rounded-xl flex items-center">
-            <button (click)="viewMode = 'LIST'" 
-                    [class.bg-white]="viewMode === 'LIST'"
-                    [class.dark:bg-surface-700]="viewMode === 'LIST'"
-                    [class.shadow-sm]="viewMode === 'LIST'"
-                    class="px-4 py-1.5 rounded-lg text-sm font-bold text-surface-600 transition-all">List</button>
-            <button (click)="viewMode = 'CALENDAR'" 
-                    [class.bg-white]="viewMode === 'CALENDAR'"
-                    [class.dark:bg-surface-700]="viewMode === 'CALENDAR'"
-                    [class.shadow-sm]="viewMode === 'CALENDAR'"
-                    class="px-4 py-1.5 rounded-lg text-sm font-bold text-surface-600 transition-all">Calendar</button>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl p-3 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-black/20">
+          <!-- View Toggle: Architectural Tabs -->
+          <div class="flex p-1.5 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5">
+            <button (click)="viewMode = 'LIST'; cdr.markForCheck()" 
+                    class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all transform active:scale-95 flex items-center gap-3"
+                    [ngClass]="viewMode === 'LIST' ? 'bg-white dark:bg-slate-800 text-primary-600 shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'">
+              <span class="material-icons text-sm">view_agenda</span> Matrix View
+            </button>
+            <button (click)="viewMode = 'CALENDAR'; cdr.markForCheck()" 
+                    class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all transform active:scale-95 flex items-center gap-3"
+                    [ngClass]="viewMode === 'CALENDAR' ? 'bg-white dark:bg-slate-800 text-primary-600 shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'">
+              <span class="material-icons text-sm">calendar_view_month</span> Chronos View
+            </button>
           </div>
 
-          <select *ngIf="viewMode === 'LIST'" [(ngModel)]="statusFilter" (change)="loadLeaves()" class="input-field w-auto py-2">
-            <option value="ALL">All Status</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+          <div class="hidden sm:block w-px h-8 bg-slate-200 dark:bg-white/10"></div>
 
-          <button (click)="openModal()" class="btn-primary py-2 px-6">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Apply Leave
+          <div class="relative group" *ngIf="viewMode === 'LIST'">
+            <select [(ngModel)]="statusFilter" (change)="loadLeaves()" 
+                    class="bg-transparent border-0 py-2 pl-4 pr-10 text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white focus:ring-0 cursor-pointer appearance-none">
+              <option value="ALL">Full Spectrum</option>
+              <option value="PENDING">Active Flow</option>
+              <option value="APPROVED">Authorized</option>
+              <option value="REJECTED">Evicted</option>
+            </select>
+            <span class="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-primary-500 transition-colors">filter_list</span>
+          </div>
+
+          <button (click)="openModal()" 
+                  class="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white shadow-xl shadow-primary-500/30 transition-all transform hover:-translate-y-1 active:scale-95">
+            <span class="material-icons text-xl group-hover:rotate-180 transition-transform">bolt</span>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Deploy Request</span>
           </button>
         </div>
       </div>
 
-      <!-- Calendar View -->
-      <div *ngIf="viewMode === 'CALENDAR'" class="card p-6">
-         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-surface-900 dark:text-white">{{ currentMonthName }} {{ currentYear }}</h3>
-            <div class="flex gap-2">
-               <button (click)="prevMonth()" class="p-2 rounded-lg bg-surface-100 hover:bg-surface-200 dark:bg-surface-800 dark:hover:bg-surface-700 transition">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+      <!-- Chronos View: Architectural Glass Calendar -->
+      <div *ngIf="viewMode === 'CALENDAR'" class="glass-card p-10 border-0 ring-1 ring-slate-100 dark:ring-white/5 shadow-4xl animate-zoom-in">
+         <div class="flex items-center justify-between mb-12">
+            <div class="flex items-baseline gap-4">
+              <h3 class="text-4xl font-black text-slate-900 dark:text-white font-manrope tracking-tight leading-none uppercase">{{ currentMonthName }}</h3>
+              <span class="text-xl font-bold text-primary-500/40 font-manrope tabular-nums">{{ currentYear }}</span>
+            </div>
+            <div class="flex gap-4">
+               <button (click)="prevMonth()" class="w-14 h-14 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary-600 border border-slate-100 dark:border-white/5 transition-all hover:shadow-xl active:scale-90">
+                  <span class="material-icons">west</span>
                </button>
-               <button (click)="nextMonth()" class="p-2 rounded-lg bg-surface-100 hover:bg-surface-200 dark:bg-surface-800 dark:hover:bg-surface-700 transition">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+               <button (click)="nextMonth()" class="w-14 h-14 flex items-center justify-center rounded-2xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary-600 border border-slate-100 dark:border-white/5 transition-all hover:shadow-xl active:scale-90">
+                  <span class="material-icons">east</span>
                </button>
             </div>
          </div>
-         <div class="grid grid-cols-7 gap-2">
-            <div *ngFor="let day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" class="text-xs font-bold text-surface-400 text-center py-2 uppercase tracking-wide">
+         
+         <div class="grid grid-cols-7 gap-6">
+            <div *ngFor="let day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" 
+                 class="text-[10px] font-black text-slate-400 text-center py-6 uppercase tracking-[0.3em] font-outfit border-b border-slate-50 dark:border-white/5 mb-4">
                {{ day }}
             </div>
             
-            <div *ngFor="let blank of blankDays" class="h-24 bg-surface-50/50 dark:bg-surface-800/20 rounded-xl border border-transparent"></div>
+            <div *ngFor="let blank of blankDays; trackBy: trackByIndex" class="h-44 bg-slate-50/10 dark:bg-white/[0.02] rounded-[2rem] border border-dashed border-slate-100 dark:border-white/5 opacity-40"></div>
             
-            <div *ngFor="let date of monthDays" class="h-24 bg-white dark:bg-surface-800 rounded-xl border border-surface-100 dark:border-surface-700 p-2 overflow-y-auto custom-scrollbar relative">
-               <span class="text-sm font-bold text-surface-400" [class.text-primary-500]="isToday(date)">{{ date }}</span>
+            <div *ngFor="let date of monthDays; trackBy: trackByIndex" 
+                 class="h-44 bg-white/40 dark:bg-slate-800/20 rounded-[2rem] border border-slate-50 dark:border-white/5 p-4 overflow-hidden group hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 relative flex flex-col">
                
-               <div class="mt-1 space-y-1">
-                  <div *ngFor="let leave of getLeavesForDate(date)" 
-                       class="text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold truncate cursor-pointer hover:opacity-80 transition"
-                       [ngClass]="{
-                         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300': leave.status === 'APPROVED',
-                         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': leave.status === 'PENDING' || leave.status === 'TL_APPROVED' || leave.status === 'MGR_REVIEW'
-                       }"
-                       title="{{ leave.employeeName }} ({{ leave.leaveType }}) - {{ leave.status }}">
-                     <span class="w-1.5 h-1.5 rounded-full" 
-                           [ngClass]="{
-                             'bg-emerald-500': leave.status === 'APPROVED',
-                             'bg-amber-500': leave.status === 'PENDING' || leave.status === 'TL_APPROVED' || leave.status === 'MGR_REVIEW'
-                           }"></span>
-                     <span class="truncate">{{ leave.employeeName.split(' ')[0] }}</span>
+               <div class="flex items-center justify-between mb-3">
+                 <span [class]="isToday(date) 
+                   ? 'w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-[1rem] text-[10px] font-black shadow-2xl shadow-primary-500/40' 
+                   : 'text-sm font-black text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white tabular-nums transition-colors'">{{ date }}</span>
+               </div>
+               
+               <div class="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  <div *ngFor="let leave of getLeavesForDate(date); trackBy: trackByLeaveId" 
+                       class="relative p-2 rounded-xl border border-transparent transition-all hover:scale-[1.05] cursor-pointer"
+                       [class]="leave.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-primary-500/10 text-primary-600'">
+                    <div class="flex items-center gap-2">
+                      <div class="w-1.5 h-1.5 rounded-full" [class]="leave.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-primary-500'"></div>
+                      <span class="text-[8px] font-black uppercase tracking-tight truncate leading-none">{{ leave.employeeName.split(' ')[0] }}</span>
+                    </div>
                   </div>
                </div>
             </div>
          </div>
       </div>
 
-      <!-- Leave cards Grid -->
-      <div *ngIf="viewMode === 'LIST'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div *ngFor="let leave of leaves" class="card p-5 group hover:shadow-xl transition-all duration-300 relative overflow-hidden">
-          <!-- Status Strip -->
-          <div class="absolute top-0 left-0 w-1 h-full" [ngClass]="{
-            'bg-amber-500': leave.status === 'PENDING',
-            'bg-emerald-500': leave.status === 'APPROVED',
-            'bg-rose-500': leave.status === 'REJECTED'
+      <!-- Matrix View: High-Fidelity Workflow Cards -->
+      <div *ngIf="viewMode === 'LIST'" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+        <div *ngFor="let leave of leaves; trackBy: trackByLeaveId; let i = index" 
+             class="glass-card group p-0 overflow-hidden border-0 ring-1 ring-slate-100 dark:ring-white/5 shadow-3xl transform hover:-translate-y-3 transition-all duration-700 animate-slide-up"
+             [style.animation-delay]="i * 50 + 'ms'">
+          
+          <!-- Intensity Gradient Overlay -->
+          <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r" [ngClass]="{
+            'from-amber-400 to-amber-600': leave.status === 'PENDING',
+            'from-emerald-400 to-emerald-600': leave.status === 'APPROVED',
+            'from-rose-400 to-rose-600': leave.status === 'REJECTED',
+            'from-primary-400 to-indigo-600': leave.status === 'TL_APPROVED' || leave.status === 'MGR_REVIEW'
           }"></div>
 
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-primary-500/10">
-                {{ leave.employeeName.charAt(0) }}
+          <div class="p-10">
+            <div class="flex items-center gap-6 mb-10">
+              <div class="relative">
+                <div class="w-18 h-18 rounded-[2rem] bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-slate-900 dark:text-white font-black text-2xl shadow-inner group-hover:rotate-12 transition-transform">
+                  {{ leave.employeeName.charAt(0) }}
+                </div>
+                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-xl flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-800"
+                     [ngClass]="{'bg-amber-500': leave.status === 'PENDING', 'bg-emerald-500': leave.status === 'APPROVED', 'bg-rose-500': leave.status === 'REJECTED'}">
+                  <span class="material-icons text-white text-[12px]">{{ leave.status === 'APPROVED' ? 'check' : 'history' }}</span>
+                </div>
               </div>
-              <div>
-                <p class="font-bold text-surface-900 dark:text-white leading-tight capitalize">{{ leave.employeeName }}</p>
-                <p class="text-[10px] font-bold text-surface-400 dark:text-surface-500 uppercase tracking-widest mt-0.5">{{ leave.leaveType }}</p>
+              
+              <div class="min-w-0">
+                <h3 class="text-xl font-black text-slate-900 dark:text-white font-manrope tracking-tight group-hover:text-primary-600 transition-colors truncate">{{ leave.employeeName }}</h3>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="text-[9px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest bg-primary-50 dark:bg-primary-900/40 px-3 py-1.5 rounded-xl border border-primary-100 dark:border-white/5">{{ leave.leaveType }}</span>
+                  <div class="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-white/10"></div>
+                  <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">{{ leave.status }}</span>
+                </div>
               </div>
             </div>
-            <span [class]="getStatusBadge(leave.status)">{{ leave.status }}</span>
-          </div>
 
-          <div class="space-y-4 mb-6">
-            <div class="flex items-center gap-2.5 text-sm font-medium text-surface-600 dark:text-surface-300">
-              <div class="p-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
+            <div class="grid grid-cols-2 gap-4 mb-10 p-5 rounded-[2rem] bg-slate-50/50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5">
+              <div class="text-center">
+                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Temporal Start</p>
+                <p class="text-xs font-black text-slate-900 dark:text-white tabular-nums">{{ leave.startDate | date:'MMM dd, yyyy' }}</p>
               </div>
-              <span>{{ leave.startDate }} <span class="text-surface-400 mx-1">→</span> {{ leave.endDate }}</span>
+              <div class="text-center border-l border-slate-100 dark:border-white/5">
+                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Temporal End</p>
+                <p class="text-xs font-black text-slate-900 dark:text-white tabular-nums">{{ leave.endDate | date:'MMM dd, yyyy' }}</p>
+              </div>
+            </div>
+
+            <div *ngIf="leave.reason" class="relative mb-10 group/quote">
+               <span class="material-icons absolute -top-4 -left-2 text-primary-500/20 text-4xl group-hover/quote:text-primary-500/40 transition-colors">format_quote</span>
+               <p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed italic line-clamp-3 pl-6 pr-4">{{ leave.reason }}</p>
+            </div>
+
+            <!-- Strategic Approval Flow -->
+            <div *ngIf="leave.status !== 'APPROVED' && leave.status !== 'REJECTED' && leave.status !== 'CANCELLED'" class="grid grid-cols-2 gap-4">
+              <ng-container *ngIf="authService.isTeamLead && leave.status === 'PENDING'">
+                 <button (click)="approveLeaveByTL(leave.id)" class="py-4 rounded-xl bg-emerald-500 text-white font-black text-[9px] uppercase tracking-widest hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all active:scale-95">Approve Flow</button>
+                 <button (click)="rejectLeave(leave.id)" class="py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-rose-500 font-black text-[9px] uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95">Evict Node</button>
+              </ng-container>
+
+              <ng-container *ngIf="(authService.isManager || authService.isAdmin)">
+                 <button (click)="approveLeaveByManager(leave.id)" class="py-4 rounded-xl bg-primary-600 text-white font-black text-[9px] uppercase tracking-widest hover:bg-primary-700 shadow-xl shadow-primary-500/20 transition-all active:scale-95">Authorize Absence</button>
+                 <button (click)="rejectLeave(leave.id)" class="py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-rose-500 font-black text-[9px] uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95">Evict Node</button>
+              </ng-container>
             </div>
             
-            <div *ngIf="leave.reason" class="text-sm text-surface-600 dark:text-surface-400 leading-relaxed bg-surface-50/50 dark:bg-surface-800/30 p-4 rounded-xl border border-surface-100 dark:border-surface-700/50">
-               <span class="block text-[10px] font-bold text-surface-400 uppercase mb-2 tracking-tighter">REASON</span>
-               "{{ leave.reason }}"
+            <!-- Audit Trail: Visual Connection -->
+            <div *ngIf="leave.approvalChain && leave.approvalChain.length > 0" class="mt-10 pt-8 border-t border-slate-50 dark:border-white/5 space-y-4">
+               <h4 class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-4 flex items-center gap-2">
+                 <span class="w-1.5 h-1.5 rounded-full bg-slate-200 animate-pulse"></span> Tactical Audit Log
+               </h4>
+               <div *ngFor="let chain of leave.approvalChain; trackBy: trackByChainId" 
+                    class="flex items-start gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-100 dark:ring-white/5 hover:ring-primary-500/30 transition-all">
+                 <div class="w-8 h-8 rounded-xl bg-slate-50/50 dark:bg-white/5 flex items-center justify-center shrink-0 border border-slate-100 dark:border-white/5">
+                    <span class="material-icons text-sm" [ngClass]="chain.action === 'APPROVED' ? 'text-emerald-500' : 'text-primary-500'">{{ chain.action === 'APPROVED' ? 'verified_user' : 'history_edu' }}</span>
+                 </div>
+                 <div class="min-w-0">
+                    <p class="text-[10px] font-black text-slate-900 dark:text-white truncate uppercase">{{ chain.approverName }}</p>
+                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{{ chain.approverRole }} — {{ chain.createdAt | date:'MMM dd' }}</p>
+                    <p *ngIf="chain.remarks" class="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed mt-2 italic"> "{{ chain.remarks }}"</p>
+                 </div>
+               </div>
             </div>
           </div>
-
-          <div *ngIf="leave.status === 'PENDING' || leave.status === 'TL_APPROVED'" class="flex gap-2">
-            <ng-container *ngIf="authService.isTeamLead && leave.status === 'PENDING'">
-               <button (click)="approveLeaveByTL(leave.id)" class="btn-success flex-1 py-2.5 text-xs font-bold uppercase tracking-wider">TL Approve</button>
-               <button (click)="rejectLeave(leave.id)" class="btn-danger flex-1 py-2.5 text-xs font-bold uppercase tracking-wider">Reject</button>
-            </ng-container>
-
-            <ng-container *ngIf="(authService.isManager || authService.isAdmin)">
-               <button (click)="approveLeaveByManager(leave.id)" class="btn-success flex-1 py-2.5 text-xs font-bold uppercase tracking-wider">Mgr Approve</button>
-               <button (click)="rejectLeave(leave.id)" class="btn-danger flex-1 py-2.5 text-xs font-bold uppercase tracking-wider">Reject</button>
-            </ng-container>
-
-            <ng-container *ngIf="authService.hasRole('USER') && (leave.status === 'PENDING' || leave.status === 'TL_APPROVED')">
-               <button (click)="cancelLeave(leave.id)" class="btn-ghost text-rose-500 hover:bg-rose-50 flex-1 py-2.5 text-xs font-bold uppercase tracking-wider">Cancel</button>
-            </ng-container>
-          </div>
-          
-          <div *ngIf="leave.approvalChain && leave.approvalChain.length > 0" class="mt-4 pt-4 border-t border-surface-100 dark:border-surface-700 space-y-3">
-             <h4 class="text-[10px] font-bold text-surface-400 uppercase tracking-widest px-1">Approval Trail</h4>
-             <div *ngFor="let chain of leave.approvalChain" class="flex items-start gap-3 bg-surface-50 p-2.5 rounded-lg border border-surface-100 dark:border-surface-700">
-                <div class="mt-0.5">
-                   <div class="w-2 h-2 rounded-full" [ngClass]="{
-                     'bg-emerald-500': chain.action === 'APPROVED',
-                     'bg-amber-500': chain.action === 'TL_APPROVED',
-                     'bg-rose-500': chain.action === 'REJECTED' || chain.action === 'CANCELLED'
-                   }"></div>
-                </div>
-                <div class="flex-1">
-                   <div class="flex justify-between items-baseline mb-1">
-                      <span class="text-xs font-bold text-surface-900">{{ chain.approverName }} <span class="text-surface-500 font-medium">({{ chain.approverRole }})</span></span>
-                      <span class="text-[10px] text-surface-500">{{ chain.createdAt | date:'MMM d, h:mm a' }}</span>
-                   </div>
-                   <p *ngIf="chain.remarks" class="text-xs text-surface-600 italic border-l-2 border-surface-200 pl-2"> "{{ chain.remarks }}"</p>
-                </div>
-             </div>
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        <div *ngIf="leaves.length === 0" class="col-span-full text-center py-24 card bg-surface-50/30 dark:bg-surface-800/10 border-dashed border-2">
-          <div class="w-24 h-24 bg-surface-100 dark:bg-surface-800 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <svg class="w-12 h-12 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-surface-900 dark:text-white mb-2">No Leave Records</h3>
-          <p class="text-surface-500 max-w-xs mx-auto">There are no leave requests found for the selected filter. Try changing the status or Apply for a new one.</p>
         </div>
       </div>
 
-      <!-- Add Leave Modal -->
-      <div *ngIf="showModal" class="modal-backdrop">
-        <div class="modal-container max-w-lg overflow-hidden">
-          <div class="p-6 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 flex justify-between items-center">
+      <!-- Null State: Absence Vacuum -->
+      <div *ngIf="leaves.length === 0" class="min-h-[500px] flex flex-col items-center justify-center glass-card border-dashed border-4 border-slate-100 dark:border-white/5 rounded-[4rem]">
+        <div class="relative mb-10 w-32 h-32 flex items-center justify-center">
+           <div class="absolute inset-0 bg-primary-500/10 rounded-[3rem] animate-pulse"></div>
+           <span class="material-icons text-7xl text-slate-200 dark:text-white/5 relative z-10">layers_clear</span>
+        </div>
+        <h3 class="text-2xl font-black text-slate-300 dark:text-white/10 uppercase tracking-[0.4em]">Zero Absence Data</h3>
+        <p class="text-[10px] font-bold text-slate-400 mt-6 max-w-sm text-center uppercase tracking-widest leading-loose">The temporal matrix is fully populated. All personnel nodes are currently active.</p>
+        <button (click)="openModal()" class="mt-10 px-10 py-5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl hover:scale-105 active:scale-95 transition-all">Initialize Application</button>
+      </div>
+
+      <!-- Deeper Glass Modal: Tactical Entry -->
+      <div *ngIf="showModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-2xl z-50 flex items-center justify-center p-6 animate-fade-in">
+        <div class="glass-card w-full max-w-2xl p-0 overflow-hidden ring-1 ring-white/30 shadow-5xl animate-zoom-in border-0 rounded-[3rem]">
+          <div class="px-12 py-10 bg-slate-900 text-white relative flex items-center justify-between">
             <div>
-              <h3 class="text-xl font-bold text-surface-900 dark:text-white">Apply for Leave</h3>
-              <p class="text-xs text-surface-500 mt-1 uppercase tracking-tight font-medium">Employee Absence Request</p>
+              <h3 class="text-3xl font-black font-manrope tracking-tight leading-none mb-2">Formulate Absence</h3>
+              <p class="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">Strategic Temporal Exception Request</p>
             </div>
-            <button (click)="closeModal()" class="p-2 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-full transition-colors text-surface-500">
-               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <button (click)="closeModal()" class="w-14 h-14 rounded-[1.5rem] bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all group">
+               <span class="material-icons text-white/40 group-hover:text-white group-hover:rotate-90 transition-all">close</span>
             </button>
           </div>
           
-          <div class="p-8 space-y-6">
-            <div class="space-y-2">
-              <label class="form-label">Employee Selection</label>
-              <select [(ngModel)]="newLeave.employeeId" (change)="loadBalances(newLeave.employeeId!)" class="input-field shadow-sm">
-                <option [ngValue]="0" disabled>Select an employee...</option>
-                <option *ngFor="let emp of employees" [ngValue]="emp.id">{{ emp.name }} ({{ emp.employeeCode }})</option>
+          <div class="p-12 space-y-10 max-h-[70vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Target Personnel Node</label>
+              <select [(ngModel)]="newLeave.employeeId" (change)="loadBalances(newLeave.employeeId!); cdr.markForCheck()" class="w-full bg-slate-50 dark:bg-slate-800/50 border-0 rounded-[2rem] p-5 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 cursor-pointer appearance-none transition-all">
+                <option [ngValue]="0" disabled>Select contributing employee...</option>
+                <option *ngFor="let emp of employees; trackBy: trackByEmployeeId" [ngValue]="emp.id">{{ emp.name }} • ID: {{ emp.employeeCode }}</option>
               </select>
             </div>
 
-            <!-- Leave Balances Display -->
-            <div *ngIf="balances.length > 0" class="bg-primary-50 dark:bg-primary-900/10 rounded-xl p-4 border border-primary-100 dark:border-primary-900/50">
-                <h4 class="text-xs font-bold text-primary-800 dark:text-primary-300 mb-3 flex items-center gap-2">
-                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                   Available Yearly Balance
-                </h4>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                   <div *ngFor="let bal of balances" class="bg-white dark:bg-surface-800 p-2.5 rounded-lg text-center shadow-sm border border-surface-100 dark:border-surface-700">
-                      <div class="text-[10px] uppercase font-bold text-surface-400 mb-1 tracking-wider">{{ bal.leaveType }}</div>
-                      <div class="text-lg font-black text-surface-900 dark:text-white">{{ bal.remainingDays }} <span class="text-[10px] text-surface-400 font-medium">/ {{ bal.totalDays }}</span></div>
+            <!-- Balanced Displays -->
+            <div *ngIf="balances.length > 0" class="p-8 rounded-[2.5rem] bg-indigo-50/20 dark:bg-white/[0.02] border-2 border-dashed border-indigo-100/50 dark:border-white/5 animate-fade-in">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                   <div *ngFor="let bal of balances; trackBy: trackByBalanceId" class="text-center group/bal">
+                      <div class="text-[8px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3 group-hover/bal:text-primary-500 transition-colors">{{ bal.leaveType }}</div>
+                      <div class="text-2xl font-black text-slate-900 dark:text-white font-manrope group-hover/bal:scale-125 transition-transform">{{ bal.remainingDays }}<span class="text-[10px] text-slate-300 ml-1">v</span></div>
                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <label class="form-label">Start Date</label>
-                <input type="date" [(ngModel)]="newLeave.startDate" class="input-field shadow-sm">
+            <div class="grid grid-cols-2 gap-10">
+              <div class="space-y-4">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 text-center block">Chronological Vector Start</label>
+                <input type="date" [(ngModel)]="newLeave.startDate" class="w-full bg-slate-50 dark:bg-slate-800/50 border-0 rounded-[2rem] p-5 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 text-center transition-all">
               </div>
-              <div class="space-y-2">
-                <label class="form-label">End Date</label>
-                <input type="date" [(ngModel)]="newLeave.endDate" class="input-field shadow-sm">
+              <div class="space-y-4">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 text-center block">Chronological Vector End</label>
+                <input type="date" [(ngModel)]="newLeave.endDate" class="w-full bg-slate-50 dark:bg-slate-800/50 border-0 rounded-[2rem] p-5 text-sm font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 text-center transition-all">
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="form-label">Leave Type</label>
-              <div class="grid grid-cols-2 gap-3">
-                <button type="button" *ngFor="let type of ['CASUAL', 'SICK', 'EARNED', 'WFH']" 
-                        (click)="newLeave.leaveType = type"
-                        [class]="newLeave.leaveType === type ? 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300' : 'bg-surface-50 dark:bg-surface-800 text-surface-600 dark:text-surface-400 border border-surface-100 dark:border-surface-700'"
-                        class="py-3 px-4 rounded-xl text-xs font-bold transition-all text-center">
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">Absence Pattern Classification</label>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button type="button" *ngFor="let type of ['CASUAL', 'SICK', 'EARNED', 'WFH']; trackBy: trackByIndex" 
+                        (click)="newLeave.leaveType = type; cdr.markForCheck()"
+                        [class]="newLeave.leaveType === type ? 'bg-primary-600 text-white shadow-2xl shadow-primary-500/30' : 'bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-100 dark:border-white/5'"
+                        class="py-5 px-6 rounded-[1.5rem] text-[9px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-90">
                   {{ type }}
                 </button>
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="form-label">Reason for Leave</label>
-              <textarea [(ngModel)]="newLeave.reason" rows="3" class="input-field shadow-sm max-h-32" placeholder="Tell us why you need this leave..."></textarea>
+            <div class="space-y-4">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3 block">Application Logic & Justification</label>
+              <textarea [(ngModel)]="newLeave.reason" rows="4" class="w-full bg-slate-50 dark:bg-slate-800/50 border-0 rounded-[2.5rem] p-8 text-sm font-medium leading-relaxed text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-primary-500/10 resize-none transition-all shadow-inner" placeholder="Provide professional context for the requested temporal gap..."></textarea>
             </div>
           </div>
 
-          <div class="p-6 bg-surface-50/50 dark:bg-surface-800/80 border-t border-surface-100 dark:border-surface-700 flex justify-end gap-3">
-            <button (click)="closeModal()" class="btn-ghost" [disabled]="submitting">Discard</button>
-            <button (click)="applyLeave()" class="btn-primary min-w-[160px]" [disabled]="submitting || !isValid()">
-              <span *ngIf="!submitting" class="flex items-center gap-2">
-                Submit Application
-              </span>
-              <span *ngIf="submitting" class="flex items-center gap-2">
-                <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </span>
+          <div class="px-12 py-10 bg-slate-50/50 dark:bg-slate-800/40 flex justify-end gap-6 items-center">
+            <button (click)="closeModal()" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" [disabled]="submitting">Abort Operation</button>
+            <button (click)="applyLeave()" class="px-14 py-6 rounded-[2rem] bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black uppercase tracking-[0.35em] shadow-4xl hover:scale-105 active:scale-95 transition-all transform" [disabled]="submitting || !isValid()">
+              {{ submitting ? 'Transmitting Data...' : 'Commit Application' }}
             </button>
           </div>
         </div>
@@ -263,12 +274,12 @@ import { LeaveRequest, Employee, LeaveBalance } from '../../core/models/interfac
     </div>
   `,
   styles: [`
-    .badge-pending { @apply bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider; }
-    .badge-tl_approved { @apply bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider; }
-    .badge-mgr_review { @apply bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider; }
-    .badge-approved { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider; }
-    .badge-rejected { @apply bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider; }
-    .badge-cancelled { @apply bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-400 border border-surface-200 dark:border-surface-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { 
+      background: rgba(var(--color-primary-500-rgb), 0.1); 
+      border-radius: 20px;
+    }
   `]
 })
 export class LeavesComponent implements OnInit {
@@ -297,7 +308,13 @@ export class LeavesComponent implements OnInit {
   blankDays: number[] = [];
   monthDays: number[] = [];
 
-  constructor(private api: ApiService, public authService: AuthService) { }
+  constructor(private api: ApiService, public authService: AuthService, public cdr: ChangeDetectorRef) { }
+
+  trackByLeaveId(index: number, item: LeaveRequest): number { return item.id; }
+  trackByEmployeeId(index: number, item: Employee): number { return item.id; }
+  trackByBalanceId(index: number, item: LeaveBalance): number { return item.id; }
+  trackByChainId(index: number, item: LeaveApprovalChain): number { return item.id; }
+  trackByIndex(index: number, item: any): number { return index; }
 
   ngOnInit() {
     this.loadLeaves();
@@ -329,11 +346,13 @@ export class LeavesComponent implements OnInit {
   prevMonth() {
     this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
     this.generateCalendar();
+    this.cdr.markForCheck();
   }
 
   nextMonth() {
     this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 1);
     this.generateCalendar();
+    this.cdr.markForCheck();
   }
 
   getLeavesForDate(date: number): LeaveRequest[] {
@@ -359,17 +378,24 @@ export class LeavesComponent implements OnInit {
       } else {
         this.leaves = data.filter(l => l.status === this.statusFilter);
       }
+      this.cdr.markForCheck();
     });
   }
 
   loadEmployees() {
-    this.api.getEmployees().subscribe(data => this.employees = data);
+    this.api.getEmployees().subscribe(data => {
+      this.employees = data;
+      this.cdr.markForCheck();
+    });
   }
 
   loadBalances(employeeId: number) {
     this.balances = [];
     if (!employeeId) return;
-    this.api.getLeaveBalances(employeeId).subscribe(data => this.balances = data);
+    this.api.getLeaveBalances(employeeId).subscribe(data => {
+      this.balances = data;
+      this.cdr.markForCheck();
+    });
   }
 
   getStatusBadge(status: string): string {
@@ -424,24 +450,36 @@ export class LeavesComponent implements OnInit {
 
   approveLeaveByTL(id: number) {
     const remarks = prompt('TL Remarks (optional):');
-    this.api.approveLeaveByTL(id, remarks || undefined).subscribe(() => this.loadLeaves());
+    this.api.approveLeaveByTL(id, remarks || undefined).subscribe(() => {
+        this.loadLeaves();
+        this.cdr.markForCheck();
+    });
   }
 
   approveLeaveByManager(id: number) {
     const remarks = prompt('Manager Remarks (optional):');
-    this.api.approveLeaveByManager(id, remarks || undefined).subscribe(() => this.loadLeaves());
+    this.api.approveLeaveByManager(id, remarks || undefined).subscribe(() => {
+        this.loadLeaves();
+        this.cdr.markForCheck();
+    });
   }
 
   rejectLeave(id: number) {
     const remarks = prompt('Rejection reason (required):');
     if (!remarks) return alert("Rejection reason is required.");
-    this.api.rejectLeave(id, remarks).subscribe(() => this.loadLeaves());
+    this.api.rejectLeave(id, remarks).subscribe(() => {
+        this.loadLeaves();
+        this.cdr.markForCheck();
+    });
   }
 
   cancelLeave(id: number) {
     const remarks = prompt('Cancellation reason (optional):');
     if (confirm("Are you sure you want to cancel this leave? Balances will be restored.")) {
-      this.api.cancelLeave(id, remarks || undefined).subscribe(() => this.loadLeaves());
+      this.api.cancelLeave(id, remarks || undefined).subscribe(() => {
+          this.loadLeaves();
+          this.cdr.markForCheck();
+      });
     }
   }
 }
