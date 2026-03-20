@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/features/attendance/attendance_provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AttendanceScreen extends ConsumerWidget {
   const AttendanceScreen({super.key});
@@ -49,7 +50,7 @@ class AttendanceScreen extends ConsumerWidget {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final record = records[index];
-                return _buildAttendanceCard(context, record);
+                return _buildAttendanceCard(context, record, index);
               },
             );
           },
@@ -73,19 +74,27 @@ class AttendanceScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAttendanceCard(BuildContext context, Attendance record) {
+  Widget _buildAttendanceCard(BuildContext context, Attendance record, int index) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            isDark ? theme.cardTheme.color! : Colors.white,
+            isDark ? theme.colorScheme.surface.withOpacity(0.8) : Colors.blue.withOpacity(0.03),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5), width: 1),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: theme.colorScheme.shadow.withOpacity(isDark ? 0.1 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -154,7 +163,9 @@ class AttendanceScreen extends ConsumerWidget {
           )
         ],
       ),
-    );
+    ).animate(delay: (index * 50).ms)
+     .fade(duration: 400.ms)
+     .slideX(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
   String _formatTime(String timeString) {

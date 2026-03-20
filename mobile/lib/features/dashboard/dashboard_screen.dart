@@ -5,6 +5,7 @@ import 'package:mobile/features/auth/auth_controller.dart';
 import 'package:mobile/features/dashboard/dashboard_provider.dart';
 import 'package:mobile/features/dashboard/notification_provider.dart';
 import 'package:mobile/features/leave/leave_application_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -60,17 +61,17 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   delegate: SliverChildListDelegate([
                     _buildStatCard(context, 'Total Employees', stats.totalEmployees,
-                        Icons.people_alt, Colors.blue),
+                        Icons.people_alt, Colors.blue, 0),
                     _buildStatCard(context, 'Present Today', stats.presentToday,
-                        Icons.check_circle, Colors.green),
+                        Icons.check_circle, Colors.green, 1),
                     _buildStatCard(context, 'Working from Office', stats.wfoToday,
-                        Icons.business, theme.colorScheme.primary),
+                        Icons.business, theme.colorScheme.primary, 2),
                     _buildStatCard(context, 'Working from Home', stats.wfhToday,
-                        Icons.home_work, Colors.orange),
+                        Icons.home_work, Colors.orange, 3),
                     _buildStatCard(context, 'On Leave', stats.onLeaveToday,
-                        Icons.event_busy, Colors.purple),
+                        Icons.event_busy, Colors.purple, 4),
                     _buildStatCard(context, 'Absent', stats.absentToday,
-                        Icons.cancel, Colors.redAccent),
+                        Icons.cancel, Colors.redAccent, 5),
                   ]),
                 ),
                 loading: () => const SliverFillRemaining(
@@ -100,18 +101,27 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String title, int value, IconData icon, Color color) {
+  Widget _buildStatCard(BuildContext context, String title, int value, IconData icon, Color color, int index) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outline),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            isDark ? theme.cardTheme.color! : Colors.white,
+            isDark ? theme.colorScheme.surface.withOpacity(0.8) : color.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(isDark ? 0.3 : 0.1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: color.withOpacity(isDark ? 0.05 : 0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -127,26 +137,36 @@ class DashboardScreen extends ConsumerWidget {
                 child: Text(
                   title,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSurfaceVariant,
+                    letterSpacing: 0.3,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Icon(icon, color: color.withOpacity(0.8), size: 24),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
             ],
           ),
           Text(
             value.toString(),
             style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
               color: theme.colorScheme.onSurface,
             ),
-          ),
+          ).animate().count(begin: 0, end: value.toDouble(), duration: 800.ms, curve: Curves.easeOut),
         ],
       ),
-    );
+    ).animate(delay: (index * 100).ms)
+     .fade(duration: 400.ms)
+     .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
   Widget _buildNotificationBadge(WidgetRef ref, BuildContext context) {
