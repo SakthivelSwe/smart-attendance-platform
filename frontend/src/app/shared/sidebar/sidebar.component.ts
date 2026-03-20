@@ -20,40 +20,40 @@ interface NavItem {
   imports: [CommonModule, RouterModule],
   template: `
     <!-- Desktop sidebar -->
-    <aside class="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-40 transition-all duration-300"
+    <aside class="hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-40 transition-all duration-300 ease-spring"
            [class.w-72]="!isCollapsed" [class.w-20]="isCollapsed">
 
       <!-- Logo -->
-      <div class="flex items-center gap-3 px-6 py-6 border-b border-[var(--border-color)]">
-        <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-sm border border-primary-700">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      <div class="flex items-center gap-3 px-5 py-5 border-b border-[var(--border-subtle)]">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-600/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
         </div>
         <div *ngIf="!isCollapsed" class="min-w-0 animate-fade-in">
-          <h1 class="text-xl font-sans font-bold text-[var(--text-primary)] tracking-tight truncate">SmartAttend</h1>
-          <p class="text-xs text-[var(--text-secondary)] font-medium tracking-wide">Automation Platform</p>
+          <h1 class="text-lg font-sans font-extrabold text-[var(--text-primary)] tracking-tight truncate">SmartAttend</h1>
+          <p class="text-[10px] text-[var(--text-tertiary)] font-semibold tracking-widest uppercase">Platform</p>
         </div>
       </div>
 
       <!-- Collapse toggle -->
       <button (click)="toggleCollapse.emit()"
-              class="absolute -right-3 top-24 w-6 h-6 bg-white dark:bg-surface-800 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-full flex items-center justify-center shadow-lg hover:text-primary-600 transition-all hover:scale-110 z-50">
-        <svg class="w-3 h-3 transition-transform duration-300" [class.rotate-180]="isCollapsed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              class="absolute -right-3.5 top-[72px] w-7 h-7 bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-tertiary)] rounded-full flex items-center justify-center shadow-premium hover:text-primary-500 hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200 hover:scale-110 z-50">
+        <svg class="w-3.5 h-3.5 transition-transform duration-300" [class.rotate-180]="isCollapsed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
 
       <!-- Navigation -->
-      <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+      <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <ng-container *ngFor="let section of navSections">
           <!-- Section Label -->
-          <div *ngIf="section.label && !isCollapsed && hasVisibleItems(section.items)" 
-               class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-surface-400">
+          <div *ngIf="section.label && !isCollapsed && hasVisibleItems(section.items)"
+               class="px-3 pt-5 pb-2 text-[10px] font-extrabold uppercase tracking-[0.15em] text-[var(--text-tertiary)]">
             {{ section.label }}
           </div>
-          <div *ngIf="section.label && isCollapsed && hasVisibleItems(section.items)" 
-               class="border-t border-[var(--border-color)] my-2 mx-2"></div>
+          <div *ngIf="section.label && isCollapsed && hasVisibleItems(section.items)"
+               class="border-t border-[var(--border-subtle)] my-3 mx-3"></div>
 
           <ng-container *ngFor="let item of section.items">
             <a *ngIf="isItemVisible(item)"
@@ -61,30 +61,33 @@ interface NavItem {
                routerLinkActive="active"
                class="sidebar-link group"
                [title]="item.label">
-              <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0"></span>
-              <span *ngIf="!isCollapsed" class="truncate font-medium animate-fade-in">{{ item.label }}</span>
-              
+              <span [innerHTML]="getIcon(item.icon)" class="w-5 h-5 flex-shrink-0 opacity-70 group-[.active]:opacity-100 transition-opacity"></span>
+              <span *ngIf="!isCollapsed" class="truncate font-medium animate-fade-in text-[13px]">{{ item.label }}</span>
+
               <!-- Badge -->
-              <span *ngIf="item.badge && !isCollapsed" 
-                    class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+              <span *ngIf="item.badge && !isCollapsed"
+                    class="ml-auto px-2 py-0.5 text-[9px] font-bold rounded-md bg-gradient-to-r from-accent-500 to-accent-400 text-white shadow-sm">
                 {{ item.badge }}
               </span>
-              
+
               <!-- Active Indicator Dot -->
-              <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-[.active]:opacity-100 transition-opacity" *ngIf="!isCollapsed && !item.badge"></div>
+              <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-[.active]:opacity-100 transition-opacity animate-glow-pulse" *ngIf="!isCollapsed && !item.badge"></div>
             </a>
           </ng-container>
         </ng-container>
       </nav>
 
       <!-- User info -->
-      <div class="px-4 py-4 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50">
-        <a routerLink="/profile" class="flex items-center gap-3 p-2 rounded-xl transition-colors hover:bg-white dark:hover:bg-surface-800 cursor-pointer" *ngIf="authService.currentUser as user">
-          <img [src]="user.avatarUrl || 'https://ui-avatars.com/api/?name=' + user.name + '&background=6366f1&color=fff'"
-               class="w-10 h-10 rounded-full ring-2 ring-white dark:ring-surface-700 shadow-md flex-shrink-0" [alt]="user.name"/>
+      <div class="px-3 py-4 border-t border-[var(--border-subtle)]">
+        <a routerLink="/profile" class="flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 hover:bg-surface-100 dark:hover:bg-surface-800/60 cursor-pointer group" *ngIf="authService.currentUser as user">
+          <div class="relative flex-shrink-0">
+            <img [src]="user.avatarUrl || 'https://ui-avatars.com/api/?name=' + user.name + '&background=1d43f1&color=fff&bold=true'"
+                 class="w-9 h-9 rounded-xl ring-2 ring-primary-500/20 shadow-sm object-cover group-hover:ring-primary-500/40 transition-all" [alt]="user.name"/>
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-[var(--sidebar-bg)] rounded-full"></span>
+          </div>
           <div *ngIf="!isCollapsed" class="min-w-0 animate-fade-in">
             <p class="text-sm font-semibold text-[var(--text-primary)] truncate">{{ user.name }}</p>
-            <span class="inline-flex items-center px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase"
+            <span class="inline-flex items-center px-1.5 py-0.5 mt-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase"
                   [ngClass]="getRolePillClass(user.role)">
               {{ formatRole(user.role) }}
             </span>
@@ -95,27 +98,27 @@ interface NavItem {
 
     <!-- Mobile sidebar -->
     <aside *ngIf="isMobileOpen"
-           class="lg:hidden fixed left-0 top-0 h-screen w-72 sm:w-80 max-w-[85vw] bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-50 animate-slide-in-right shadow-2xl">
-      <div class="flex items-center justify-between px-6 py-6 border-b border-[var(--border-color)]">
+           class="lg:hidden fixed left-0 top-0 h-screen w-[280px] sm:w-80 max-w-[85vw] bg-[var(--sidebar-bg)] border-r border-[var(--border-color)] z-50 animate-slide-in-left shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-5 border-b border-[var(--border-subtle)]">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center shadow-sm border border-primary-700">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-600/20">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
-          <h1 class="text-xl font-sans font-bold tracking-tight text-[var(--text-primary)]">SmartAttend</h1>
+          <h1 class="text-lg font-sans font-extrabold tracking-tight text-[var(--text-primary)]">SmartAttend</h1>
         </div>
-        <button (click)="closeMobile.emit()" class="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition text-[var(text-secondary)]">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button (click)="closeMobile.emit()" class="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition text-[var(--text-secondary)]">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
 
-      <nav class="px-4 py-6 space-y-1 overflow-y-auto">
+      <nav class="px-3 py-4 space-y-0.5 overflow-y-auto">
         <ng-container *ngFor="let section of navSections">
-          <div *ngIf="section.label && hasVisibleItems(section.items)" 
-               class="px-3 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-surface-400">
+          <div *ngIf="section.label && hasVisibleItems(section.items)"
+               class="px-3 pt-5 pb-2 text-[10px] font-extrabold uppercase tracking-[0.15em] text-[var(--text-tertiary)]">
             {{ section.label }}
           </div>
           <ng-container *ngFor="let item of section.items">
@@ -124,10 +127,10 @@ interface NavItem {
                routerLinkActive="active"
                (click)="closeMobile.emit()"
                class="sidebar-link group">
-              <span [innerHTML]="getIcon(item.icon)" class="w-6 h-6 flex-shrink-0"></span>
-              <span class="font-medium">{{ item.label }}</span>
-              <span *ngIf="item.badge" 
-                    class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+              <span [innerHTML]="getIcon(item.icon)" class="w-5 h-5 flex-shrink-0 opacity-70 group-[.active]:opacity-100"></span>
+              <span class="font-medium text-[13px]">{{ item.label }}</span>
+              <span *ngIf="item.badge"
+                    class="ml-auto px-2 py-0.5 text-[9px] font-bold rounded-md bg-gradient-to-r from-accent-500 to-accent-400 text-white shadow-sm">
                 {{ item.badge }}
               </span>
             </a>
@@ -187,9 +190,9 @@ export class SidebarComponent {
 
   getRolePillClass(role: string): string {
     switch (role) {
-      case 'ADMIN': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+      case 'ADMIN': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300';
       case 'MANAGER': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
-      case 'TEAM_LEAD': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
+      case 'TEAM_LEAD': return 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300';
       default: return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
     }
   }

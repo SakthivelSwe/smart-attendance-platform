@@ -16,9 +16,28 @@ import { NotificationPreference } from '../../core/models/interfaces';
         <p class="page-subtitle">Manage how and when you receive alerts from the Smart Attendance Platform</p>
       </div>
 
-      <div *ngIf="isLoading" class="max-w-4xl animate-pulse space-y-6">
-        <div class="card p-6 h-40"></div>
-        <div class="card p-6 h-64"></div>
+      <div *ngIf="isLoading" class="max-w-4xl space-y-6">
+        <div class="card p-6">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-10 h-10 rounded-xl skeleton"></div>
+            <div class="h-5 skeleton rounded-lg w-40"></div>
+          </div>
+          <div class="space-y-4">
+            <div class="h-16 skeleton rounded-xl"></div>
+            <div class="h-16 skeleton rounded-xl"></div>
+          </div>
+        </div>
+        <div class="card p-6">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-10 h-10 rounded-xl skeleton"></div>
+            <div class="h-5 skeleton rounded-lg w-36"></div>
+          </div>
+          <div class="space-y-4">
+            <div class="h-12 skeleton rounded-xl"></div>
+            <div class="h-12 skeleton rounded-xl"></div>
+            <div class="h-12 skeleton rounded-xl"></div>
+          </div>
+        </div>
       </div>
 
       <div *ngIf="!isLoading && preferences" class="max-w-4xl space-y-6">
@@ -31,9 +50,9 @@ import { NotificationPreference } from '../../core/models/interfaces';
           <p class="text-sm text-[var(--text-secondary)] mb-6">Choose where you'd like to receive notifications.</p>
           
           <div class="space-y-4">
-            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer">
+            <label class="flex items-center justify-between p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer">
               <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <span class="material-icons">email</span>
                 </div>
                 <div>
@@ -48,9 +67,9 @@ import { NotificationPreference } from '../../core/models/interfaces';
             </label>
 
             <!-- WhatsApp (Stubbed for now, visually toggleable but maybe unfunctional if api not strict yet) -->
-             <label class="flex items-center justify-between p-4 rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer opacity-75">
+             <label class="flex items-center justify-between p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer opacity-75">
               <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <span class="material-icons">chat</span>
                 </div>
                 <div>
