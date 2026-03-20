@@ -153,8 +153,8 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
 
       <!-- Fetch from Email modal -->
       <div *ngIf="showEmailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
-          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-1">
+        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+          <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-3">
             <span class="flex items-center gap-2">
               <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -162,6 +162,65 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
               Fetch from Gmail
             </span>
           </h3>
+
+          <!-- How it works collapsible -->
+          <div class="mb-4 rounded-xl border border-indigo-200 dark:border-indigo-800/50 overflow-hidden">
+            <button (click)="showHowItWorks = !showHowItWorks"
+                    class="w-full flex items-center justify-between px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 text-sm font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                How it works
+              </span>
+              <svg class="w-4 h-4 transition-transform duration-200" [class.rotate-180]="showHowItWorks" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+
+            <div *ngIf="showHowItWorks" class="px-4 py-3 bg-white dark:bg-surface-800/50 space-y-3">
+              <!-- Step 1 -->
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs">1</div>
+                <div>
+                  <p class="text-xs font-semibold text-[var(--text-primary)]">📱 Export from WhatsApp</p>
+                  <p class="text-xs text-[var(--text-secondary)] mt-0.5">Open the group → tap ⋮ → <b>Export Chat</b> → choose <b>Without Media</b>. Also attach your <b>Contacts (.vcf)</b> file in the same email (optional, for name sync).</p>
+                </div>
+              </div>
+              <!-- Step 2 -->
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs">2</div>
+                <div>
+                  <p class="text-xs font-semibold text-[var(--text-primary)]">📨 Email with matching subject</p>
+                  <p class="text-xs text-[var(--text-secondary)] mt-0.5">Forward the exported chat to the configured Gmail inbox. The email <b>subject must contain</b> the "Subject Pattern" text entered below.</p>
+                </div>
+              </div>
+              <!-- Step 3 -->
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs">3</div>
+                <div>
+                  <p class="text-xs font-semibold text-[var(--text-primary)]">🔄 Auto contact sync (VCF)</p>
+                  <p class="text-xs text-[var(--text-secondary)] mt-0.5">If a <b>.vcf</b> file is attached, the system matches phone numbers to your registered employees and updates their WhatsApp display name automatically. Other contacts are ignored.</p>
+                </div>
+              </div>
+              <!-- Step 4 -->
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs">4</div>
+                <div>
+                  <p class="text-xs font-semibold text-[var(--text-primary)]">✅ Attendance is calculated</p>
+                  <p class="text-xs text-[var(--text-secondary)] mt-0.5">Chat messages are parsed line-by-line. Names are matched to employees by their WhatsApp name, and check-in/check-out times are recorded.</p>
+                </div>
+              </div>
+              <!-- Step 5 -->
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-xs">5</div>
+                <div>
+                  <p class="text-xs font-semibold text-[var(--text-primary)]">📊 Results appear in the table</p>
+                  <p class="text-xs text-[var(--text-secondary)] mt-0.5">Once processed, the attendance table on this page updates automatically for the selected date.</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- OAuth2 connected — simplified view -->
           <div *ngIf="oauthConnected">
@@ -307,6 +366,7 @@ export class AttendanceComponent implements OnInit {
   emailFetching = false;
   automationConfigured = false;
   oauthConnected = false;
+  showHowItWorks = false;
 
   filters = [
     { label: 'All', value: 'ALL' },

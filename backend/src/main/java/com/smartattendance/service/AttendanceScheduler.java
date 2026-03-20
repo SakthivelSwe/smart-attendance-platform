@@ -1,6 +1,7 @@
 package com.smartattendance.service;
 
 import com.smartattendance.dto.AttendanceDTO;
+import com.smartattendance.dto.EmailData;
 import com.smartattendance.event.DailyAttendanceProcessedEvent;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ public class AttendanceScheduler {
     private final MonthlySummaryService monthlySummaryService;
     private final ApplicationEventPublisher eventPublisher;
     private final com.smartattendance.repository.GroupRepository groupRepository;
+    private final VcfSyncService vcfSyncService;
 
     @org.springframework.beans.factory.annotation.Value("${app.admin.emails:}")
     private String adminEmails;
@@ -209,21 +211,26 @@ public class AttendanceScheduler {
                     subjectPattern = "WhatsApp Chat";
                 }
 
-                String chatText = null;
+                EmailData emailData = null;
                 try {
                     if (oauthConnected) {
-                        chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today);
+                        emailData = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, today);
                     } else {
-                        chatText = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
+                        emailData = gmailService.fetchAttendanceEmailForDate(email, password, subjectPattern, today);
                     }
                 } catch (Exception ex) {
                     logger.error("Failed to fetch email for group '{}': {}", group.getName(), ex.getMessage());
                 }
 
-                if (chatText != null && !chatText.isBlank()) {
+                if (emailData != null && emailData.getChatText() != null && !emailData.getChatText().isBlank()) {
+                    if (emailData.getVcfText() != null && !emailData.getVcfText().isBlank()) {
+                        logger.info("Found VCF attachment in the automated email. Syncing contacts...");
+                        vcfSyncService.syncEmployeesWithVcf(emailData.getVcfText());
+                    }
+                    
                     // Pass true to ensure that we process the full chat for that export, similar to
                     // UI manual fetch
-                    attendanceService.processWhatsAppAttendance(chatText, today, true);
+                    attendanceService.processWhatsAppAttendance(emailData.getChatText(), today, true);
                     logger.info("Automatically processed attendance from email for group '{}'", group.getName());
                 } else {
                     logger.info("No attendance email found for group '{}' using pattern '{}'", group.getName(),
