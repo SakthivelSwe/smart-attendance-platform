@@ -340,9 +340,11 @@ public class GmailService {
 
                     if (filename.toLowerCase().endsWith(".zip") ||
                             contentType.contains("zip") || contentType.contains("compressed")) {
-                        String extracted = extractTextFromZip(part.getInputStream());
-                        if (extracted != null)
-                            data.setChatText(extracted);
+                        EmailData zipData = extractDataFromZip(part.getInputStream());
+                        if (zipData != null) {
+                            if (zipData.getChatText() != null) data.setChatText(zipData.getChatText());
+                            if (zipData.getVcfText() != null) data.setVcfText(zipData.getVcfText());
+                        }
                     } else if (filename.toLowerCase().endsWith(".txt")) {
                         data.setChatText(new String(part.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
                     } else if (filename.toLowerCase().endsWith(".vcf")) {
@@ -372,25 +374,35 @@ public class GmailService {
         return null;
     }
 
-    private String extractTextFromZip(InputStream zipStream) {
+    private EmailData extractDataFromZip(InputStream zipStream) {
+        EmailData zipData = new EmailData();
         try (ZipInputStream zis = new ZipInputStream(zipStream, StandardCharsets.UTF_8)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 String entryName = entry.getName();
-                logger.info("Zip entry: {}", entryName);
-
-                if (!entry.isDirectory() && entryName.toLowerCase().endsWith(".txt")) {
-                    byte[] bytes = zis.readAllBytes();
-                    String text = new String(bytes, StandardCharsets.UTF_8);
-                    logger.info("Extracted '{}' ({} characters)", entryName, text.length());
-                    zis.closeEntry();
-                    return text;
+                
+                if (!entry.isDirectory()) {
+                    if (entryName.toLowerCase().endsWith(".txt")) {
+                        byte[] bytes = zis.readAllBytes();
+                        String text = new String(bytes, StandardCharsets.UTF_8);
+                        logger.info("Extracted '{}' ({} characters)", entryName, text.length());
+                        zipData.setChatText(text);
+                    } else if (entryName.toLowerCase().endsWith(".vcf")) {
+                        byte[] bytes = zis.readAllBytes();
+                        String vcfContent = new String(bytes, StandardCharsets.UTF_8);
+                        logger.info("Extracted VCF '{}' ({} characters)", entryName, vcfContent.length());
+                        if (zipData.getVcfText() == null) {
+                            zipData.setVcfText(vcfContent);
+                        } else {
+                            zipData.setVcfText(zipData.getVcfText() + "\n" + vcfContent);
+                        }
+                    }
                 }
                 zis.closeEntry();
             }
         } catch (IOException e) {
             logger.error("Error extracting zip: {}", e.getMessage(), e);
         }
-        return null;
+        return (zipData.getChatText() != null || zipData.getVcfText() != null) ? zipData : null;
     }
 }
