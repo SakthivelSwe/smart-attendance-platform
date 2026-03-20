@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.zip.ZipEntry;
+import com.smartattendance.dto.EmailData;
 import java.util.zip.ZipInputStream;
 
 /**
@@ -42,9 +43,9 @@ public class GmailService {
      * @param gmailEmail          Admin's Gmail email address
      * @param gmailAppPassword    Admin's Gmail App Password
      * @param emailSubjectPattern Email subject pattern to search for
-     * @return Extracted chat text, or null if not found
+     * @return Extracted EmailData, or null if not found
      */
-    public String fetchLatestAttendanceEmail(String gmailEmail, String gmailAppPassword, String emailSubjectPattern) {
+    public EmailData fetchLatestAttendanceEmail(String gmailEmail, String gmailAppPassword, String emailSubjectPattern) {
         try {
             return fetchEmailWithRetry(gmailEmail, gmailAppPassword, emailSubjectPattern, null);
         } catch (Exception e) {
@@ -60,9 +61,9 @@ public class GmailService {
      * @param gmailAppPassword    Admin's Gmail App Password
      * @param emailSubjectPattern Subject pattern to match
      * @param targetDate          Date to search from
-     * @return Extracted chat text, or null if not found
+     * @return Extracted EmailData, or null if not found
      */
-    public String fetchAttendanceEmailForDate(String gmailEmail, String gmailAppPassword,
+    public EmailData fetchAttendanceEmailForDate(String gmailEmail, String gmailAppPassword,
             String emailSubjectPattern, LocalDate targetDate) throws Exception {
         return fetchEmailWithRetry(gmailEmail, gmailAppPassword, emailSubjectPattern, targetDate);
     }
@@ -165,7 +166,7 @@ public class GmailService {
 
     // ==================== Private Methods ====================
 
-    private String fetchEmailWithRetry(String email, String password,
+    private EmailData fetchEmailWithRetry(String email, String password,
             String subjectPattern, LocalDate targetDate) throws Exception {
         int maxRetries = 2;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
@@ -184,7 +185,7 @@ public class GmailService {
         return null;
     }
 
-    private String doFetchEmail(String email, String password,
+    private EmailData doFetchEmail(String email, String password,
             String subjectPattern, LocalDate targetDate) throws Exception {
         Session session = createSession();
         Store store = null;
@@ -238,11 +239,11 @@ public class GmailService {
                         i + 1, messages.length, msg.getSubject(), msg.getSentDate());
 
                 try {
-                    String chatText = extractChatText(msg);
-                    if (chatText != null && !chatText.isBlank()) {
+                    EmailData emailData = extractEmailData(msg);
+                    if (emailData != null && (emailData.getChatText() != null && !emailData.getChatText().isBlank())) {
                         logger.info("Found valid chat attachment in email: {}", msg.getSubject());
-                        logger.info("Extracted chat text ({} characters)", chatText.length());
-                        return chatText;
+                        logger.info("Extracted chat text ({} characters)", emailData.getChatText().length());
+                        return emailData;
                     } else {
                         logger.warn("No chat text found in email: {}. Checking next...", msg.getSubject());
                     }
@@ -308,21 +309,21 @@ public class GmailService {
         return new AndTerm(subjectTerm, boundedDateTerm);
     }
 
-    private String extractChatText(Message message) throws Exception {
+    private EmailData extractEmailData(Message message) throws Exception {
         Object content = message.getContent();
 
         if (content instanceof MimeMultipart multipart) {
             return extractFromMultipart(multipart);
         } else if (content instanceof String text) {
-            return text;
+            return new EmailData(text, null);
         }
 
         logger.warn("Unsupported email content type: {}", content.getClass().getName());
         return null;
     }
 
-    private String extractFromMultipart(MimeMultipart multipart) throws Exception {
-        String bodyText = null;
+    private EmailData extractFromMultipart(MimeMultipart multipart) throws Exception {
+        EmailData data = new EmailData();
 
         for (int i = 0; i < multipart.getCount(); i++) {
             BodyPart part = multipart.getBodyPart(i);
@@ -341,25 +342,34 @@ public class GmailService {
                             contentType.contains("zip") || contentType.contains("compressed")) {
                         String extracted = extractTextFromZip(part.getInputStream());
                         if (extracted != null)
-                            return extracted;
+                            data.setChatText(extracted);
                     } else if (filename.toLowerCase().endsWith(".txt")) {
-                        return new String(part.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                        data.setChatText(new String(part.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
+                    } else if (filename.toLowerCase().endsWith(".vcf")) {
+                        data.setVcfText(new String(part.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
                     }
                 }
             }
 
             if (part.getContent() instanceof MimeMultipart nestedMultipart) {
-                String nested = extractFromMultipart(nestedMultipart);
-                if (nested != null && !nested.isBlank())
-                    bodyText = nested;
+                EmailData nested = extractFromMultipart(nestedMultipart);
+                if (nested != null) {
+                    if (nested.getChatText() != null) data.setChatText(nested.getChatText());
+                    if (nested.getVcfText() != null) data.setVcfText(nested.getVcfText());
+                }
             }
 
             if (contentType.contains("text/plain") && disposition == null) {
-                bodyText = (String) part.getContent();
+                if (data.getChatText() == null) {
+                    data.setChatText((String) part.getContent());
+                }
             }
         }
 
-        return bodyText;
+        if (data.getChatText() != null || data.getVcfText() != null) {
+            return data;
+        }
+        return null;
     }
 
     private String extractTextFromZip(InputStream zipStream) {

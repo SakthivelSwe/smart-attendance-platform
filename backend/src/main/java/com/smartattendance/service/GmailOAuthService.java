@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Properties;
+import com.smartattendance.dto.EmailData;
 
 /**
  * Gmail OAuth2 service — uses the Google OAuth2 Authorization Code Flow.
@@ -194,7 +195,7 @@ public class GmailOAuthService {
         return results;
     }
 
-    public String fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) throws Exception {
+    public EmailData fetchAttendanceEmailForDate(String subjectPattern, java.time.LocalDate targetDate) throws Exception {
         Gmail gmailService = buildGmailService();
         String userId = "me";
 
@@ -218,34 +219,36 @@ public class GmailOAuthService {
             Message msg = gmailService.users().messages()
                     .get(userId, msgMetadata.getId()).setFormat("full").execute();
 
-            String text = extractChatFromGmailMessage(gmailService, userId, msg);
-            if (text != null)
-                return text;
+            EmailData data = extractEmailDataFromGmailMessage(gmailService, userId, msg);
+            if (data != null && (data.getChatText() != null || data.getVcfText() != null))
+                return data;
         }
         return null;
     }
 
-    private String extractChatFromGmailMessage(Gmail gmailService, String userId, Message msg) throws Exception {
+    private EmailData extractEmailDataFromGmailMessage(Gmail gmailService, String userId, Message msg) throws Exception {
         if (msg.getPayload() == null)
             return null;
 
         // Handle direct payload (very rare for attachments, but possible)
-        String body = extractFromParts(gmailService, userId, msg.getId(),
+        EmailData body = extractFromParts(gmailService, userId, msg.getId(),
                 java.util.Collections.singletonList(msg.getPayload()));
-        if (body != null)
+        if (body != null && (body.getChatText() != null || body.getVcfText() != null))
             return body;
 
         return extractFromParts(gmailService, userId, msg.getId(), msg.getPayload().getParts());
     }
 
-    private String extractFromParts(Gmail gmailService, String userId, String messageId,
+    private EmailData extractFromParts(Gmail gmailService, String userId, String messageId,
             java.util.List<com.google.api.services.gmail.model.MessagePart> parts) throws Exception {
         if (parts == null)
             return null;
+        
+        EmailData emailData = new EmailData();
         for (com.google.api.services.gmail.model.MessagePart part : parts) {
             String filename = part.getFilename();
             if (filename != null && !filename.isEmpty()) {
-                if (filename.toLowerCase().endsWith(".zip") || filename.toLowerCase().endsWith(".txt")) {
+                if (filename.toLowerCase().endsWith(".zip") || filename.toLowerCase().endsWith(".txt") || filename.toLowerCase().endsWith(".vcf")) {
                     String attachmentId = part.getBody().getAttachmentId();
                     if (attachmentId != null) {
                         com.google.api.services.gmail.model.MessagePartBody attachment = gmailService.users().messages()
@@ -253,27 +256,38 @@ public class GmailOAuthService {
                         byte[] data = java.util.Base64.getUrlDecoder().decode(attachment.getData());
                         logger.info("Downloaded attachment '{}' from Gmail API", filename);
                         if (filename.toLowerCase().endsWith(".zip")) {
-                            return extractTextFromZipBytes(data);
-                        } else {
-                            return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                            emailData.setChatText(extractTextFromZipBytes(data));
+                        } else if (filename.toLowerCase().endsWith(".txt")) {
+                            emailData.setChatText(new String(data, java.nio.charset.StandardCharsets.UTF_8));
+                        } else if (filename.toLowerCase().endsWith(".vcf")) {
+                            emailData.setVcfText(new String(data, java.nio.charset.StandardCharsets.UTF_8));
                         }
                     } else if (part.getBody().getData() != null) {
                         // Sometimes small attachments are inline in the data field
                         byte[] data = java.util.Base64.getUrlDecoder().decode(part.getBody().getData());
                         if (filename.toLowerCase().endsWith(".zip")) {
-                            return extractTextFromZipBytes(data);
-                        } else {
-                            return new String(data, java.nio.charset.StandardCharsets.UTF_8);
+                            emailData.setChatText(extractTextFromZipBytes(data));
+                        } else if (filename.toLowerCase().endsWith(".txt")) {
+                            emailData.setChatText(new String(data, java.nio.charset.StandardCharsets.UTF_8));
+                        } else if (filename.toLowerCase().endsWith(".vcf")) {
+                            emailData.setVcfText(new String(data, java.nio.charset.StandardCharsets.UTF_8));
                         }
                     }
                 }
             }
             if (part.getParts() != null) {
-                String nested = extractFromParts(gmailService, userId, messageId, part.getParts());
-                if (nested != null)
-                    return nested;
+                EmailData nested = extractFromParts(gmailService, userId, messageId, part.getParts());
+                if (nested != null) {
+                    if (nested.getChatText() != null) emailData.setChatText(nested.getChatText());
+                    if (nested.getVcfText() != null) emailData.setVcfText(nested.getVcfText());
+                }
             }
         }
+        
+        if (emailData.getChatText() != null || emailData.getVcfText() != null) {
+            return emailData;
+        }
+        
         return null;
     }
 

@@ -10,6 +10,8 @@ import com.smartattendance.service.AttendanceService;
 import com.smartattendance.service.GmailService;
 import com.smartattendance.service.GmailOAuthService;
 import com.smartattendance.service.SystemSettingService;
+import com.smartattendance.service.VcfSyncService;
+import com.smartattendance.dto.EmailData;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,7 @@ public class AttendanceController {
     private final EmployeeRepository employeeRepository;
     private final SystemSettingService systemSettingService;
     private final GmailOAuthService gmailOAuthService;
+    private final VcfSyncService vcfSyncService;
 
     @GetMapping("/date/{date}")
     public ResponseEntity<List<AttendanceDTO>> getByDate(
@@ -140,15 +143,15 @@ public class AttendanceController {
         logger.info("Fetching email with pattern '{}' for date {}. OAuth Connected: {}", subjectPattern, date,
                 isOAuthConnected);
 
-        String chatText = null;
+        EmailData emailData = null;
         try {
             if (isOAuthConnected) {
-                chatText = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, date);
+                emailData = gmailOAuthService.fetchAttendanceEmailForDate(subjectPattern, date);
             } else {
                 // Remove spaces from app password just in case user pasted 'aaaa bbbb cccc
                 // dddd'
                 String cleanPassword = gmailPassword.replace(" ", "").trim();
-                chatText = gmailService.fetchAttendanceEmailForDate(gmailEmail, cleanPassword, subjectPattern, date);
+                emailData = gmailService.fetchAttendanceEmailForDate(gmailEmail, cleanPassword, subjectPattern, date);
             }
         } catch (jakarta.mail.AuthenticationFailedException authEx) {
             response.put("success", false);
@@ -160,17 +163,23 @@ public class AttendanceController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (chatText == null || chatText.isBlank()) {
+        if (emailData == null || emailData.getChatText() == null || emailData.getChatText().isBlank()) {
             response.put("success", false);
             response.put("message", "Connected successfully, but found 0 emails matching subject: \"" + subjectPattern
                     + "\" received on or after " + date
-                    + ".\\nCheck if the email has arrived and the subject matches EXACTLY.");
+                    + ".\\nCheck if the email has arrived, the subject matches EXACTLY, and it contains a valid chat attachment.");
             return ResponseEntity.ok(response);
+        }
+
+        // Process the VCF file if present
+        if (emailData.getVcfText() != null && !emailData.getVcfText().isBlank()) {
+            logger.info("Found VCF attachment in the email. Syncing contacts...");
+            vcfSyncService.syncEmployeesWithVcf(emailData.getVcfText());
         }
 
         // Process the chat text
         // Process the chat text - Manual email triggering usually warrants a full check
-        List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(chatText, date, true);
+        List<AttendanceDTO> result = attendanceService.processWhatsAppAttendance(emailData.getChatText(), date, true);
 
         response.put("success", true);
         response.put("message", "Successfully processed " + result.size() + " attendance records from email.");
