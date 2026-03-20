@@ -256,7 +256,11 @@ public class GmailOAuthService {
                         byte[] data = java.util.Base64.getUrlDecoder().decode(attachment.getData());
                         logger.info("Downloaded attachment '{}' from Gmail API", filename);
                         if (filename.toLowerCase().endsWith(".zip")) {
-                            emailData.setChatText(extractTextFromZipBytes(data));
+                            EmailData zipData = extractDataFromZipBytes(data);
+                            if (zipData != null) {
+                                if (zipData.getChatText() != null) emailData.setChatText(zipData.getChatText());
+                                if (zipData.getVcfText() != null) emailData.setVcfText(zipData.getVcfText());
+                            }
                         } else if (filename.toLowerCase().endsWith(".txt")) {
                             emailData.setChatText(new String(data, java.nio.charset.StandardCharsets.UTF_8));
                         } else if (filename.toLowerCase().endsWith(".vcf")) {
@@ -266,7 +270,11 @@ public class GmailOAuthService {
                         // Sometimes small attachments are inline in the data field
                         byte[] data = java.util.Base64.getUrlDecoder().decode(part.getBody().getData());
                         if (filename.toLowerCase().endsWith(".zip")) {
-                            emailData.setChatText(extractTextFromZipBytes(data));
+                            EmailData zipData = extractDataFromZipBytes(data);
+                            if (zipData != null) {
+                                if (zipData.getChatText() != null) emailData.setChatText(zipData.getChatText());
+                                if (zipData.getVcfText() != null) emailData.setVcfText(zipData.getVcfText());
+                            }
                         } else if (filename.toLowerCase().endsWith(".txt")) {
                             emailData.setChatText(new String(data, java.nio.charset.StandardCharsets.UTF_8));
                         } else if (filename.toLowerCase().endsWith(".vcf")) {
@@ -291,22 +299,33 @@ public class GmailOAuthService {
         return null;
     }
 
-    private String extractTextFromZipBytes(byte[] zipBytes) {
+    private EmailData extractDataFromZipBytes(byte[] zipBytes) {
+        EmailData zipData = new EmailData();
         try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(
                 new java.io.ByteArrayInputStream(zipBytes), java.nio.charset.StandardCharsets.UTF_8)) {
             java.util.zip.ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                if (!entry.isDirectory() && entry.getName().toLowerCase().endsWith(".txt")) {
-                    byte[] bytes = zis.readAllBytes();
-                    zis.closeEntry();
-                    return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                if (!entry.isDirectory()) {
+                    if (entry.getName().toLowerCase().endsWith(".txt")) {
+                        byte[] bytes = zis.readAllBytes();
+                        zipData.setChatText(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                    } else if (entry.getName().toLowerCase().endsWith(".vcf")) {
+                        byte[] bytes = zis.readAllBytes();
+                        // Append to vcfText just in case there are multiple VCFs in the zip
+                        String vcfContent = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                        if (zipData.getVcfText() == null) {
+                            zipData.setVcfText(vcfContent);
+                        } else {
+                            zipData.setVcfText(zipData.getVcfText() + "\n" + vcfContent);
+                        }
+                    }
                 }
                 zis.closeEntry();
             }
         } catch (Exception e) {
             logger.error("Error extracting zip bytes: {}", e.getMessage());
         }
-        return null;
+        return (zipData.getChatText() != null || zipData.getVcfText() != null) ? zipData : null;
     }
 
     // -----------------------------------------------------------------------

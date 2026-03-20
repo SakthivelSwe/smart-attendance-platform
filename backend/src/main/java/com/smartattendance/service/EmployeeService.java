@@ -86,8 +86,7 @@ public class EmployeeService {
                     .orElseThrow(() -> new ResourceNotFoundException("Team", "id", dto.getTeamId()));
             employee.setTeam(team);
         }
-
-        Employee saved = employeeRepository.save(employee);
+        Employee saved = employeeRepository.saveAndFlush(employee);
 
         // Match existing unmapped logs for this new employee
         attendanceService.processUnmappedLogsForEmployee(saved);
@@ -134,8 +133,7 @@ public class EmployeeService {
         } else {
             employee.setTeam(null);
         }
-
-        Employee saved = employeeRepository.save(employee);
+        Employee saved = employeeRepository.saveAndFlush(employee);
 
         try {
             // Re-match unmapped logs if name/phone changed
