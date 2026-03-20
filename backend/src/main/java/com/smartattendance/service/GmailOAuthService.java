@@ -202,27 +202,62 @@ public class GmailOAuthService {
         String cleanSubject = subjectPattern.replace("*", "").replace("%", "").trim();
         java.time.LocalDate fromDate = targetDate != null ? targetDate : java.time.LocalDate.now().minusDays(1);
         String dateStr = fromDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        String query = "subject:\"" + cleanSubject + "\" after:" + dateStr;
+        
+        EmailData finalData = new EmailData();
 
-        logger.info("Querying Gmail API: {}", query);
+        // 1. Fetch Chat Data
+        String chatQuery = "subject:\"" + cleanSubject + "\" after:" + dateStr;
+        logger.info("Querying Gmail API for Chat: {}", chatQuery);
 
         com.google.api.services.gmail.model.ListMessagesResponse listResponse = gmailService.users().messages()
-                .list(userId).setQ(query).execute();
+                .list(userId).setQ(chatQuery).execute();
 
         java.util.List<Message> messages = listResponse.getMessages();
-        if (messages == null || messages.isEmpty()) {
-            logger.info("No emails found matching query '{}'.", query);
-            return null;
+        if (messages != null && !messages.isEmpty()) {
+            for (Message msgMetadata : messages) {
+                Message msg = gmailService.users().messages()
+                        .get(userId, msgMetadata.getId()).setFormat("full").execute();
+
+                EmailData data = extractEmailDataFromGmailMessage(gmailService, userId, msg);
+                if (data != null) {
+                    if (data.getChatText() != null && finalData.getChatText() == null) finalData.setChatText(data.getChatText());
+                    if (data.getVcfText() != null && finalData.getVcfText() == null) finalData.setVcfText(data.getVcfText());
+                }
+            }
+        } else {
+            logger.info("No emails found matching chat query '{}'.", chatQuery);
         }
 
-        for (Message msgMetadata : messages) {
-            Message msg = gmailService.users().messages()
-                    .get(userId, msgMetadata.getId()).setFormat("full").execute();
+        // 2. If VCF is still missing, search for loose VCF files in recent emails
+        if (finalData.getVcfText() == null) {
+            String vcfQuery = "filename:vcf after:" + dateStr;
+            logger.info("VCF missing from chat email. Querying Gmail API for loose VCF: {}", vcfQuery);
+            
+            com.google.api.services.gmail.model.ListMessagesResponse vcfListResponse = gmailService.users().messages()
+                    .list(userId).setQ(vcfQuery).execute();
+                    
+            java.util.List<Message> vcfMessages = vcfListResponse.getMessages();
+            if (vcfMessages != null && !vcfMessages.isEmpty()) {
+                for (Message msgMetadata : vcfMessages) {
+                    Message msg = gmailService.users().messages()
+                            .get(userId, msgMetadata.getId()).setFormat("full").execute();
 
-            EmailData data = extractEmailDataFromGmailMessage(gmailService, userId, msg);
-            if (data != null && (data.getChatText() != null || data.getVcfText() != null))
-                return data;
+                    EmailData data = extractEmailDataFromGmailMessage(gmailService, userId, msg);
+                    if (data != null && data.getVcfText() != null) {
+                        logger.info("Found loose VCF file in a separate email.");
+                        finalData.setVcfText(data.getVcfText());
+                        break;
+                    }
+                }
+            } else {
+                logger.info("No loose VCF emails found matching query '{}'.", vcfQuery);
+            }
         }
+
+        if (finalData.getChatText() != null || finalData.getVcfText() != null) {
+            return finalData;
+        }
+
         return null;
     }
 
