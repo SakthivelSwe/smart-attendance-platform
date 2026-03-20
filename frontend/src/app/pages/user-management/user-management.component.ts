@@ -20,13 +20,13 @@ import { UserInfo, UserRole } from '../../core/models/interfaces';
         <div class="flex flex-wrap gap-2">
           <button *ngFor="let role of roleOptions"
                   (click)="selectedRole = role.value"
-                  class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all border"
+                  class="px-4 py-1.5 rounded-xl text-xs font-bold transition-all border active:scale-[0.97]"
                   [ngClass]="selectedRole === role.value 
-                    ? 'bg-primary-600 text-white border-primary-600 shadow-md' 
-                    : 'bg-white dark:bg-surface-800 text-surface-600 border-surface-200 dark:border-surface-700 hover:border-primary-300'">
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white border-primary-600/20 shadow-md shadow-primary-500/20' 
+                    : 'bg-[var(--card-bg)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-primary-300 dark:hover:border-primary-700'">
             {{ role.label }}
-            <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded-full"
-                  [ngClass]="selectedRole === role.value ? 'bg-white/20' : 'bg-surface-100 dark:bg-surface-700'">
+            <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded-md font-extrabold"
+                  [ngClass]="selectedRole === role.value ? 'bg-white/20' : 'bg-[var(--bg-tertiary)]'">
               {{ getRoleCount(role.value) }}
             </span>
           </button>
@@ -34,28 +34,28 @@ import { UserInfo, UserRole } from '../../core/models/interfaces';
       </div>
 
       <!-- Search -->
-      <div class="flex items-center gap-4 mb-6 bg-surface-50 dark:bg-surface-900/30 p-4 rounded-2xl border border-surface-200 dark:border-surface-700">
+      <div class="flex items-center gap-4 mb-6 bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
         <div class="relative w-full sm:w-80">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 material-icons text-sm">search</span>
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] material-icons text-sm">search</span>
           <input type="text" [(ngModel)]="searchTerm" placeholder="Search users..." 
-                 class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all text-sm"/>
+                 class="input-field pl-10"/>
         </div>
       </div>
 
       <!-- Loading -->
       <div *ngIf="isLoading" class="space-y-3">
-        <div *ngFor="let i of [1,2,3,4,5]" class="animate-pulse bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl p-4 flex items-center gap-4">
-          <div class="w-10 h-10 rounded-full bg-surface-200 dark:bg-surface-800"></div>
+        <div *ngFor="let i of [1,2,3,4,5]" class="card p-4 flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full skeleton"></div>
           <div class="flex-1 space-y-2">
-            <div class="h-4 bg-surface-200 dark:bg-surface-800 rounded w-1/3"></div>
-            <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-1/4"></div>
+            <div class="h-4 skeleton rounded-lg w-1/3"></div>
+            <div class="h-3 skeleton rounded-lg w-1/4"></div>
           </div>
-          <div class="w-24 h-8 bg-surface-200 dark:bg-surface-800 rounded-lg"></div>
+          <div class="w-24 h-8 skeleton rounded-lg"></div>
         </div>
       </div>
 
       <!-- Users Table -->
-      <div *ngIf="!isLoading" class="bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-2xl shadow-sm overflow-hidden">
+      <div *ngIf="!isLoading" class="card overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
@@ -139,8 +139,8 @@ import { UserInfo, UserRole } from '../../core/models/interfaces';
       </div>
 
       <!-- Role change confirmation modal -->
-      <div *ngIf="showConfirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up">
+      <div *ngIf="showConfirmModal" class="modal-backdrop">
+        <div class="modal-container max-w-sm p-6">
           <div class="text-center mb-4">
             <span class="material-icons text-4xl text-amber-500 mb-2">admin_panel_settings</span>
             <h3 class="text-lg font-semibold text-[var(--text-primary)]">Change Role</h3>

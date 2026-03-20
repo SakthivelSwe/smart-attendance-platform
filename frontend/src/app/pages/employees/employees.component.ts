@@ -35,36 +35,36 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
       </div>
 
       <!-- Search & Filters -->
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 bg-surface-50 dark:bg-surface-900/30 p-4 rounded-2xl border border-surface-200 dark:border-surface-700">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
         <div class="relative w-full sm:w-80">
-           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 material-icons text-sm">search</span>
+           <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] material-icons text-sm">search</span>
            <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="currentPage = 1" placeholder="Search employees..." 
-                  class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all text-sm"/>
+                  class="input-field pl-10"/>
         </div>
         
-        <div class="text-sm text-surface-500 font-medium">
+        <div class="text-sm text-[var(--text-secondary)] font-semibold font-sans">
           Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length) }} of {{ filteredEmployees.length }}
         </div>
       </div>
 
       <!-- Skeleton Loaders -->
       <div *ngIf="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-        <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="glass-card p-4 animate-pulse bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm">
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8]" class="card p-4">
            <div class="flex items-center gap-4 mb-5">
-              <div class="w-12 h-12 rounded-xl bg-surface-200 dark:bg-surface-800 shrink-0"></div>
+              <div class="w-12 h-12 rounded-xl skeleton shrink-0"></div>
               <div class="space-y-2 flex-1">
-                 <div class="h-4 bg-surface-200 dark:bg-surface-800 rounded w-3/4"></div>
-                 <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-1/3"></div>
+                 <div class="h-4 skeleton rounded-lg w-3/4"></div>
+                 <div class="h-3 skeleton rounded-lg w-1/3"></div>
               </div>
            </div>
            <div class="space-y-3">
-              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-full"></div>
-              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-5/6"></div>
-              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-4/6"></div>
+              <div class="h-3 skeleton rounded-lg w-full"></div>
+              <div class="h-3 skeleton rounded-lg w-5/6"></div>
+              <div class="h-3 skeleton rounded-lg w-4/6"></div>
            </div>
-           <div class="mt-4 pt-3 border-t border-surface-100 dark:border-surface-800 flex justify-end gap-2">
-              <div class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800"></div>
-              <div class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800"></div>
+           <div class="mt-4 pt-3 border-t border-[var(--border-color)] flex justify-end gap-2">
+              <div class="w-8 h-8 rounded-lg skeleton"></div>
+              <div class="w-8 h-8 rounded-lg skeleton"></div>
            </div>
         </div>
       </div>
@@ -72,25 +72,25 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
       <!-- Employee cards grid -->
       <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div *ngFor="let emp of paginatedEmployees; let i = index" 
-             class="glass-card p-4 relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm hover:shadow-md"
+             class="card p-4 relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up"
              [style.animation-delay]="i * 50 + 'ms'">
           
           <!-- Status Dot -->
-           <span [class]="emp.isActive ? 'bg-emerald-500' : 'bg-red-500'"
-                 class="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-surface-900"
+           <span [class]="emp.isActive ? 'bg-emerald-500' : 'bg-rose-500'"
+                 class="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-4 ring-[var(--card-bg)]"
                  [title]="emp.isActive ? 'Active' : 'Inactive'">
            </span>
 
           <!-- Header (Compact) -->
           <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800 flex items-center justify-center shrink-0">
-               <span class="text-xl font-sans font-semibold text-primary-600 dark:text-primary-400">
+            <div class="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/30 border border-primary-200/60 dark:border-primary-800/40 flex items-center justify-center shrink-0">
+               <span class="text-xl font-sans font-bold text-primary-600 dark:text-primary-400">
                  {{ emp.name.charAt(0) }}
                </span>
             </div>
             <div class="min-w-0">
-              <h3 class="text-base font-bold text-[var(--text-primary)] truncate" [title]="emp.name">{{ emp.name }}</h3>
-              <p class="text-xs text-surface-500 font-mono bg-surface-100 dark:bg-surface-800 px-1.5 py-0.5 rounded inline-block mt-1">
+              <h3 class="text-base font-bold text-[var(--text-primary)] truncate font-sans" [title]="emp.name">{{ emp.name }}</h3>
+              <p class="text-xs text-[var(--text-tertiary)] font-mono bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded-md inline-block mt-1">
                 {{ emp.employeeCode }}
               </p>
             </div>
@@ -131,13 +131,13 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
 
           <!-- Actions (Icon only) -->
           <!-- BUG-006 fix: MANAGER+ can edit/delete employees -->
-          <div *ngIf="authService.isManager" class="flex justify-end gap-2 pt-3 border-t border-surface-100 dark:border-surface-800">
+          <div *ngIf="authService.isManager" class="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
             <button (click)="editEmployee(emp)" 
-                    class="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-colors" title="Edit">
+                    class="p-2 rounded-xl text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-all hover:scale-105" title="Edit">
                <span class="material-icons text-lg">edit</span>
             </button>
             <button (click)="deleteEmployee(emp.id)" 
-                    class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors" title="Delete">
+                    class="p-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/30 transition-all hover:scale-105" title="Delete">
                <span class="material-icons text-lg">delete</span>
             </button>
           </div>
@@ -145,24 +145,21 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
       </div>
 
       <!-- Pagination -->
-      <div class="flex justify-center mt-8 gap-2" *ngIf="totalPages > 1">
+      <div class="flex justify-center mt-8 gap-1.5" *ngIf="totalPages > 1">
         <button (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1"
-                class="btn-secondary px-3 py-1 flex items-center disabled:opacity-50">
+                class="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] disabled:opacity-40 hover:bg-[var(--bg-tertiary)] transition-all">
           <span class="material-icons text-sm">chevron_left</span>
         </button>
         
         <button *ngFor="let page of visiblePages" 
                 (click)="setPage(page)"
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-colors"
-                [class.bg-primary-600]="currentPage === page"
-                [class.text-white]="currentPage === page"
-                [class.hover:bg-surface-200]="currentPage !== page"
-                [class.dark:hover:bg-surface-700]="currentPage !== page">
+                class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all font-sans"
+                [ngClass]="currentPage === page ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md shadow-primary-500/20' : 'bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'">
           {{ page }}
         </button>
 
         <button (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages"
-                class="btn-secondary px-3 py-1 flex items-center disabled:opacity-50">
+                class="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--card-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] disabled:opacity-40 hover:bg-[var(--bg-tertiary)] transition-all">
           <span class="material-icons text-sm">chevron_right</span>
         </button>
       </div>
@@ -175,36 +172,36 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
       </div>
 
       <!-- Modal -->
-      <div *ngIf="showModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
+      <div *ngIf="showModal" class="modal-backdrop">
+        <div class="modal-container max-w-lg p-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">{{ editingId ? 'Edit' : 'Add' }} Employee</h3>
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name *</label>
+                <label class="form-label">Name *</label>
                 <input type="text" [(ngModel)]="form.name" class="input-field" placeholder="Full name"/>
               </div>
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Code *</label>
+                <label class="form-label">Code *</label>
                 <input type="text" [(ngModel)]="form.employeeCode" class="input-field" placeholder="EMP001"/>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email *</label>
+              <label class="form-label">Email *</label>
               <input type="email" [(ngModel)]="form.email" class="input-field" placeholder="email@example.com"/>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Phone</label>
+                <label class="form-label">Phone</label>
                 <input type="text" [(ngModel)]="form.phone" class="input-field" placeholder="+91 9876543210"/>
               </div>
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">WhatsApp Name</label>
+                <label class="form-label">WhatsApp Name</label>
                 <input type="text" [(ngModel)]="form.whatsappName" class="input-field" placeholder="Name in group"/>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Group</label>
+              <label class="form-label">Group</label>
               <select [(ngModel)]="form.groupId" class="input-field">
                 <option [ngValue]="null">No Group</option>
                 <option *ngFor="let g of groups" [ngValue]="g.id">{{ g.name }}</option>
@@ -212,14 +209,14 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team</label>
+                <label class="form-label">Team</label>
                 <select [(ngModel)]="form.teamId" class="input-field">
                   <option [ngValue]="null">No Team</option>
                   <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Designation</label>
+                <label class="form-label">Designation</label>
                 <input type="text" [(ngModel)]="form.designation" class="input-field" placeholder="Software Engineer"/>
               </div>
             </div>

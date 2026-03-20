@@ -9,15 +9,29 @@ import { ToastService, Toast } from '../../core/services/toast.service';
     template: `
     <div class="fixed top-4 right-4 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
       <div *ngFor="let toast of toasts"
-           class="pointer-events-auto rounded-xl shadow-2xl border backdrop-blur-xl p-4 flex items-start gap-3 animate-slide-up transition-all duration-300"
+           class="pointer-events-auto rounded-2xl shadow-elevated border backdrop-blur-xl p-4 flex items-start gap-3 animate-slide-in-right transition-all duration-300 relative overflow-hidden"
            [ngClass]="{
-             'bg-emerald-500/15 border-emerald-500/30 text-emerald-300': toast.type === 'success',
-             'bg-red-500/15 border-red-500/30 text-red-300': toast.type === 'error',
-             'bg-amber-500/15 border-amber-500/30 text-amber-300': toast.type === 'warning',
-             'bg-blue-500/15 border-blue-500/30 text-blue-300': toast.type === 'info'
+             'bg-emerald-50/90 dark:bg-emerald-950/80 border-emerald-200/60 dark:border-emerald-800/40': toast.type === 'success',
+             'bg-rose-50/90 dark:bg-rose-950/80 border-rose-200/60 dark:border-rose-800/40': toast.type === 'error',
+             'bg-amber-50/90 dark:bg-amber-950/80 border-amber-200/60 dark:border-amber-800/40': toast.type === 'warning',
+             'bg-sky-50/90 dark:bg-sky-950/80 border-sky-200/60 dark:border-sky-800/40': toast.type === 'info'
            }">
+        <!-- Color accent bar -->
+        <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+             [ngClass]="{
+               'bg-emerald-500': toast.type === 'success',
+               'bg-rose-500': toast.type === 'error',
+               'bg-amber-500': toast.type === 'warning',
+               'bg-sky-500': toast.type === 'info'
+             }"></div>
         <!-- Icon -->
-        <div class="flex-shrink-0 mt-0.5">
+        <div class="flex-shrink-0 mt-0.5 ml-1.5"
+             [ngClass]="{
+               'text-emerald-600 dark:text-emerald-400': toast.type === 'success',
+               'text-rose-600 dark:text-rose-400': toast.type === 'error',
+               'text-amber-600 dark:text-amber-400': toast.type === 'warning',
+               'text-sky-600 dark:text-sky-400': toast.type === 'info'
+             }">
           <svg *ngIf="toast.type === 'success'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
@@ -32,9 +46,21 @@ import { ToastService, Toast } from '../../core/services/toast.service';
           </svg>
         </div>
         <!-- Message -->
-        <p class="text-sm font-medium flex-1">{{ toast.message }}</p>
+        <p class="text-sm font-semibold flex-1 font-sans"
+           [ngClass]="{
+             'text-emerald-800 dark:text-emerald-200': toast.type === 'success',
+             'text-rose-800 dark:text-rose-200': toast.type === 'error',
+             'text-amber-800 dark:text-amber-200': toast.type === 'warning',
+             'text-sky-800 dark:text-sky-200': toast.type === 'info'
+           }">{{ toast.message }}</p>
         <!-- Dismiss -->
-        <button (click)="dismiss(toast.id)" class="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+        <button (click)="dismiss(toast.id)" class="flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity p-0.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
+                [ngClass]="{
+                  'text-emerald-700 dark:text-emerald-300': toast.type === 'success',
+                  'text-rose-700 dark:text-rose-300': toast.type === 'error',
+                  'text-amber-700 dark:text-amber-300': toast.type === 'warning',
+                  'text-sky-700 dark:text-sky-300': toast.type === 'info'
+                }">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>

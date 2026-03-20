@@ -29,24 +29,24 @@ import { Group } from '../../core/models/interfaces';
 
       <!-- Skeleton Loaders -->
       <div *ngIf="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <div *ngFor="let i of [1,2,3]" class="card p-5 animate-pulse">
+        <div *ngFor="let i of [1,2,3]" class="card p-5">
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-xl bg-surface-200 dark:bg-surface-700"></div>
+              <div class="w-11 h-11 rounded-xl skeleton"></div>
               <div class="space-y-2">
-                <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-24"></div>
-                <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-16"></div>
+                <div class="h-4 skeleton rounded-lg w-24"></div>
+                <div class="h-3 skeleton rounded-lg w-16"></div>
               </div>
             </div>
-            <div class="h-5 bg-surface-200 dark:bg-surface-700 rounded w-12"></div>
+            <div class="h-5 skeleton rounded-lg w-12"></div>
           </div>
           <div class="space-y-3 mb-4">
-            <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-3/4"></div>
-            <div class="h-3 bg-surface-200 dark:bg-surface-700 rounded w-1/2"></div>
+            <div class="h-3 skeleton rounded-lg w-3/4"></div>
+            <div class="h-3 skeleton rounded-lg w-1/2"></div>
           </div>
           <div class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-color)]">
-             <div class="flex-1 h-8 bg-surface-200 dark:bg-surface-700 rounded"></div>
-             <div class="flex-1 h-8 bg-surface-200 dark:bg-surface-700 rounded"></div>
+             <div class="flex-1 h-8 skeleton rounded-lg"></div>
+             <div class="flex-1 h-8 skeleton rounded-lg"></div>
           </div>
         </div>
       </div>
@@ -99,24 +99,24 @@ import { Group } from '../../core/models/interfaces';
       </div>
 
       <!-- Modal -->
-      <div *ngIf="showModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+      <div *ngIf="showModal" class="modal-backdrop">
+        <div class="modal-container max-w-md p-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">{{ editingId ? 'Edit' : 'Add' }} Group</h3>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name *</label>
+              <label class="form-label">Name *</label>
               <input type="text" [(ngModel)]="form.name" class="input-field" placeholder="Group name"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">WhatsApp Group Name</label>
+              <label class="form-label">WhatsApp Group Name</label>
               <input type="text" [(ngModel)]="form.whatsappGroupName" class="input-field" placeholder="Exact name in WhatsApp"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Subject Pattern</label>
+              <label class="form-label">Email Subject Pattern</label>
               <input type="text" [(ngModel)]="form.emailSubjectPattern" class="input-field" placeholder="e.g., WhatsApp Chat*"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Google Sheet ID</label>
+              <label class="form-label">Google Sheet ID</label>
               <input type="text" [(ngModel)]="form.googleSheetId" class="input-field" placeholder="Optional Sheet ID"/>
             </div>
           </div>

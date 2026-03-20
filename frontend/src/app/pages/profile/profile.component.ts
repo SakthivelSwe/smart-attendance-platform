@@ -15,20 +15,24 @@ import { AuthService } from '../../core/services/auth.service';
         <p class="page-subtitle">Manage your personal information and preferences</p>
       </div>
 
+      <!-- Skeleton Loading -->
       <div *ngIf="isLoading" class="max-w-3xl mx-auto">
-        <div class="animate-pulse card p-8">
-          <div class="flex items-center gap-6 mb-6">
-            <div class="w-20 h-20 rounded-full bg-surface-200 dark:bg-surface-800"></div>
-            <div class="space-y-3 flex-1">
-              <div class="h-6 bg-surface-200 dark:bg-surface-800 rounded w-1/3"></div>
-              <div class="h-4 bg-surface-200 dark:bg-surface-800 rounded w-1/4"></div>
+        <div class="card p-0 overflow-hidden">
+          <div class="h-28 skeleton rounded-none"></div>
+          <div class="px-6 pb-8 pt-2">
+            <div class="flex items-end gap-4 -mt-12 mb-6">
+              <div class="w-20 h-20 rounded-2xl skeleton ring-4 ring-[var(--card-bg)]"></div>
+              <div class="space-y-2 flex-1 pt-8">
+                <div class="h-5 skeleton rounded-lg w-1/3"></div>
+                <div class="h-3 skeleton rounded-lg w-1/4"></div>
+              </div>
             </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="h-12 bg-surface-200 dark:bg-surface-800 rounded-xl"></div>
-            <div class="h-12 bg-surface-200 dark:bg-surface-800 rounded-xl"></div>
-            <div class="h-12 bg-surface-200 dark:bg-surface-800 rounded-xl"></div>
-            <div class="h-12 bg-surface-200 dark:bg-surface-800 rounded-xl"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="h-14 skeleton rounded-xl"></div>
+              <div class="h-14 skeleton rounded-xl"></div>
+              <div class="h-14 skeleton rounded-xl"></div>
+              <div class="h-14 skeleton rounded-xl"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -36,22 +40,26 @@ import { AuthService } from '../../core/services/auth.service';
       <div *ngIf="!isLoading && profile" class="max-w-3xl mx-auto space-y-6">
         <!-- Profile Header Card -->
         <div class="card relative overflow-hidden">
-          <div class="h-24 bg-gradient-to-r from-primary-600 to-indigo-600"></div>
+          <div class="h-28 bg-gradient-to-r from-primary-600 via-primary-500 to-primary-600 relative">
+            <div class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2720%27%20height%3D%2720%27%20viewBox%3D%270%200%2020%2020%27%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%3E%3Ccircle%20cx%3D%271%27%20cy%3D%271%27%20r%3D%271%27%20fill%3D%27rgba(255%2C255%2C255%2C0.05)%27/%3E%3C/svg%3E')]"></div>
+          </div>
           <div class="px-6 pb-6">
-            <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-10">
-              <img [src]="profile.avatarUrl || 'https://ui-avatars.com/api/?name=' + profile.name + '&background=6366f1&color=fff&size=80'"
-                   class="w-20 h-20 rounded-xl ring-4 ring-white dark:ring-surface-900 shadow-lg" [alt]="profile.name"/>
+            <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4 -mt-12">
+              <img [src]="profile.avatarUrl || 'https://ui-avatars.com/api/?name=' + profile.name + '&background=1d43f1&color=fff&size=80&bold=true'"
+                   class="w-20 h-20 rounded-2xl ring-4 ring-[var(--card-bg)] shadow-elevated object-cover" [alt]="profile.name"/>
               <div class="flex-1 pt-2">
-                <h2 class="text-xl font-bold text-[var(--text-primary)]">{{ profile.name }}</h2>
-                <p class="text-sm text-[var(--text-secondary)] flex items-center gap-2">
+                <h2 class="text-xl font-extrabold text-[var(--text-primary)] font-sans tracking-tight">{{ profile.name }}</h2>
+                <p class="text-sm text-[var(--text-secondary)] flex items-center gap-2 mt-0.5 font-body">
                   <span class="w-2 h-2 rounded-full" [ngClass]="getRoleBadgeColor()"></span>
                   {{ formatRole() }}
-                  <span *ngIf="profile.teamName" class="text-surface-300 dark:text-surface-600">|</span>
-                  <span *ngIf="profile.teamName">{{ profile.teamName }}</span>
+                  <span *ngIf="profile.teamName" class="text-surface-300 dark:text-surface-600">·</span>
+                  <span *ngIf="profile.teamName" class="font-medium">{{ profile.teamName }}</span>
                 </p>
               </div>
-              <button *ngIf="!isEditing" (click)="isEditing = true" class="btn-secondary text-sm">
-                <span class="material-icons text-sm mr-1">edit</span> Edit Profile
+              <button *ngIf="!isEditing" (click)="isEditing = true; editForm = {name: profile.name, phone: profile.phone}"
+                      class="btn-secondary text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Edit Profile
               </button>
             </div>
           </div>
@@ -61,61 +69,63 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Personal Info -->
           <div class="card p-6">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-surface-400 mb-4">Personal Information</h3>
-            <div class="space-y-4">
+            <h3 class="text-xs font-extrabold uppercase tracking-[0.15em] text-[var(--text-tertiary)] mb-5 font-sans">Personal Information</h3>
+            <div class="space-y-5">
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Full Name</label>
-                <p *ngIf="!isEditing" class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.name }}</p>
-                <input *ngIf="isEditing" type="text" [(ngModel)]="editForm.name" class="input-field mt-1"/>
+                <label class="form-label mb-1">Full Name</label>
+                <p *ngIf="!isEditing" class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.name }}</p>
+                <input *ngIf="isEditing" type="text" [(ngModel)]="editForm.name" class="input-field"/>
               </div>
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Email</label>
-                <p class="text-sm font-semibold text-[var(--text-primary)] mt-1 flex items-center gap-2">
+                <label class="form-label mb-1">Email</label>
+                <p class="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2 font-body">
                   {{ profile.email }}
-                  <span class="material-icons text-sm text-emerald-500">verified</span>
+                  <span class="text-emerald-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </span>
                 </p>
               </div>
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Phone</label>
-                <p *ngIf="!isEditing" class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.phone || 'Not set' }}</p>
-                <input *ngIf="isEditing" type="text" [(ngModel)]="editForm.phone" class="input-field mt-1"/>
+                <label class="form-label mb-1">Phone</label>
+                <p *ngIf="!isEditing" class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.phone || 'Not set' }}</p>
+                <input *ngIf="isEditing" type="text" [(ngModel)]="editForm.phone" class="input-field"/>
               </div>
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Employee Code</label>
-                <p class="text-sm font-mono font-semibold text-[var(--text-primary)] mt-1">{{ profile.employeeCode || 'Not assigned' }}</p>
+                <label class="form-label mb-1">Employee Code</label>
+                <p class="text-sm font-mono font-bold text-[var(--text-primary)]">{{ profile.employeeCode || 'Not assigned' }}</p>
               </div>
             </div>
           </div>
 
           <!-- Organization Info -->
           <div class="card p-6">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-surface-400 mb-4">Organization</h3>
-            <div class="space-y-4">
+            <h3 class="text-xs font-extrabold uppercase tracking-[0.15em] text-[var(--text-tertiary)] mb-5 font-sans">Organization</h3>
+            <div class="space-y-5">
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Role</label>
+                <label class="form-label mb-1">Role</label>
                 <p class="mt-1">
-                  <span class="px-3 py-1 rounded-lg text-xs font-bold" [ngClass]="getRoleClasses()">{{ formatRole() }}</span>
+                  <span class="px-3 py-1.5 rounded-lg text-xs font-bold" [ngClass]="getRoleClasses()">{{ formatRole() }}</span>
                 </p>
               </div>
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Team</label>
-                <p class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.teamName || 'No team assigned' }}</p>
+                <label class="form-label mb-1">Team</label>
+                <p class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.teamName || 'No team assigned' }}</p>
               </div>
               <div>
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Designation</label>
-                <p class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.designation || 'Not set' }}</p>
+                <label class="form-label mb-1">Designation</label>
+                <p class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.designation || 'Not set' }}</p>
               </div>
               <div *ngIf="profile.teamLeadName">
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Team Lead</label>
-                <p class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.teamLeadName }}</p>
+                <label class="form-label mb-1">Team Lead</label>
+                <p class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.teamLeadName }}</p>
               </div>
               <div *ngIf="profile.managerName">
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Manager</label>
-                <p class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.managerName }}</p>
+                <label class="form-label mb-1">Manager</label>
+                <p class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.managerName }}</p>
               </div>
               <div *ngIf="profile.groupName">
-                <label class="text-xs font-medium text-surface-400 uppercase tracking-wider">Group</label>
-                <p class="text-sm font-semibold text-[var(--text-primary)] mt-1">{{ profile.groupName }}</p>
+                <label class="form-label mb-1">Group</label>
+                <p class="text-sm font-semibold text-[var(--text-primary)] font-body">{{ profile.groupName }}</p>
               </div>
             </div>
           </div>
@@ -160,19 +170,19 @@ export class ProfileComponent implements OnInit {
 
     getRoleBadgeColor(): string {
         switch (this.profile?.role) {
-            case 'ADMIN': return 'bg-red-500';
+            case 'ADMIN': return 'bg-rose-500';
             case 'MANAGER': return 'bg-amber-500';
-            case 'TEAM_LEAD': return 'bg-blue-500';
+            case 'TEAM_LEAD': return 'bg-sky-500';
             default: return 'bg-emerald-500';
         }
     }
 
     getRoleClasses(): string {
         switch (this.profile?.role) {
-            case 'ADMIN': return 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300';
-            case 'MANAGER': return 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
-            case 'TEAM_LEAD': return 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
-            default: return 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300';
+            case 'ADMIN': return 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40';
+            case 'MANAGER': return 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40';
+            case 'TEAM_LEAD': return 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40';
+            default: return 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300 border border-surface-200/60 dark:border-surface-700/40';
         }
     }
 

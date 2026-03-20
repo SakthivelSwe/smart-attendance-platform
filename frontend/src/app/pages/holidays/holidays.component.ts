@@ -54,20 +54,20 @@ import { Holiday } from '../../core/models/interfaces';
       </div>
 
       <!-- Modal -->
-      <div *ngIf="showModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+      <div *ngIf="showModal" class="modal-backdrop">
+        <div class="modal-container max-w-md p-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">{{ editingId ? 'Edit' : 'Add' }} Holiday</h3>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Name *</label>
+              <label class="form-label">Name *</label>
               <input type="text" [(ngModel)]="form.name" class="input-field" placeholder="Holiday name"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Date *</label>
+              <label class="form-label">Date *</label>
               <input type="date" [(ngModel)]="form.date" class="input-field"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Description</label>
+              <label class="form-label">Description</label>
               <textarea [(ngModel)]="form.description" rows="3" class="input-field resize-none" placeholder="Optional description"></textarea>
             </div>
             <label class="flex items-center gap-2 cursor-pointer">

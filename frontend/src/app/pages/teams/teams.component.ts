@@ -28,30 +28,30 @@ import { Team, UserInfo } from '../../core/models/interfaces';
       </div>
 
       <!-- Search -->
-      <div class="flex items-center justify-between gap-4 mb-6 bg-surface-50 dark:bg-surface-900/30 p-4 rounded-2xl border border-surface-200 dark:border-surface-700">
+      <div class="flex items-center justify-between gap-4 mb-6 bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)]">
         <div class="relative w-full sm:w-80">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 material-icons text-sm">search</span>
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] material-icons text-sm">search</span>
           <input type="text" [(ngModel)]="searchTerm" placeholder="Search teams..." 
-                 class="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500/50 outline-none transition-all text-sm"/>
+                 class="input-field pl-10"/>
         </div>
-        <div class="text-sm text-surface-500 font-medium">
+        <div class="text-sm text-[var(--text-secondary)] font-semibold font-sans">
           {{ filteredTeams.length }} team{{ filteredTeams.length !== 1 ? 's' : '' }}
         </div>
       </div>
 
       <!-- Skeleton Loaders -->
       <div *ngIf="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div *ngFor="let i of [1,2,3]" class="glass-card p-5 animate-pulse bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm rounded-2xl">
+        <div *ngFor="let i of [1,2,3]" class="card p-5">
           <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-xl bg-surface-200 dark:bg-surface-800"></div>
+            <div class="w-12 h-12 rounded-xl skeleton"></div>
             <div class="space-y-2 flex-1">
-              <div class="h-4 bg-surface-200 dark:bg-surface-800 rounded w-3/4"></div>
-              <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-1/3"></div>
+              <div class="h-4 skeleton rounded-lg w-3/4"></div>
+              <div class="h-3 skeleton rounded-lg w-1/3"></div>
             </div>
           </div>
           <div class="space-y-3">
-            <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-full"></div>
-            <div class="h-3 bg-surface-200 dark:bg-surface-800 rounded w-5/6"></div>
+            <div class="h-3 skeleton rounded-lg w-full"></div>
+            <div class="h-3 skeleton rounded-lg w-5/6"></div>
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@ import { Team, UserInfo } from '../../core/models/interfaces';
       <!-- Teams Grid -->
       <div *ngIf="!isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div *ngFor="let team of filteredTeams; let i = index"
-             class="glass-card relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 shadow-sm hover:shadow-lg rounded-2xl overflow-hidden"
+             class="card relative group hover:-translate-y-1 transition-all duration-300 animate-slide-up overflow-hidden"
              [style.animation-delay]="i * 60 + 'ms'">
           
           <!-- Team Header with gradient -->
@@ -139,37 +139,37 @@ import { Team, UserInfo } from '../../core/models/interfaces';
       </div>
 
       <!-- Create/Edit Modal -->
-      <div *ngIf="showModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
+      <div *ngIf="showModal" class="modal-backdrop">
+        <div class="modal-container max-w-lg p-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">{{ editingId ? 'Edit' : 'Create' }} Team</h3>
           
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team Name *</label>
+                <label class="form-label">Team Name *</label>
                 <input type="text" [(ngModel)]="form.name" class="input-field" placeholder="Java Team"/>
               </div>
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team Code</label>
+                <label class="form-label">Team Code</label>
                 <input type="text" [(ngModel)]="form.teamCode" class="input-field" placeholder="JAVA"/>
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Description</label>
+              <label class="form-label">Description</label>
               <input type="text" [(ngModel)]="form.description" class="input-field" placeholder="Team description..."/>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team Lead</label>
+                <label class="form-label">Team Lead</label>
                 <select [(ngModel)]="form.teamLeadId" class="input-field">
                   <option [ngValue]="null">None</option>
                   <option *ngFor="let u of availableLeads" [ngValue]="u.id">{{ u.name }}</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Manager</label>
+                <label class="form-label">Manager</label>
                 <select [(ngModel)]="form.managerId" class="input-field">
                   <option [ngValue]="null">None</option>
                   <option *ngFor="let u of availableManagers" [ngValue]="u.id">{{ u.name }}</option>
@@ -178,7 +178,7 @@ import { Team, UserInfo } from '../../core/models/interfaces';
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Email Alias</label>
+              <label class="form-label">Email Alias</label>
               <input type="email" [(ngModel)]="form.emailAlias" class="input-field" placeholder="java-team@company.com"/>
             </div>
           </div>

@@ -50,25 +50,25 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
       </div>
 
       <!-- Email fetch result banner -->
-      <div *ngIf="emailMessage" class="mb-4 p-4 rounded-xl text-sm flex items-start gap-3"
-           [ngClass]="emailSuccess ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
+      <div *ngIf="emailMessage" class="mb-4 p-4 rounded-xl text-sm flex items-start gap-3 border animate-scale-in"
+           [ngClass]="emailSuccess ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/40' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40'">
         <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path *ngIf="emailSuccess" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           <path *ngIf="!emailSuccess" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <div>
-          <p class="font-medium">{{ emailMessage }}</p>
+          <p class="font-semibold font-sans">{{ emailMessage }}</p>
         </div>
-        <button (click)="emailMessage = ''" class="ml-auto opacity-50 hover:opacity-100">✕</button>
+        <button (click)="emailMessage = ''" class="ml-auto opacity-40 hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5">✕</button>
       </div>
 
       <!-- Status filter tabs -->
       <div class="flex flex-wrap gap-2 mb-6">
         <button *ngFor="let f of filters"
                 (click)="activeFilter = f.value"
-                CLASS="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200"
-                [ngClass]="activeFilter === f.value ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30' : 'bg-white dark:bg-surface-800 text-[var(--text-secondary)] border border-[var(--border-color)] hover:bg-gray-50 dark:hover:bg-surface-700'">
-          {{ f.label }} ({{ getCount(f.value) }})
+                class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97]"
+                [ngClass]="activeFilter === f.value ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md shadow-primary-500/20 border border-primary-600/20' : 'bg-[var(--card-bg)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:bg-surface-50 dark:hover:bg-surface-800 hover:text-[var(--text-primary)]'">
+          {{ f.label }} <span class="ml-1 opacity-70">({{ getCount(f.value) }})</span>
         </button>
       </div>
 
@@ -123,14 +123,14 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
               <tr *ngIf="isLoading">
                 <td colspan="7" class="p-0">
                   <div class="divide-y divide-[var(--border-color)]">
-                    <div *ngFor="let i of [1,2,3,4,5]" class="px-6 py-4 flex items-center gap-6 animate-pulse">
-                      <div class="w-8 h-8 rounded-full bg-surface-200 dark:bg-surface-700 flex-shrink-0"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-32"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
-                      <div class="h-6 bg-surface-200 dark:bg-surface-700 rounded-full w-24"></div>
-                      <div class="h-5 bg-surface-200 dark:bg-surface-700 rounded w-20"></div>
-                      <div class="h-4 bg-surface-200 dark:bg-surface-700 rounded w-full max-w-[150px]"></div>
+                    <div *ngFor="let i of [1,2,3,4,5]" class="px-6 py-4 flex items-center gap-6">
+                      <div class="w-8 h-8 rounded-full skeleton flex-shrink-0"></div>
+                      <div class="h-4 skeleton rounded-lg w-32"></div>
+                      <div class="h-4 skeleton rounded-lg w-20"></div>
+                      <div class="h-4 skeleton rounded-lg w-20"></div>
+                      <div class="h-6 skeleton rounded-full w-24"></div>
+                      <div class="h-5 skeleton rounded-lg w-20"></div>
+                      <div class="h-4 skeleton rounded-lg w-full max-w-[150px]"></div>
                     </div>
                   </div>
                 </td>
@@ -152,8 +152,8 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
       </div>
 
       <!-- Fetch from Email modal -->
-      <div *ngIf="showEmailModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+      <div *ngIf="showEmailModal" class="modal-backdrop">
+        <div class="modal-container max-w-lg p-6 max-h-[90vh] overflow-y-auto">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-3">
             <span class="flex items-center gap-2">
               <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,8 +319,8 @@ import { LottieComponent, AnimationOptions } from 'ngx-lottie';
       </div>
 
       <!-- Manual paste modal -->
-      <div *ngIf="showProcessModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
+      <div *ngIf="showProcessModal" class="modal-backdrop">
+        <div class="modal-container max-w-lg p-6">
           <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-4">Process WhatsApp Chat</h3>
           <div class="space-y-4">
             <div>
