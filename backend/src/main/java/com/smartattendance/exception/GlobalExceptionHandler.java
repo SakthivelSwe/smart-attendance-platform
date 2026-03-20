@@ -58,6 +58,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        String msg = ex.getMostSpecificCause().getMessage();
+        if (msg != null && msg.toLowerCase().contains("duplicate key") && msg.toLowerCase().contains("email")) {
+            return buildResponse(HttpStatus.BAD_REQUEST, "An employee or user with this email already exists");
+        }
+        return buildResponse(HttpStatus.CONFLICT, "A database conflict occurred: " + (msg != null ? msg : ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred: " + ex.getMessage());
