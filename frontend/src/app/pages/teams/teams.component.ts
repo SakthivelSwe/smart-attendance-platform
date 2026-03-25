@@ -272,8 +272,23 @@ export class TeamsComponent implements OnInit {
   }
 
   deleteTeam(id: number) {
-    if (confirm('Are you sure you want to deactivate this team?')) {
-      this.api.deleteTeam(id).subscribe(() => this.loadTeams());
-    }
+    if (!confirm('Are you sure you want to delete this team?')) return;
+    
+    const isPermanent = confirm(
+      'Do you want to PERMANENTLY delete this team from the database?\n\n' +
+      'Click OK to permanently delete it.\n' +
+      'Click Cancel to perform a Safe Delete (mark as Inactive).'
+    );
+
+    this.api.deleteTeam(id, isPermanent).subscribe({
+      next: () => this.loadTeams(),
+      error: (err) => {
+        if (isPermanent && err.status === 409) {
+          alert('Cannot permanently delete team because employees are assigned to it. Please use Safe Delete or reassign employees first.');
+        } else if (isPermanent && err.status === 400) {
+          alert('Cannot permanently delete team: ' + (err.error?.message || 'Conflict occurred.'));
+        }
+      }
+    });
   }
 }

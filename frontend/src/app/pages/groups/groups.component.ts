@@ -163,8 +163,23 @@ export class GroupsComponent implements OnInit {
   }
 
   deleteGroup(id: number) {
-    if (confirm('Delete this group?')) {
-      this.api.deleteGroup(id).subscribe(() => this.loadGroups());
-    }
+    if (!confirm('Are you sure you want to delete this group?')) return;
+    
+    const isPermanent = confirm(
+      'Do you want to PERMANENTLY delete this group from the database?\n\n' +
+      'Click OK to permanently delete it.\n' +
+      'Click Cancel to perform a Safe Delete (mark as Inactive).'
+    );
+
+    this.api.deleteGroup(id, isPermanent).subscribe({
+      next: () => this.loadGroups(),
+      error: (err) => {
+        if (isPermanent && err.status === 409) {
+          alert('Cannot permanently delete group because employees are assigned to it. Please use Safe Delete or reassign employees first.');
+        } else if (isPermanent && err.status === 400) {
+          alert('Cannot permanently delete group: ' + (err.error?.message || 'Conflict occurred.'));
+        }
+      }
+    });
   }
 }

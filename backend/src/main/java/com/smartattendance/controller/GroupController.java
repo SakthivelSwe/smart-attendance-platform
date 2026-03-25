@@ -47,8 +47,9 @@ public class GroupController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-002 fix
-    public ResponseEntity<Void> deleteGroup(@PathVariable("id") Long id) {
-        groupService.deleteGroup(id);
+    public ResponseEntity<Void> deleteGroup(@PathVariable("id") Long id,
+                                            @RequestParam(value = "permanent", defaultValue = "false") boolean permanent) {
+        groupService.deleteGroup(id, permanent);
         return ResponseEntity.noContent().build();
     }
 }

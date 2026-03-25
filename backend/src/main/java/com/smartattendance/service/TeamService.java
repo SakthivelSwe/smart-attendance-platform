@@ -134,12 +134,21 @@ public class TeamService {
     }
 
     @Transactional
-    public void deleteTeam(Long id) {
+    public void deleteTeam(Long id, boolean permanent) {
         Team team = teamRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Team", "id", id));
-        team.setIsActive(false);
-        teamRepository.save(team);
-        logger.info("Team soft-deleted: {}", team.getName());
+        if (permanent) {
+            long count = employeeRepository.countByTeamId(team.getId());
+            if (count > 0) {
+               throw new IllegalArgumentException("Cannot permanently delete team because " + count + " employees are assigned to it.");
+            }
+            teamRepository.delete(team);
+            logger.info("Team permanently deleted: {}", team.getName());
+        } else {
+            team.setIsActive(false);
+            teamRepository.save(team);
+            logger.info("Team soft-deleted (inactive): {}", team.getName());
+        }
     }
 
     private TeamDTO toDTO(Team team) {

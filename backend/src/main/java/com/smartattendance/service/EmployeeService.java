@@ -155,11 +155,15 @@ public class EmployeeService {
 
     @Transactional
     @CacheEvict(value = { "employees", "activeEmployees", "dashboardStats" }, allEntries = true)
-    public void deleteEmployee(Long id) {
+    public void deleteEmployee(Long id, boolean permanent) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
-        employee.setIsActive(false); // Soft delete
-        employeeRepository.save(employee);
+        if (permanent) {
+            employeeRepository.delete(employee);
+        } else {
+            employee.setIsActive(false); // Soft delete
+            employeeRepository.save(employee);
+        }
     }
 
     private EmployeeDTO toDTO(Employee employee) {
