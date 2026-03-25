@@ -19,6 +19,14 @@ import { Employee, Group, Team } from '../../core/models/interfaces';
         <!-- BUG-006 fix: MANAGER+ can add/import employees -->
         <div class="flex items-center gap-3" *ngIf="authService.isManager">
           <input type="file" #fileInput (change)="onFileSelected($event)" accept=".csv" class="hidden">
+          <button (click)="downloadTemplate()" class="btn-secondary flex items-center gap-2" title="Download CSV template with correct format">
+            <span class="material-icons text-[18px]">description</span>
+            Template
+          </button>
+          <button (click)="exportCsv()" class="btn-secondary flex items-center gap-2">
+            <span class="material-icons text-[18px]">download</span>
+            Export CSV
+          </button>
           <button (click)="fileInput.click()" class="btn-secondary flex items-center gap-2">
             <span class="material-icons text-[18px]">publish</span>
             Import CSV
@@ -345,5 +353,33 @@ export class EmployeesComponent implements OnInit {
       }
     }
     event.target.value = null; // reset
+  }
+
+  exportCsv() {
+    this.api.exportEmployeesCsv().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'employees.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => alert('Export failed: ' + err.message)
+    });
+  }
+
+  downloadTemplate() {
+    this.api.downloadCsvTemplate().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'employee-import-template.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => alert('Download failed: ' + err.message)
+    });
   }
 }

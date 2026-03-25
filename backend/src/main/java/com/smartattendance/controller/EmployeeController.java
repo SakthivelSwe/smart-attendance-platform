@@ -5,7 +5,9 @@ import com.smartattendance.service.EmployeeService;
 import com.smartattendance.service.EmployeeBulkService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,26 @@ public class EmployeeController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-006 fix
     public ResponseEntity<String> importEmployees(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(employeeBulkService.importEmployeesCsv(file));
+    }
+
+    @GetMapping("/export-csv")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<byte[]> exportEmployeesCsv() {
+        byte[] csv = employeeBulkService.exportEmployeesCsv();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"employees.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
+    }
+
+    @GetMapping("/csv-template")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<byte[]> downloadCsvTemplate() {
+        byte[] template = employeeBulkService.generateCsvTemplate();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"employee-import-template.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(template);
     }
 
     @GetMapping
