@@ -233,6 +233,7 @@ public class GmailService {
 
             // Iterate from newest to oldest to find the first one with a valid chat
             // attachment
+            EmailData bestResult = null;
             for (int i = messages.length - 1; i >= 0; i--) {
                 Message msg = messages[i];
                 logger.info("Checking email {}/{}: Subject='{}', Date={}",
@@ -243,13 +244,48 @@ public class GmailService {
                     if (emailData != null && (emailData.getChatText() != null && !emailData.getChatText().isBlank())) {
                         logger.info("Found valid chat attachment in email: {}", msg.getSubject());
                         logger.info("Extracted chat text ({} characters)", emailData.getChatText().length());
-                        return emailData;
+                        bestResult = emailData;
+                        break;
                     } else {
                         logger.warn("No chat text found in email: {}. Checking next...", msg.getSubject());
                     }
                 } catch (Exception e) {
                     logger.error("Error extracting from email {}: {}", msg.getSubject(), e.getMessage());
                 }
+            }
+
+            // If we found chat text but no VCF, search for the most recent VCF in the
+            // entire inbox (no date filter — VCF contacts rarely change)
+            if (bestResult != null && bestResult.getVcfText() == null) {
+                logger.info("Chat found but VCF missing. Searching for most recent VCF in inbox...");
+                try {
+                    // Search all emails for .vcf attachments (no date restriction)
+                    Message[] allMessages = inbox.search(new SubjectTerm(""));
+                    // Scan from newest to oldest, limited to last 50 emails for performance
+                    int scanStart = Math.max(0, allMessages.length - 50);
+                    for (int i = allMessages.length - 1; i >= scanStart; i--) {
+                        try {
+                            EmailData vcfData = extractEmailData(allMessages[i]);
+                            if (vcfData != null && vcfData.getVcfText() != null && !vcfData.getVcfText().isBlank()) {
+                                logger.info("Found VCF from previous email (reusing most recent VCF). Subject: {}",
+                                        allMessages[i].getSubject());
+                                bestResult.setVcfText(vcfData.getVcfText());
+                                break;
+                            }
+                        } catch (Exception e) {
+                            // Skip problematic emails
+                        }
+                    }
+                    if (bestResult.getVcfText() == null) {
+                        logger.info("No VCF files found in recent inbox emails.");
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to search for VCF fallback: {}", e.getMessage());
+                }
+            }
+
+            if (bestResult != null) {
+                return bestResult;
             }
 
             logger.warn("No valid chat attachment found in any of the {} matching emails.", messages.length);

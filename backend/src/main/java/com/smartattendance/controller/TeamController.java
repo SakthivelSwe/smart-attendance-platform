@@ -68,8 +68,9 @@ public class TeamController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-003 fix
-    public ResponseEntity<Void> deleteTeam(@PathVariable("id") Long id) {
-        teamService.deleteTeam(id);
+    public ResponseEntity<Void> deleteTeam(@PathVariable("id") Long id,
+                                           @RequestParam(value = "permanent", defaultValue = "false") boolean permanent) {
+        teamService.deleteTeam(id, permanent);
         return ResponseEntity.noContent().build();
     }
 }

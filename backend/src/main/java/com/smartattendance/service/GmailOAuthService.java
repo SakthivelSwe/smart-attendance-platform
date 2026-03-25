@@ -228,13 +228,14 @@ public class GmailOAuthService {
             logger.info("No emails found matching chat query '{}'.", chatQuery);
         }
 
-        // 2. If VCF is still missing, search for loose VCF files in recent emails
+        // 2. If VCF is still missing, search for the MOST RECENT VCF file in the entire inbox
+        //    (no date filter — VCF contacts rarely change, so we reuse the latest one available)
         if (finalData.getVcfText() == null) {
-            String vcfQuery = "filename:vcf after:" + dateStr;
-            logger.info("VCF missing from chat email. Querying Gmail API for loose VCF: {}", vcfQuery);
+            String vcfQuery = "filename:vcf";
+            logger.info("VCF missing from chat email. Searching for most recent VCF in inbox: {}", vcfQuery);
             
             com.google.api.services.gmail.model.ListMessagesResponse vcfListResponse = gmailService.users().messages()
-                    .list(userId).setQ(vcfQuery).execute();
+                    .list(userId).setQ(vcfQuery).setMaxResults(5L).execute();
                     
             java.util.List<Message> vcfMessages = vcfListResponse.getMessages();
             if (vcfMessages != null && !vcfMessages.isEmpty()) {
@@ -244,13 +245,13 @@ public class GmailOAuthService {
 
                     EmailData data = extractEmailDataFromGmailMessage(gmailService, userId, msg);
                     if (data != null && data.getVcfText() != null) {
-                        logger.info("Found loose VCF file in a separate email.");
+                        logger.info("Found VCF file from a previous email (reusing most recent VCF).");
                         finalData.setVcfText(data.getVcfText());
                         break;
                     }
                 }
             } else {
-                logger.info("No loose VCF emails found matching query '{}'.", vcfQuery);
+                logger.info("No VCF emails found in inbox.");
             }
         }
 

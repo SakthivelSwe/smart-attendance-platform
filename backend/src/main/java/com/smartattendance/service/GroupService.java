@@ -71,11 +71,19 @@ public class GroupService {
     }
 
     @Transactional
-    public void deleteGroup(Long id) {
+    public void deleteGroup(Long id, boolean permanent) {
         AttendanceGroup group = groupRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Group", "id", id));
-        group.setIsActive(false);
-        groupRepository.save(group);
+        if (permanent) {
+            long count = employeeRepository.findByGroupId(group.getId()).size();
+            if (count > 0) {
+               throw new IllegalArgumentException("Cannot permanently delete group because " + count + " employees are assigned to it.");
+            }
+            groupRepository.delete(group);
+        } else {
+            group.setIsActive(false);
+            groupRepository.save(group);
+        }
     }
 
     private GroupDTO toDTO(AttendanceGroup group) {

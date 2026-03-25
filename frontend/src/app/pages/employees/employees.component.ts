@@ -334,9 +334,24 @@ export class EmployeesComponent implements OnInit {
   }
 
   deleteEmployee(id: number) {
-    if (confirm('Are you sure you want to deactivate this employee?')) {
-      this.api.deleteEmployee(id).subscribe(() => this.loadEmployees());
-    }
+    if (!confirm('Are you sure you want to delete this employee?')) return;
+    
+    const isPermanent = confirm(
+      'Do you want to PERMANENTLY delete this employee from the database?\n\n' +
+      'Click OK to permanently delete it (Ensure they have no existing attendance logs).\n' +
+      'Click Cancel to perform a Safe Delete (mark as Inactive).'
+    );
+
+    this.api.deleteEmployee(id, isPermanent).subscribe({
+      next: () => this.loadEmployees(),
+      error: (err) => {
+        if (isPermanent && err.status === 409) {
+          alert('Cannot permanently delete employee because they have existing records (like attendance). Please use Safe Delete instead.');
+        } else if (isPermanent && err.status === 400) {
+          alert('Cannot permanently delete employee: ' + (err.error?.message || 'Conflict occurred.'));
+        }
+      }
+    });
   }
 
   onFileSelected(event: any) {

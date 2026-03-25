@@ -89,8 +89,9 @@ public class EmployeeController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')") // BUG-006 fix
-    public ResponseEntity<Void> deleteEmployee(@PathVariable("id") Long id) {
-        employeeService.deleteEmployee(id);
+    public ResponseEntity<Void> deleteEmployee(@PathVariable("id") Long id,
+                                               @RequestParam(value = "permanent", defaultValue = "false") boolean permanent) {
+        employeeService.deleteEmployee(id, permanent);
         return ResponseEntity.noContent().build();
     }
 }

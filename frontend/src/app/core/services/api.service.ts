@@ -48,8 +48,8 @@ export class ApiService {
     updateEmployee(id: number, emp: Partial<Employee>): Observable<Employee> {
         return this.http.put<Employee>(`${this.api}/employees/${id}`, emp);
     }
-    deleteEmployee(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.api}/employees/${id}`);
+    deleteEmployee(id: number, permanent: boolean = false): Observable<void> {
+        return this.http.delete<void>(`${this.api}/employees/${id}?permanent=${permanent}`);
     }
 
     // Attendance
@@ -140,8 +140,8 @@ export class ApiService {
     updateGroup(id: number, group: Partial<Group>): Observable<Group> {
         return this.http.put<Group>(`${this.api}/groups/${id}`, group);
     }
-    deleteGroup(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.api}/groups/${id}`);
+    deleteGroup(id: number, permanent: boolean = false): Observable<void> {
+        return this.http.delete<void>(`${this.api}/groups/${id}?permanent=${permanent}`);
     }
 
     // Summary
@@ -202,8 +202,8 @@ export class ApiService {
     updateTeam(id: number, team: Partial<Team>): Observable<Team> {
         return this.http.put<Team>(`${this.api}/teams/${id}`, team);
     }
-    deleteTeam(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.api}/teams/${id}`);
+    deleteTeam(id: number, permanent: boolean = false): Observable<void> {
+        return this.http.delete<void>(`${this.api}/teams/${id}?permanent=${permanent}`);
     }
     getEmployeesByTeam(teamId: number): Observable<Employee[]> {
         return this.http.get<Employee[]>(`${this.api}/employees/team/${teamId}`);
