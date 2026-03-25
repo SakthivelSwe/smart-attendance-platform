@@ -289,6 +289,12 @@ export class ApiService {
         formData.append('file', file);
         return this.http.post(`${this.api}/employees/bulk-import`, formData, { responseType: 'text' });
     }
+    exportEmployeesCsv(): Observable<Blob> {
+        return this.http.get(`${this.api}/employees/export-csv`, { responseType: 'blob' });
+    }
+    downloadCsvTemplate(): Observable<Blob> {
+        return this.http.get(`${this.api}/employees/csv-template`, { responseType: 'blob' });
+    }
 
     // Phase 6
     getAuditLogs(page: number, size: number): Observable<any> {
